@@ -6,6 +6,10 @@ A lightweight, offline-friendly match tracker built for youth soccer coaches, pa
 
 ---
 
+<p align="center">
+🚀 [Open the live app](https://creativeacer.github.io/matchday-tracker/)
+</p>
+
 ## ✨ What It Does
 
 Matchday Tracker turns your phone into a simple match-day companion:
