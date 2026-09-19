@@ -2,6 +2,8 @@
 
 A simple, offline-friendly score tracker for youth soccer matches. Single self-contained HTML file — no backend, no build step, no dependencies beyond Google Fonts.
 
+Live app: [Open the live app](https://creativeacer.github.io/matchday-tracker/)
+
 ## Features
 - Roster setup (name + shirt number), reusable every match
 - Tap a player to log a goal, with optional assists, cards, and playing-time tracking
