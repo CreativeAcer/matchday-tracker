@@ -141,7 +141,7 @@
   }
   .score-sep { font-family: var(--font-display); font-size: 22px; opacity: 0.5; margin-top: -6px; }
 
-  main.screen { flex: 1; padding: 16px 14px 40px; max-width: 640px; width: 100%; margin: 0 auto; }
+  main.screen { flex: 1; padding: 16px 14px 100px; max-width: 640px; width: 100%; margin: 0 auto; }
   .hidden { display: none !important; }
 
   h1.screen-title {
@@ -284,6 +284,8 @@
     color: #fff;
   }
   .field-badge.off { background: var(--chalk-dim); color: var(--ink-soft); }
+  .field-badge.sent-off-badge { background: var(--red); color: #fff; }
+  .field-badge:disabled { opacity: 0.85; }
   .tile:active { background: var(--chalk-dim); }
   .tile.just-scored { animation: pulse-gold 0.5s ease; }
   @media (prefers-reduced-motion: reduce) { .tile.just-scored { animation: none; } }
@@ -302,9 +304,14 @@
   }
   .tile-goals { font-size: 11px; color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
   .tile-controls { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
-  .mini-card { width: 16px; height: 20px; border-radius: 3px; border: 1px solid var(--line); background: var(--chalk-dim); }
-  .mini-card.card-yellow { background: var(--yellow-card); border-color: var(--gold-deep); }
-  .mini-card.card-red { background: var(--red); border-color: #7a2620; }
+  .mini-card { width: 18px; height: 22px; border-radius: 3px; border: 1px solid var(--line); }
+  .mini-card.yellow-btn { background: rgba(232,201,61,0.4); border-color: rgba(185,127,34,0.55); }
+  .mini-card.yellow-btn.card-yellow { background: var(--yellow-card); border-color: var(--gold-deep); }
+  .mini-card.red-btn { background: rgba(193,68,59,0.4); border-color: rgba(122,38,32,0.55); }
+  .mini-card.red-btn.card-red { background: var(--red); border-color: #7a2620; }
+  .mini-card:disabled { opacity: 0.4; }
+  .tile.sent-off { opacity: 0.6; }
+  .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red); }
   .confirm-msg { font-size: 15px; line-height: 1.5; padding: 8px 4px 0; }
 
   .opp-goal-btn {
@@ -338,15 +345,23 @@
     color: var(--pitch-dark);
   }
   .assist-chip:active { background: rgba(22,33,26,0.22); }
+  .assist-chip.chip-selected { background: var(--pitch); color: var(--chalk); }
 
   .event-log { margin-top: 4px; }
   .event-row {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; align-items: center; gap: 8px;
     padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px;
   }
   .event-row:last-child { border-bottom: none; }
   .event-minute { font-family: var(--font-display); color: var(--ink-soft); width: 34px; flex-shrink: 0; }
   .event-desc { flex: 1; }
+  .event-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .event-edit, .event-delete {
+    background: none; border: none; color: var(--ink-soft);
+    font-size: 13px; padding: 6px; flex-shrink: 0;
+  }
+  .event-edit:active { color: var(--pitch); }
+  .event-delete:active { color: var(--red); }
   .empty-state { color: var(--ink-soft); font-size: 13.5px; padding: 10px 2px; }
 
   .end-match-btn { margin-top: 22px; }
@@ -396,23 +411,83 @@
     background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
     padding: 10px 8px calc(14px + env(safe-area-inset-bottom, 0px));
   }
-  .sheet-item {
-    width: 100%; text-align: left; background: none; border: none;
-    padding: 15px 12px; font-size: 16px; font-weight: 600; color: var(--ink);
-    border-radius: 10px; display: flex; align-items: center; gap: 10px;
+  .help-sheet {
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    padding-left: 0; padding-right: 0;
   }
-  .sheet-item:active { background: var(--chalk-dim); }
-  .sheet-item .si-check { margin-left: auto; color: var(--turf); font-weight: 700; }
-  .sheet-divider { height: 1px; background: var(--line); margin: 6px 4px; }
+  .help-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 16px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+  }
+  .help-header h2 { margin: 0; }
+  .help-body {
+    overflow-y: auto;
+    padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .help-section { margin-bottom: 18px; }
+  .help-section:last-child { margin-bottom: 0; }
+  .help-section h3 {
+    font-family: var(--font-display); font-weight: 600; font-size: 15px;
+    margin: 0 0 6px; color: var(--pitch);
+  }
+  .help-section p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
+  .help-section p:last-child { margin-bottom: 0; }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    display: flex;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 8px 4px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--ink-soft);
+  }
+  .tab-btn .tab-icon { font-size: 20px; line-height: 1; }
+  .tab-btn .tab-label { font-size: 11px; font-weight: 600; }
+  .tab-btn.active { color: var(--pitch); }
+  .tab-btn:active { background: var(--chalk-dim); }
 
   .file-input-hidden { display: none; }
 
   .toast {
-    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%); background: var(--pitch-dark); color: var(--chalk);
-    padding: 11px 18px; border-radius: 30px; font-size: 13.5px; z-index: 50;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    position: fixed;
+    left: 16px; right: 16px;
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    margin: 0 auto;
+    max-width: 420px;
+    text-align: center;
+    padding: 16px 20px;
+    border-radius: 16px;
+    font-size: 15.5px;
+    font-weight: 700;
+    line-height: 1.4;
+    z-index: 50;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    animation: toast-in 0.22s ease-out;
   }
+  @keyframes toast-in {
+    0% { opacity: 0; transform: translateY(14px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+  .toast-success { background: var(--turf); color: #fff; }
+  .toast-warning { background: var(--gold); color: var(--pitch-dark); box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 3px var(--gold-deep) inset; }
+  .toast-error { background: var(--red); color: #fff; }
 
   ::-webkit-scrollbar { display: none; }
 </style>
@@ -420,7 +495,7 @@
 <body>
 <div id="app">
   <header class="topbar">
-    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <button class="icon-btn" id="helpBtn" aria-label="How to use this app">❓</button>
     <button class="clock-btn" id="clockBtn">
       <span class="clock-time" id="clockTime">00:00</span>
       <span class="clock-state" id="clockState">No match yet</span>
@@ -443,16 +518,18 @@
   <main class="screen" id="matchScreen"></main>
   <main class="screen hidden" id="teamScreen"></main>
   <main class="screen hidden" id="historyScreen"></main>
-</div>
 
-<div class="overlay hidden" id="menuOverlay">
-  <div class="sheet">
-    <button class="sheet-item" data-nav="match">⚽ <span>Match</span></button>
-    <button class="sheet-item" data-nav="team">👥 <span>Team &amp; settings</span></button>
-    <button class="sheet-item" data-nav="history">📋 <span>History &amp; export</span></button>
-    <div class="sheet-divider"></div>
-    <button class="sheet-item" id="menuCloseBtn"><span>Close</span></button>
-  </div>
+  <nav class="bottom-nav">
+    <button class="tab-btn" data-nav="match" id="tabMatch">
+      <span class="tab-icon">⚽</span><span class="tab-label">Match</span>
+    </button>
+    <button class="tab-btn" data-nav="team" id="tabTeam">
+      <span class="tab-icon">👥</span><span class="tab-label">Team</span>
+    </button>
+    <button class="tab-btn" data-nav="history" id="tabHistory">
+      <span class="tab-icon">📋</span><span class="tab-label">History</span>
+    </button>
+  </nav>
 </div>
 
 <input type="file" accept="application/json,.json" class="file-input-hidden" id="importFileInput">
@@ -498,7 +575,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.error("Save failed", e);
-      showToast("Couldn't save — storage may be full or unavailable.");
+      showToast("Couldn't save — storage may be full or unavailable.", "error");
     }
   }
 
@@ -650,20 +727,20 @@
         showToast("Copied — paste it into your group chat.");
         cleanup();
       } else {
-        showToast("Still couldn't copy automatically — select the text and copy manually.");
+        showToast("Still couldn't copy automatically — select the text and copy manually.", "error");
       }
     };
   }
 
-  function showToast(msg) {
+  function showToast(msg, type) {
     var existing = document.getElementById("toastEl");
     if (existing) existing.remove();
     var t = document.createElement("div");
-    t.className = "toast";
+    t.className = "toast toast-" + (type || "success");
     t.id = "toastEl";
     t.textContent = msg;
     document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, 2600);
+    setTimeout(function () { t.remove(); }, 3200);
   }
 
   function esc(str) {
@@ -693,9 +770,72 @@
     overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
   }
 
+  function showHelp() {
+    var old = document.getElementById("helpOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "helpOverlay";
+    var sections = [
+      ["Set up your team", "Go to <strong>Team</strong> and add each player's name and shirt number. This only needs doing once — it's saved on this device for every future match."],
+      ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
+      ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
+      ["Start the clock", "Tap the timer at the top to start it. You can't log goals or cards until the clock is running — this keeps every event's minute accurate."],
+      ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed button below the grid for the opponent's goals."],
+      ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake."],
+      ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
+      ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
+      ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report you can copy and share."],
+      ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a Copy button on each match to re-share its report."],
+      ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file another parent or coach can load with <strong>Import team data</strong> — no retyping the roster."]
+    ];
+    var body = sections.map(function (s) {
+      return '<div class="help-section"><h3>' + esc(s[0]) + "</h3><p>" + s[1] + "</p></div>";
+    }).join("");
+    overlay.innerHTML =
+      '<div class="sheet help-sheet">' +
+        '<div class="help-header"><h2 class="section-title">How to use this app</h2><button class="icon-btn" id="helpCloseBtn" aria-label="Close">✕</button></div>' +
+        '<div class="help-body">' + body + "</div>" +
+      "</div>";
+    document.body.appendChild(overlay);
+    function cleanup() { overlay.remove(); }
+    document.getElementById("helpCloseBtn").onclick = cleanup;
+    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+  }
+
   function isOnField(match, playerId) {
     var pt = match.playingTime[playerId];
     return pt ? !!pt.onField : true;
+  }
+
+  function cardCounts(match, playerId) {
+    var yellows = 0, reds = 0;
+    match.events.forEach(function (e) {
+      if (e.type === "card" && e.playerId === playerId) {
+        if (e.cardType === "yellow") yellows++;
+        else if (e.cardType === "red") reds++;
+      }
+    });
+    return { yellows: yellows, reds: reds };
+  }
+
+  function hasRedCard(match, playerId) {
+    return cardCounts(match, playerId).reds > 0;
+  }
+
+  function setOnField(match, playerId, onField) {
+    if (!match.playingTime[playerId]) match.playingTime[playerId] = { onField: true, accumMs: 0, onSince: clockElapsedMs(match) };
+    var pt = match.playingTime[playerId];
+    if (pt.onField === onField) return;
+    var nowMs = clockElapsedMs(match);
+    if (pt.onField && !onField) {
+      pt.accumMs += (nowMs - pt.onSince);
+      pt.onField = false;
+      pt.onSince = null;
+    } else if (!pt.onField && onField) {
+      pt.onField = true;
+      pt.onSince = nowMs;
+    }
   }
 
   // ---------- match lifecycle ----------
@@ -760,14 +900,33 @@
     render();
   }
 
+  var lastEventTapAt = {};
+
+  function guardDoubleTap(key) {
+    var now = Date.now();
+    if (lastEventTapAt[key] && (now - lastEventTapAt[key]) < 800) return false;
+    lastEventTapAt[key] = now;
+    return true;
+  }
+
+  function requireClockRunning(match) {
+    if (!match.clock.running) {
+      showToast("Start the clock first — tap the timer at the top.", "warning");
+      return false;
+    }
+    return true;
+  }
+
   function logGoal(playerId) {
     var match = state.activeMatch;
     if (!match) return;
     if (!isOnField(match, playerId)) {
       var benched = rosterById(playerId);
-      showToast((benched ? benched.name : "This player") + " is on the bench — bring them on first.");
+      showToast((benched ? benched.name : "This player") + " is on the bench — bring them on first.", "warning");
       return;
     }
+    if (!requireClockRunning(match)) return;
+    if (!guardDoubleTap("goal:" + playerId)) return;
     var ev = { id: uid(), type: "goal", playerId: playerId, assistId: null, minuteAtEvent: currentMinute(match), ts: Date.now() };
     match.events.push(ev);
     persist();
@@ -801,6 +960,8 @@
   function logOpponentGoal() {
     var match = state.activeMatch;
     if (!match) return;
+    if (!requireClockRunning(match)) return;
+    if (!guardDoubleTap("opponent-goal")) return;
     match.events.push({ id: uid(), type: "opponent_goal", playerId: null, minuteAtEvent: currentMinute(match), ts: Date.now() });
     persist();
     render();
@@ -809,7 +970,25 @@
   function toggleCard(playerId, cardType) {
     var match = state.activeMatch;
     if (!match) return;
+    var player = rosterById(playerId);
+    if (hasRedCard(match, playerId)) {
+      showToast((player ? player.name : "This player") + " is already sent off.", "warning");
+      return;
+    }
+    if (!requireClockRunning(match)) return;
+    if (!guardDoubleTap("card:" + playerId + ":" + cardType)) return;
     match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: cardType, minuteAtEvent: currentMinute(match), ts: Date.now() });
+
+    var counts = cardCounts(match, playerId);
+    var sentOff = cardType === "red";
+    if (cardType === "yellow" && counts.yellows >= 2) {
+      match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: "red", minuteAtEvent: currentMinute(match), ts: Date.now() });
+      sentOff = true;
+    }
+    if (sentOff) {
+      setOnField(match, playerId, false);
+      showToast((player ? player.name : "Player") + " is sent off" + (cardType === "yellow" ? " — second yellow" : "") + ".", "warning");
+    }
     persist();
     render();
   }
@@ -817,28 +996,201 @@
   function toggleField(playerId) {
     var match = state.activeMatch;
     if (!match) return;
-    if (!match.playingTime[playerId]) match.playingTime[playerId] = { onField: true, accumMs: 0, onSince: clockElapsedMs(match) };
-    var pt = match.playingTime[playerId];
-    var nowMs = clockElapsedMs(match);
-    if (pt.onField) {
-      pt.accumMs += (nowMs - pt.onSince);
-      pt.onField = false;
-      pt.onSince = null;
-    } else {
-      pt.onField = true;
-      pt.onSince = nowMs;
+    if (hasRedCard(match, playerId)) {
+      var player = rosterById(playerId);
+      showToast((player ? player.name : "This player") + " is sent off and can't return to the pitch.", "warning");
+      return;
     }
+    setOnField(match, playerId, !isOnField(match, playerId));
     persist();
     render();
+  }
+
+  function describeEvent(ev) {
+    if (ev.type === "goal") {
+      var p = rosterById(ev.playerId);
+      return "goal by " + (p ? p.name : "player");
+    }
+    if (ev.type === "opponent_goal") return "opponent goal";
+    if (ev.type === "card") {
+      var c = rosterById(ev.playerId);
+      return (ev.cardType === "red" ? "red card" : "yellow card") + (c ? " — " + c.name : "");
+    }
+    return "last action";
   }
 
   function undoLast() {
     var match = state.activeMatch;
     if (!match || match.events.length === 0) return;
-    match.events.pop();
+    var removed = match.events.pop();
     pendingAssistEventId = null;
+    lastEventTapAt = {};
     persist();
     render();
+    showToast("Removed: " + describeEvent(removed));
+  }
+
+  function deleteEvent(eventId) {
+    var match = state.activeMatch;
+    if (!match) return;
+    var idx = -1;
+    for (var i = 0; i < match.events.length; i++) {
+      if (match.events[i].id === eventId) { idx = i; break; }
+    }
+    if (idx === -1) return;
+    var removed = match.events.splice(idx, 1)[0];
+    if (pendingAssistEventId === eventId) pendingAssistEventId = null;
+    lastEventTapAt = {};
+    persist();
+    render();
+    showToast("Removed: " + describeEvent(removed));
+  }
+
+  function reconcileCardConsequences(match, playerIds) {
+    var seen = {};
+    playerIds.forEach(function (pid) {
+      if (!pid || seen[pid]) return;
+      seen[pid] = true;
+      var counts = cardCounts(match, pid);
+      if (counts.yellows >= 2 && counts.reds === 0) {
+        match.events.push({ id: uid(), type: "card", playerId: pid, cardType: "red", minuteAtEvent: currentMinute(match), ts: Date.now() });
+        counts.reds = 1;
+      }
+      if (counts.reds > 0) setOnField(match, pid, false);
+    });
+  }
+
+  function findEvent(match, eventId) {
+    for (var i = 0; i < match.events.length; i++) {
+      if (match.events[i].id === eventId) return match.events[i];
+    }
+    return null;
+  }
+
+  function applyGoalEdit(eventId, newPlayerId, newAssistId) {
+    var match = state.activeMatch;
+    if (!match) return;
+    var ev = findEvent(match, eventId);
+    if (!ev) return;
+    ev.playerId = newPlayerId;
+    ev.assistId = newAssistId || null;
+    persist();
+    render();
+    showToast("Updated: " + describeEvent(ev));
+  }
+
+  function applyCardEdit(eventId, newPlayerId, newCardType) {
+    var match = state.activeMatch;
+    if (!match) return;
+    var ev = findEvent(match, eventId);
+    if (!ev) return;
+    var oldPlayerId = ev.playerId;
+    ev.playerId = newPlayerId;
+    ev.cardType = newCardType;
+    reconcileCardConsequences(match, [oldPlayerId, newPlayerId]);
+    persist();
+    render();
+    showToast("Updated: " + describeEvent(ev));
+  }
+
+  function showEditEvent(eventId) {
+    var match = state.activeMatch;
+    if (!match) return;
+    var ev = findEvent(match, eventId);
+    if (!ev || (ev.type !== "goal" && ev.type !== "card")) return;
+
+    var old = document.getElementById("editOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "editOverlay";
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    overlay.onclick = function (e) { if (e.target === overlay) close(); };
+
+    if (ev.type === "goal") {
+      var selScorer = ev.playerId;
+      var selAssist = ev.assistId || null;
+      var draw = function () {
+        var scorerChips = state.roster.map(function (p) {
+          return '<button class="assist-chip' + (p.id === selScorer ? " chip-selected" : "") + '" data-pick-scorer="' + p.id + '">' + esc(p.name) + "</button>";
+        }).join("");
+        var assistSection = "";
+        if (state.settings.trackAssists) {
+          var assistChips =
+            state.roster.filter(function (p) { return p.id !== selScorer; }).map(function (p) {
+              return '<button class="assist-chip' + (p.id === selAssist ? " chip-selected" : "") + '" data-pick-assist="' + p.id + '">' + esc(p.name) + "</button>";
+            }).join("") +
+            '<button class="assist-chip' + (!selAssist ? " chip-selected" : "") + '" data-pick-assist="none">No assist</button>';
+          assistSection = '<label class="field-label" style="margin-top:14px;">Assist</label><div class="assist-chip-row">' + assistChips + "</div>";
+        }
+        overlay.innerHTML =
+          '<div class="sheet">' +
+            '<div class="confirm-msg"><strong>Edit goal</strong></div>' +
+            '<label class="field-label" style="margin-top:10px;">Scorer</label>' +
+            '<div class="assist-chip-row">' + scorerChips + "</div>" +
+            assistSection +
+            '<div class="btn-row" style="margin-top:16px;">' +
+              '<button class="btn btn-ghost" id="editCancelBtn">Cancel</button>' +
+              '<button class="btn btn-primary" id="editSaveBtn">Save</button>' +
+            "</div>" +
+          "</div>";
+        overlay.querySelectorAll("[data-pick-scorer]").forEach(function (btn) {
+          btn.onclick = function () {
+            selScorer = btn.getAttribute("data-pick-scorer");
+            if (selAssist === selScorer) selAssist = null;
+            draw();
+          };
+        });
+        overlay.querySelectorAll("[data-pick-assist]").forEach(function (btn) {
+          btn.onclick = function () {
+            var v = btn.getAttribute("data-pick-assist");
+            selAssist = v === "none" ? null : v;
+            draw();
+          };
+        });
+        document.getElementById("editCancelBtn").onclick = close;
+        document.getElementById("editSaveBtn").onclick = function () {
+          close();
+          applyGoalEdit(eventId, selScorer, selAssist);
+        };
+      };
+      draw();
+    } else {
+      var selPlayer = ev.playerId;
+      var selType = ev.cardType;
+      var drawCard = function () {
+        var playerChips = state.roster.map(function (p) {
+          return '<button class="assist-chip' + (p.id === selPlayer ? " chip-selected" : "") + '" data-pick-player="' + p.id + '">' + esc(p.name) + "</button>";
+        }).join("");
+        overlay.innerHTML =
+          '<div class="sheet">' +
+            '<div class="confirm-msg"><strong>Edit card</strong></div>' +
+            '<label class="field-label" style="margin-top:10px;">Player</label>' +
+            '<div class="assist-chip-row">' + playerChips + "</div>" +
+            '<label class="field-label" style="margin-top:14px;">Card</label>' +
+            '<div class="btn-row" style="margin-bottom:4px;">' +
+              '<button class="btn toggle-seg' + (selType === "yellow" ? " on" : "") + '" id="pickYellowBtn">Yellow</button>' +
+              '<button class="btn toggle-seg' + (selType === "red" ? " on" : "") + '" id="pickRedBtn">Red</button>' +
+            "</div>" +
+            '<div class="btn-row" style="margin-top:16px;">' +
+              '<button class="btn btn-ghost" id="editCancelBtn">Cancel</button>' +
+              '<button class="btn btn-primary" id="editSaveBtn">Save</button>' +
+            "</div>" +
+          "</div>";
+        overlay.querySelectorAll("[data-pick-player]").forEach(function (btn) {
+          btn.onclick = function () { selPlayer = btn.getAttribute("data-pick-player"); drawCard(); };
+        });
+        document.getElementById("pickYellowBtn").onclick = function () { selType = "yellow"; drawCard(); };
+        document.getElementById("pickRedBtn").onclick = function () { selType = "red"; drawCard(); };
+        document.getElementById("editCancelBtn").onclick = close;
+        document.getElementById("editSaveBtn").onclick = function () {
+          close();
+          applyCardEdit(eventId, selPlayer, selType);
+        };
+      };
+      drawCard();
+    }
   }
 
   // ---------- roster ----------
@@ -904,7 +1256,7 @@
       showToast("Saved " + filename);
     } catch (err) {
       console.error(err);
-      showToast("Couldn't export right now.");
+      showToast("Couldn't export right now.", "error");
     }
   }
 
@@ -932,7 +1284,7 @@
           true
         );
       } catch (e) {
-        showToast("That file doesn't look like a Matchday Tracker export.");
+        showToast("That file doesn't look like a Matchday Tracker export.", "error");
       }
     };
     reader.readAsText(file);
@@ -944,6 +1296,11 @@
     document.getElementById("matchScreen").classList.toggle("hidden", view !== "match" && view !== "summary");
     document.getElementById("teamScreen").classList.toggle("hidden", view !== "team");
     document.getElementById("historyScreen").classList.toggle("hidden", view !== "history");
+
+    var activeTab = view === "summary" ? "match" : view;
+    document.getElementById("tabMatch").classList.toggle("active", activeTab === "match");
+    document.getElementById("tabTeam").classList.toggle("active", activeTab === "team");
+    document.getElementById("tabHistory").classList.toggle("active", activeTab === "history");
 
     var match = state.activeMatch;
     document.getElementById("scoreboardBar").classList.toggle("hidden", !match && view !== "summary");
@@ -1036,18 +1393,21 @@
       if (goals) bits.push(goals + (goals === 1 ? " goal" : " goals"));
       if (state.settings.trackAssists && assistCount) bits.push(assistCount + " ast");
       var onField = isOnField(match, p.id);
-      var fieldBadge = '<button class="field-badge ' + (onField ? "on" : "off") + '" data-field="' + p.id + '">' + (onField ? "On pitch" : "Bench") + "</button>";
+      var sentOff = state.settings.trackCards && hasRedCard(match, p.id);
+      var fieldBadge = '<button class="field-badge ' + (sentOff ? "sent-off-badge" : (onField ? "on" : "off")) + '" data-field="' + p.id + '"' + (sentOff ? " disabled" : "") + '>' + (sentOff ? "Sent off" : (onField ? "On pitch" : "Bench")) + "</button>";
       var controls = "";
       if (state.settings.trackCards) {
         var pcards = stats.cards[p.id] || [];
         var yellows = pcards.filter(function (c) { return c === "yellow"; }).length;
         var reds = pcards.filter(function (c) { return c === "red"; }).length;
+        if (yellows) bits.push(yellows + (yellows === 1 ? " yellow" : " yellows"));
+        if (reds) bits.push("red");
         controls +=
-          '<button class="mini-card' + (yellows ? " card-yellow" : "") + '" data-card-yellow="' + p.id + '" aria-label="Yellow card"></button>' +
-          '<button class="mini-card' + (reds ? " card-red" : "") + '" data-card-red="' + p.id + '" aria-label="Red card"></button>';
+          '<button class="mini-card yellow-btn' + (yellows ? " card-yellow" : "") + '" data-card-yellow="' + p.id + '" aria-label="Give yellow card"' + (sentOff ? " disabled" : "") + "></button>" +
+          '<button class="mini-card red-btn' + (reds ? " card-red" : "") + '" data-card-red="' + p.id + '" aria-label="Give red card"' + (sentOff ? " disabled" : "") + "></button>";
       }
       return (
-        '<div class="tile' + (onField ? "" : " benched") + '" data-tile="' + p.id + '" data-goal="' + p.id + '">' +
+        '<div class="tile' + (onField ? "" : " benched") + (sentOff ? " sent-off" : "") + '" data-tile="' + p.id + '" data-goal="' + p.id + '">' +
           fieldBadge +
           '<div class="tile-num">' + esc(p.number || "") + "</div>" +
           '<div class="tile-name">' + esc(p.name) + "</div>" +
@@ -1072,7 +1432,11 @@
         var cp = rosterById(ev.playerId);
         desc = (ev.cardType === "red" ? "🟥 " : "🟨 ") + esc(cp ? cp.name : "");
       }
-      return '<div class="event-row"><span class="event-minute">' + ev.minuteAtEvent + "'</span><span class=\"event-desc\">" + desc + "</span></div>";
+      var editable = ev.type === "goal" || ev.type === "card";
+      var actions = editable
+        ? '<button class="event-edit" data-edit-event="' + ev.id + '" aria-label="Edit this entry">✎</button><button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>'
+        : '<button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>';
+      return '<div class="event-row"><span class="event-minute">' + ev.minuteAtEvent + "'</span><span class=\"event-desc\">" + desc + '</span><div class="event-actions">' + actions + "</div></div>";
     }).join("");
 
     el.innerHTML =
@@ -1107,6 +1471,15 @@
     });
     el.querySelectorAll("[data-card-red]").forEach(function (btn) {
       btn.onclick = function (e) { e.stopPropagation(); toggleCard(btn.getAttribute("data-card-red"), "red"); };
+    });
+    el.querySelectorAll("[data-del-event]").forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute("data-del-event");
+        showConfirm("Delete this entry from the log?", "Delete", function () { deleteEvent(id); }, true);
+      };
+    });
+    el.querySelectorAll("[data-edit-event]").forEach(function (btn) {
+      btn.onclick = function () { showEditEvent(btn.getAttribute("data-edit-event")); };
     });
   }
 
@@ -1358,22 +1731,13 @@
 
   // ---------- global controls ----------
 
-  document.getElementById("menuBtn").onclick = function () {
-    document.getElementById("menuOverlay").classList.remove("hidden");
-  };
-  document.getElementById("menuCloseBtn").onclick = function () {
-    document.getElementById("menuOverlay").classList.add("hidden");
-  };
-  document.getElementById("menuOverlay").onclick = function (e) {
-    if (e.target.id === "menuOverlay") e.currentTarget.classList.add("hidden");
-  };
   document.querySelectorAll("[data-nav]").forEach(function (btn) {
     btn.onclick = function () {
       view = btn.getAttribute("data-nav");
-      document.getElementById("menuOverlay").classList.add("hidden");
       render();
     };
   });
+  document.getElementById("helpBtn").onclick = showHelp;
   document.getElementById("clockBtn").onclick = toggleClock;
   document.getElementById("undoBtn").onclick = undoLast;
   document.getElementById("importFileInput").onchange = function (e) {
