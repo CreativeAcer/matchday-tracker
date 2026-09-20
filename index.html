@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Matchday Tracker</title>
+<meta name="description" content="Simple sideline score tracking for youth soccer matches.">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#16362A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Matchday">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -593,6 +602,18 @@
     return null;
   }
 
+  // Resolve a player name for a finished match: prefer the roster as it was at
+  // the time, so history doesn't break when players later leave the squad.
+  function nameInRecord(record, playerId) {
+    if (record && record.rosterSnapshot) {
+      for (var i = 0; i < record.rosterSnapshot.length; i++) {
+        if (record.rosterSnapshot[i].id === playerId) return record.rosterSnapshot[i].name;
+      }
+    }
+    var live = rosterById(playerId);
+    return live ? live.name : "Unknown";
+  }
+
   function formatClock(ms) {
     var totalSec = Math.max(0, Math.floor(ms / 1000));
     var m = Math.floor(totalSec / 60);
@@ -641,14 +662,17 @@
     return out;
   }
 
-  function goalTimeline(events, opponentName) {
+  function goalTimeline(events, opponentName, record) {
     return (events || [])
       .filter(function (e) { return e.type === "goal" || e.type === "opponent_goal"; })
       .map(function (e) {
         if (e.type === "goal") {
-          var scorer = rosterById(e.playerId);
-          var assister = e.assistId ? rosterById(e.assistId) : null;
-          return { minute: e.minuteAtEvent, forUs: true, name: scorer ? scorer.name : "Unknown", assistName: assister ? assister.name : null };
+          var scorerName = record ? nameInRecord(record, e.playerId) : (rosterById(e.playerId) ? rosterById(e.playerId).name : "Unknown");
+          var assistName = null;
+          if (e.assistId) {
+            assistName = record ? nameInRecord(record, e.assistId) : (rosterById(e.assistId) ? rosterById(e.assistId).name : null);
+          }
+          return { minute: e.minuteAtEvent, forUs: true, name: scorerName, assistName: assistName };
         }
         return { minute: e.minuteAtEvent, forUs: false, name: opponentName, assistName: null };
       });
@@ -670,7 +694,7 @@
     var awayScore = isHome ? record.scoreThem : record.scoreUs;
     var d = new Date(record.date);
     var dateStr = isNaN(d) ? "" : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-    var timeline = goalTimeline(record.events, record.opponentName);
+    var timeline = goalTimeline(record.events, record.opponentName, record);
 
     var lines = [];
     if (dateStr) lines.push(dateStr);
@@ -869,6 +893,9 @@
       opponentName: match.opponentName,
       teamName: state.teamName,
       isHome: match.isHome !== false,
+      rosterSnapshot: state.roster.map(function (p) {
+        return { id: p.id, name: p.name, number: p.number };
+      }),
       scoreUs: stats.scoreUs,
       scoreThem: stats.scoreThem,
       scorers: stats.scorers,
@@ -982,7 +1009,7 @@
     var counts = cardCounts(match, playerId);
     var sentOff = cardType === "red";
     if (cardType === "yellow" && counts.yellows >= 2) {
-      match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: "red", minuteAtEvent: currentMinute(match), ts: Date.now() });
+      match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: "red", auto: true, minuteAtEvent: currentMinute(match), ts: Date.now() });
       sentOff = true;
     }
     if (sentOff) {
@@ -1023,8 +1050,19 @@
     var match = state.activeMatch;
     if (!match || match.events.length === 0) return;
     var removed = match.events.pop();
+    // An auto-red is a consequence, not an action: also remove the yellow that triggered it.
+    if (removed.type === "card" && removed.cardType === "red" && removed.auto) {
+      for (var i = match.events.length - 1; i >= 0; i--) {
+        var e = match.events[i];
+        if (e.type === "card" && e.playerId === removed.playerId && e.cardType === "yellow") {
+          match.events.splice(i, 1);
+          break;
+        }
+      }
+    }
     pendingAssistEventId = null;
     lastEventTapAt = {};
+    reconcileCardConsequences(match, [removed.playerId]);
     persist();
     render();
     showToast("Removed: " + describeEvent(removed));
@@ -1041,6 +1079,7 @@
     var removed = match.events.splice(idx, 1)[0];
     if (pendingAssistEventId === eventId) pendingAssistEventId = null;
     lastEventTapAt = {};
+    reconcileCardConsequences(match, [removed.playerId]);
     persist();
     render();
     showToast("Removed: " + describeEvent(removed));
@@ -1053,8 +1092,17 @@
       seen[pid] = true;
       var counts = cardCounts(match, pid);
       if (counts.yellows >= 2 && counts.reds === 0) {
-        match.events.push({ id: uid(), type: "card", playerId: pid, cardType: "red", minuteAtEvent: currentMinute(match), ts: Date.now() });
-        counts.reds = 1;
+        match.events.push({ id: uid(), type: "card", playerId: pid, cardType: "red", auto: true, minuteAtEvent: currentMinute(match), ts: Date.now() });
+        counts = cardCounts(match, pid);
+      } else if (counts.yellows < 2 && counts.reds > 0) {
+        // Drop auto-reds that no longer have two yellows behind them (manual reds are left alone).
+        for (var i = match.events.length - 1; i >= 0; i--) {
+          var e = match.events[i];
+          if (e.type === "card" && e.playerId === pid && e.cardType === "red" && e.auto) {
+            match.events.splice(i, 1);
+          }
+        }
+        counts = cardCounts(match, pid);
       }
       if (counts.reds > 0) setOnField(match, pid, false);
     });
@@ -1489,8 +1537,7 @@
     if (!record) { view = "match"; render(); return; }
 
     var scorerRows = Object.keys(record.scorers).map(function (pid) {
-      var p = rosterById(pid);
-      return { name: p ? p.name : "Unknown", goals: record.scorers[pid], assists: record.assists[pid] || 0 };
+      return { name: nameInRecord(record, pid), goals: record.scorers[pid], assists: record.assists[pid] || 0 };
     }).sort(function (a, b) { return b.goals - a.goals; });
 
     var scorerHtml = scorerRows.length
@@ -1502,8 +1549,7 @@
 
     var minuteRows = Object.keys(record.playingTimeMinutes || {})
       .map(function (pid) {
-        var p = rosterById(pid);
-        return { name: p ? p.name : "Unknown", minutes: record.playingTimeMinutes[pid] };
+        return { name: nameInRecord(record, pid), minutes: record.playingTimeMinutes[pid] };
       })
       .filter(function (r) { return r.minutes > 0; })
       .sort(function (a, b) { return b.minutes - a.minutes; });
@@ -1514,7 +1560,7 @@
     var isHome = record.isHome !== false;
     var d = new Date(record.date);
     var dateStr = isNaN(d) ? "" : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-    var timeline = goalTimeline(record.events, record.opponentName);
+    var timeline = goalTimeline(record.events, record.opponentName, record);
     var shareText = buildShareText(record);
 
     el.innerHTML =
@@ -1624,28 +1670,31 @@
     var el = document.getElementById("historyScreen");
 
     var season = {};
+    var seasonNames = {};
     var played = 0, wins = 0, draws = 0, losses = 0;
+    function seasonEntry(pid, m) {
+      if (!season[pid]) season[pid] = { goals: 0, assists: 0, minutes: 0 };
+      // Remember the name as it was in the most recent match this player appeared in.
+      if (!seasonNames[pid]) seasonNames[pid] = nameInRecord(m, pid);
+      return season[pid];
+    }
     state.history.forEach(function (m) {
       played++;
       if (m.scoreUs > m.scoreThem) wins++;
       else if (m.scoreUs < m.scoreThem) losses++;
       else draws++;
       Object.keys(m.scorers || {}).forEach(function (pid) {
-        if (!season[pid]) season[pid] = { goals: 0, assists: 0 };
-        season[pid].goals += m.scorers[pid];
+        seasonEntry(pid, m).goals += m.scorers[pid];
       });
       Object.keys(m.assists || {}).forEach(function (pid) {
-        if (!season[pid]) season[pid] = { goals: 0, assists: 0, minutes: 0 };
-        season[pid].assists += m.assists[pid];
+        seasonEntry(pid, m).assists += m.assists[pid];
       });
       Object.keys(m.playingTimeMinutes || {}).forEach(function (pid) {
-        if (!season[pid]) season[pid] = { goals: 0, assists: 0, minutes: 0 };
-        season[pid].minutes = (season[pid].minutes || 0) + m.playingTimeMinutes[pid];
+        seasonEntry(pid, m).minutes += m.playingTimeMinutes[pid];
       });
     });
     var seasonRows = Object.keys(season).map(function (pid) {
-      var p = rosterById(pid);
-      return { name: p ? p.name : "Unknown", goals: season[pid].goals || 0, assists: season[pid].assists || 0, minutes: season[pid].minutes || 0 };
+      return { name: seasonNames[pid] || "Unknown", goals: season[pid].goals || 0, assists: season[pid].assists || 0, minutes: season[pid].minutes || 0 };
     }).sort(function (a, b) { return b.goals - a.goals; });
 
     var seasonHtml = seasonRows.length
@@ -1661,8 +1710,7 @@
       var result = m.scoreUs > m.scoreThem ? "win" : (m.scoreUs < m.scoreThem ? "loss" : "draw");
       var resultLabel = result === "win" ? "W" : (result === "loss" ? "L" : "D");
       var scorerNames = Object.keys(m.scorers || {}).map(function (pid) {
-        var p = rosterById(pid);
-        var n = p ? p.name : "?";
+        var n = nameInRecord(m, pid);
         return m.scorers[pid] > 1 ? n + " (" + m.scorers[pid] + ")" : n;
       }).join(", ");
       var d = new Date(m.date);
@@ -1746,14 +1794,69 @@
     e.target.value = "";
   };
 
+  // A phone lock or backgrounded tab must keep counting real match time, so the
+  // clock is wall-clock based. Only an implausibly long run means it was forgotten.
+  var CLOCK_STALE_LIMIT_MS = 3 * 60 * 60 * 1000;
+
+  function lastEventElapsedMs(match) {
+    var maxMin = 0;
+    match.events.forEach(function (e) {
+      if (typeof e.minuteAtEvent === "number" && e.minuteAtEvent > maxMin) maxMin = e.minuteAtEvent;
+    });
+    return maxMin * 60000;
+  }
+
+  function formatDuration(ms) {
+    var totalMin = Math.floor(ms / 60000);
+    var h = Math.floor(totalMin / 60);
+    var m = totalMin % 60;
+    if (h && m) return h + "h " + m + "m";
+    if (h) return h + "h";
+    return m + "m";
+  }
+
+  function checkStaleClock() {
+    var match = state.activeMatch;
+    if (!match || !match.clock.running) return;
+    var elapsed = clockElapsedMs(match);
+    if (elapsed <= CLOCK_STALE_LIMIT_MS) return;
+    // The clock was clearly left running rather than played. The match itself is
+    // never discarded — only the clock is rewound to something plausible, since
+    // it exists to timestamp events, not to be authoritative.
+    var recovered = match.events.length ? lastEventElapsedMs(match) + 60000 : 0;
+    match.clock.elapsedMs = recovered;
+    match.clock.running = false;
+    match.clock.runningSince = null;
+    persist();
+    render();
+    showToast(
+      "Clock had been running " + formatDuration(elapsed) + " — paused and reset to " +
+      formatClock(recovered) + ". Your match is safe.",
+      "warning"
+    );
+  }
+
   setInterval(function () {
-    if (state.activeMatch && state.activeMatch.clock.running && view === "match") {
-      document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(state.activeMatch));
+    if (state.activeMatch && state.activeMatch.clock.running) {
+      checkStaleClock();
+      if (view === "match" && state.activeMatch && state.activeMatch.clock.running) {
+        document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(state.activeMatch));
+      }
     }
   }, 1000);
 
   render();
+  checkStaleClock();
 })();
+
+// Offline support. Guarded so opening the file directly (file://) still works.
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function (err) {
+      console.log("Service worker not registered:", err);
+    });
+  });
+}
 </script>
 </body>
 </html>
