@@ -475,6 +475,20 @@
     background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
     padding: 10px 8px calc(14px + env(safe-area-inset-bottom, 0px));
   }
+  .card-sheet {
+    background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
+    padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+    max-height: 94vh; display: flex; flex-direction: column; gap: 10px;
+  }
+  .card-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
+  .card-img {
+    display: block; width: 100%; height: auto; border-radius: 14px;
+    box-shadow: 0 8px 26px rgba(16,26,20,0.30);
+  }
+  .card-hint {
+    margin: 0; text-align: center; font-size: 14px;
+    line-height: 1.45; color: var(--ink-soft);
+  }
   .help-sheet {
     max-height: 82vh;
     display: flex;
@@ -658,7 +672,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "12";
+  var APP_VERSION = "13";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -915,6 +929,313 @@
         (t.assistName ? " (assist: " + esc(t.assistName) + ")" : "");
       return '<div class="event-row"><span class="event-minute">' + t.minute + "'</span><span class=\"event-desc\">" + desc + "</span></div>";
     })(t);
+  }
+
+  /* ---------- Shareable match card ----------------------------------------
+     The summary as a picture, so what lands in the group chat looks made
+     rather than typed. Drawn on a canvas and then shown on screen as an
+     <img>: long-pressing an image is an OS gesture that cannot be unsupported
+     or blocked, so navigator.share() is only ever a shortcut, never the way
+     out. Nothing here touches stored data — the card is read-only. */
+
+  var CARD_W = 1080;
+  var CARD_PAD = 76;
+  var CARD_MAX_TIMELINE = 12;
+
+  function cardFonts() {
+    // Google Fonts may never have loaded (first run with no signal). The card
+    // must still come out in something deliberate rather than the canvas default.
+    var display = "'Arial Narrow', Arial, sans-serif", body = "Arial, Helvetica, sans-serif";
+    try {
+      if (document.fonts.check("700 100px Oswald")) display = "Oswald, 'Arial Narrow', sans-serif";
+      if (document.fonts.check("400 40px 'Work Sans'")) body = "'Work Sans', Arial, sans-serif";
+    } catch (e) {}
+    return { display: display, body: body };
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function fitText(ctx, text, maxW) {
+    text = String(text == null ? "" : text);
+    if (ctx.measureText(text).width <= maxW) return text;
+    var t = text;
+    while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+    return t.replace(/[\s–—-]+$/, "") + "…";
+  }
+
+  function matchCardData(record) {
+    var numbers = {};
+    (record.rosterSnapshot || []).forEach(function (p) { numbers[p.id] = p.number || ""; });
+    var scorers = Object.keys(record.scorers || {}).map(function (pid) {
+      return {
+        name: nameInRecord(record, pid), number: numbers[pid] || "",
+        goals: record.scorers[pid], assists: (record.assists || {})[pid] || 0
+      };
+    }).sort(function (a, b) { return b.goals - a.goals || a.name.localeCompare(b.name); });
+    return { scorers: scorers, timeline: goalTimeline(record.events, record.opponentName, record) };
+  }
+
+  function drawMatchCard(record) {
+    var f = cardFonts();
+    var data = matchCardData(record);
+    var scorers = data.scorers;
+    var timeline = data.timeline;
+    var shown = Math.min(timeline.length, CARD_MAX_TIMELINE);
+    var hiddenGoals = timeline.length - shown;
+    var ogLine = "";
+    if (record.ownGoalsFor) ogLine = record.ownGoalsFor + " own goal" + (record.ownGoalsFor === 1 ? "" : "s") + " in our favour";
+    if (record.ownGoalsAgainst) ogLine = (ogLine ? ogLine + " · " : "") +
+      record.ownGoalsAgainst + " own goal" + (record.ownGoalsAgainst === 1 ? "" : "s") + " against us";
+
+    var H = CARD_PAD + 52 + 46 + 52 + 132 * 2 + 40;
+    if (scorers.length) H += 46 + 20 + scorers.length * 84 + 34;
+    if (ogLine) H += 42;
+    if (shown) H += 46 + 20 + shown * 60 + (hiddenGoals ? 46 : 0) + 34;
+    H += 38 + 14 + 56;
+
+    var cv = document.createElement("canvas");
+    cv.width = CARD_W; cv.height = Math.round(H);
+    var ctx = cv.getContext("2d");
+    var W = CARD_W, L = CARD_PAD, R = W - CARD_PAD, INNER = R - L;
+
+    var ON = "#FAF8F2", GOLD = "#E2A33D";
+    var soft = function (a) { return "rgba(250,248,242," + a + ")"; };
+
+    // Background: pitch green with depth, plus the faintest suggestion of
+    // centre circle and halfway line behind the score.
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#1C4232"); g.addColorStop(0.55, "#16362A"); g.addColorStop(1, "#0F2720");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    var y = CARD_PAD;
+
+    // --- header: date on the left, result on the right -------------------
+    var d = new Date(record.date);
+    var dateStr = isNaN(d) ? "" : d.toLocaleDateString(undefined,
+      { weekday: "short", day: "numeric", month: "short", year: "numeric" }).toUpperCase();
+    ctx.font = "600 27px " + f.body;
+    ctx.fillStyle = soft(0.62);
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.save(); if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "3px";
+    ctx.fillText(dateStr, L, y + 22);
+    ctx.restore();
+
+    var won = record.scoreUs > record.scoreThem, drew = record.scoreUs === record.scoreThem;
+    var resText = won ? "WIN" : drew ? "DRAW" : "LOSS";
+    ctx.font = "600 27px " + f.display;
+    ctx.save(); if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "3px";
+    var cw = ctx.measureText(resText).width + 44, ch = 50;
+    roundRectPath(ctx, R - cw, y - 2, cw, ch, ch / 2);
+    if (won) { ctx.fillStyle = GOLD; ctx.fill(); ctx.fillStyle = "#16362A"; }
+    else { ctx.strokeStyle = soft(0.30); ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = soft(0.72); }
+    ctx.textAlign = "center";
+    ctx.fillText(resText, R - cw / 2 + 1, y + 23);
+    ctx.restore();
+    y += 52 + 46;
+
+    ctx.strokeStyle = soft(0.16); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke();
+    y += 52;
+
+    // --- scoreboard: one row per team, score right-aligned ----------------
+    var isHome = record.isHome !== false;
+    var bandTop = y, bandH = 264, circY = y + 132;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, bandTop, W, bandH); ctx.clip();
+    ctx.strokeStyle = soft(0.055); ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(W / 2, circY, 106, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(L, circY); ctx.lineTo(R, circY); ctx.stroke();
+    ctx.restore();
+
+    var rows = [
+      { name: record.teamName, score: record.scoreUs, ours: true, ha: isHome ? "H" : "A" },
+      { name: record.opponentName, score: record.scoreThem, ours: false, ha: isHome ? "A" : "H" }
+    ];
+    var nameMaxW = INNER - 300, nameSize = 36;
+    [50, 45, 40, 36].some(function (sz) {
+      ctx.font = "600 " + sz + "px " + f.display;
+      var fits = rows.every(function (r) { return ctx.measureText(r.name).width <= nameMaxW; });
+      if (fits) { nameSize = sz; return true; }
+      return false;
+    });
+    rows.forEach(function (row) {
+      var mid = y + 66;
+      if (row.ours) {
+        ctx.fillStyle = GOLD;
+        roundRectPath(ctx, L - 26, mid - 30, 7, 60, 3.5); ctx.fill();
+      }
+      ctx.font = "600 30px " + f.display;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = soft(0.40);
+      ctx.strokeStyle = soft(0.22); ctx.lineWidth = 2;
+      roundRectPath(ctx, R - 240, mid - 22, 44, 44, 12); ctx.stroke();
+      ctx.fillText(row.ha, R - 218, mid + 1);
+
+      ctx.font = "700 88px " + f.display;
+      ctx.textAlign = "right";
+      var loser = !drew && (row.ours ? !won : won);
+      ctx.fillStyle = loser ? soft(0.50) : ON;
+      ctx.fillText(String(row.score), R, mid + 2);
+
+      ctx.font = "600 " + nameSize + "px " + f.display;
+      ctx.textAlign = "left";
+      ctx.fillStyle = row.ours ? ON : soft(0.80);
+      ctx.fillText(fitText(ctx, row.name, nameMaxW), L, mid + 1);
+      y += 132;
+    });
+    y += 40;
+
+    function sectionLabel(text) {
+      ctx.font = "600 25px " + f.body;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = GOLD;
+      ctx.save(); if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "4px";
+      ctx.fillText(text, L, y + 14);
+      ctx.restore();
+      y += 46 + 20;
+    }
+
+    // --- scorers ----------------------------------------------------------
+    if (scorers.length) {
+      sectionLabel("SCORERS");
+      scorers.forEach(function (s) {
+        var mid = y + 30;
+        ctx.fillStyle = "rgba(250,248,242,0.09)";
+        ctx.strokeStyle = soft(0.15); ctx.lineWidth = 2;
+        roundRectPath(ctx, L, mid - 30, 60, 60, 16); ctx.fill(); ctx.stroke();
+        ctx.font = "600 31px " + f.display;
+        ctx.fillStyle = s.number ? ON : soft(0.4);
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(s.number || "–", L + 30, mid + 2);
+
+        ctx.font = "700 46px " + f.display;
+        ctx.textAlign = "right"; ctx.fillStyle = GOLD;
+        var tally = String(s.goals);
+        ctx.fillText(tally, R, mid + 2);
+        var tallyW = ctx.measureText(tally).width;
+
+        ctx.textAlign = "left";
+        ctx.font = "500 36px " + f.body;
+        ctx.fillStyle = ON;
+        var nameMax = INNER - 90 - tallyW - 40;
+        if (s.assists) {
+          ctx.fillText(fitText(ctx, s.name, nameMax), L + 88, mid - 9);
+          ctx.font = "400 25px " + f.body;
+          ctx.fillStyle = soft(0.55);
+          ctx.fillText(s.assists + " assist" + (s.assists === 1 ? "" : "s"), L + 88, mid + 22);
+        } else {
+          ctx.fillText(fitText(ctx, s.name, nameMax), L + 88, mid + 1);
+        }
+        y += 84;
+      });
+      y += 34;
+    }
+
+    if (ogLine) {
+      ctx.font = "400 27px " + f.body;
+      ctx.textAlign = "left"; ctx.fillStyle = soft(0.55);
+      ctx.fillText(ogLine, L, y + 10);
+      y += 42;
+    }
+
+    // --- timeline ---------------------------------------------------------
+    if (shown) {
+      sectionLabel("GOALS");
+      timeline.slice(0, shown).forEach(function (t) {
+        var mid = y + 22;
+        ctx.font = "600 30px " + f.display;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = t.forUs ? GOLD : soft(0.42);
+        ctx.fillText(t.minute + "'", L, mid);
+        ctx.font = (t.forUs ? "500 31px " : "400 31px ") + f.body;
+        ctx.fillStyle = t.forUs ? ON : soft(0.55);
+        var label = t.name + (t.ownGoal ? " (own goal)" : "") +
+          (t.assistName ? "  ·  assist " + t.assistName : "");
+        ctx.fillText(fitText(ctx, label, INNER - 96), L + 96, mid);
+        y += 60;
+      });
+      if (hiddenGoals) {
+        ctx.font = "400 27px " + f.body;
+        ctx.fillStyle = soft(0.45); ctx.textAlign = "left";
+        ctx.fillText("+ " + hiddenGoals + " more", L + 96, y + 18);
+        y += 46;
+      }
+      y += 34;
+    }
+
+    // --- footer -----------------------------------------------------------
+    ctx.strokeStyle = soft(0.14); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke();
+    y += 38;
+    ctx.font = "600 25px " + f.body;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = soft(0.42);
+    ctx.save(); if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "2px";
+    ctx.fillText("MATCHDAY TRACKER", L, y);
+    ctx.restore();
+
+    return cv;
+  }
+
+  async function showMatchCard(record) {
+    // Wait for the webfonts so the card never silently comes out in Arial.
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    var cv, url;
+    try { cv = drawMatchCard(record); url = cv.toDataURL("image/png"); }
+    catch (e) { showToast("Couldn\u2019t build the match card."); return; }
+
+    var old = document.getElementById("cardOverlay");
+    if (old) old.remove();
+
+    var canShareFile = false;
+    try {
+      canShareFile = !!(navigator.canShare && navigator.share &&
+        navigator.canShare({ files: [new File([""], "c.png", { type: "image/png" })] }));
+    } catch (e) { canShareFile = false; }
+
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "cardOverlay";
+    overlay.innerHTML =
+      '<div class="card-sheet">' +
+        '<div class="card-scroll"><img class="card-img" id="cardImg" alt="Match card"></div>' +
+        '<p class="card-hint">Press and hold the picture to save it or send it to a chat.</p>' +
+        (canShareFile ? '<button class="btn btn-gold" id="cardShareBtn">Share picture</button>' : "") +
+        '<button class="btn btn-ghost" id="cardCloseBtn">Close</button>' +
+      "</div>";
+    document.body.appendChild(overlay);
+    document.getElementById("cardImg").src = url;
+    document.getElementById("cardCloseBtn").onclick = function () { overlay.remove(); };
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.remove(); });
+    var sb = document.getElementById("cardShareBtn");
+    if (sb) sb.onclick = function () { shareCardImage(cv, record); };
+  }
+
+  // Best effort only. The picture is already on screen, so if this fails the
+  // user has lost nothing — press and hold still works.
+  function shareCardImage(cv, record) {
+    cv.toBlob(function (blob) {
+      if (!blob) { showToast("Press and hold the picture to save it."); return; }
+      var name = String(record.teamName || "match").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase() + "-matchcard.png";
+      var file;
+      try { file = new File([blob], name, { type: "image/png" }); }
+      catch (e) { showToast("Press and hold the picture to save it."); return; }
+      if (!(navigator.canShare && navigator.canShare({ files: [file] }))) {
+        showToast("Press and hold the picture to save it."); return;
+      }
+      navigator.share({ files: [file] }).catch(function (e) {
+        if (e && e.name === "AbortError") return;
+        showToast("Press and hold the picture to save it.");
+      });
+    }, "image/png");
   }
 
   function buildShareText(record) {
@@ -1324,8 +1645,9 @@
       ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
-      ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report. <strong>Share summary</strong> sends it straight to a chat app where your phone supports it, and copies it otherwise."],
-      ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match to re-share its report."],
+      ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report."],
+      ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
+      ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match for its <strong>Card</strong> or its written report."],
       ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>Fix</strong> on a match in History to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
       ["Keep a backup", "Everything lives on this device only. After a few matches the app reminds you to use <strong>Export team data</strong> — keep that file somewhere safe, because clearing your browser data would otherwise take the season with it."],
       ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file of the team you're currently on. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."]
@@ -2560,13 +2882,15 @@
       '<h2 class="section-title">Goal timeline</h2>' +
       '<div class="event-log">' + timelineHtml(timeline) + "</div>" +
       (T().settings.trackPlayingTime && minuteRows.length ? '<h2 class="section-title">Playing time</h2><div class="stat-list">' + minutesHtml + "</div>" : "") +
-      '<button class="btn btn-gold" id="copySummaryBtn" style="margin-top:18px;">' +
-        (navigator.share ? "Share summary" : "Copy summary to share") + "</button>" +
+      '<button class="btn btn-gold" id="matchCardBtn" style="margin-top:18px;">Share match card</button>' +
+      '<button class="btn btn-ghost" id="copySummaryBtn" style="margin-top:10px;">' +
+        (navigator.share ? "Share as text" : "Copy as text") + "</button>" +
       '<div class="btn-row" style="margin-top:10px;">' +
         '<button class="btn btn-primary" id="newMatchBtn">Start next match</button>' +
         '<button class="btn btn-ghost" id="doneBtn">Done</button>' +
       "</div>";
 
+    document.getElementById("matchCardBtn").onclick = function () { showMatchCard(record); };
     document.getElementById("copySummaryBtn").onclick = function () { shareOrCopy(shareText); };
     document.getElementById("newMatchBtn").onclick = function () { view = "match"; render(); };
     document.getElementById("doneBtn").onclick = function () { view = "match"; render(); };
@@ -2725,6 +3049,7 @@
           '<div class="hi-top">' +
             '<div><span class="hi-score">' + m.scoreUs + " – " + m.scoreThem + "</span> <span class=\"result-pill " + result + "\">" + resultLabel + "</span></div>" +
             '<div class="hi-actions">' +
+              '<button class="hi-copy" data-card="' + m.id + '">Card</button>' +
               '<button class="hi-copy" data-copy="' + m.id + '">' + (navigator.share ? "Share" : "Copy") + "</button>" +
               '<button class="hi-edit" data-fix="' + m.id + '">Fix</button>' +
               '<button class="hi-remove" data-del="' + m.id + '">Delete</button>' +
@@ -2778,6 +3103,12 @@
     });
     el.querySelectorAll("[data-fix]").forEach(function (btn) {
       btn.onclick = function () { showEditMatch(btn.getAttribute("data-fix")); };
+    });
+    el.querySelectorAll("[data-card]").forEach(function (btn) {
+      btn.onclick = function () {
+        var m = T().history.filter(function (h) { return h.id === btn.getAttribute("data-card"); })[0];
+        if (m) showMatchCard(m);
+      };
     });
     el.querySelectorAll("[data-copy]").forEach(function (btn) {
       btn.onclick = function () {
