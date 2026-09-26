@@ -28,6 +28,15 @@
     --ink-soft: #56645A;
     --gold: #E2A33D;
     --gold-deep: #B97F22;
+    /* Foreground for the surfaces that stay dark green in BOTH themes (header,
+       scoreboard, primary buttons). --chalk is the page background and flips to
+       near-black in dark mode, so it must never be used as text on those. */
+    --on-dark: #FAF8F2;
+    /* Brand green / red used as TEXT on theme-adaptive panels. The solid
+       --pitch and --red stay for fills; these lighten in dark mode so the text
+       keeps its contrast. */
+    --brand-text: #1F5C40;
+    --red-text: #A8362C;
     --red: #C1443B;
     --yellow-card: #E8C93D;
     --line: rgba(22,33,26,0.13);
@@ -40,6 +49,8 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --chalk: #10201A;
+      --brand-text: #74D2A0;
+      --red-text: #F0897C;
       --chalk-dim: #0C1913;
       --panel: #17281F;
       --ink: #F1EEE3;
@@ -49,6 +60,8 @@
   }
   :root[data-theme="dark"] {
     --chalk: #10201A;
+      --brand-text: #74D2A0;
+      --red-text: #F0897C;
     --chalk-dim: #0C1913;
     --panel: #17281F;
     --ink: #F1EEE3;
@@ -75,34 +88,39 @@
     top: env(safe-area-inset-top, 0px);
     z-index: 20;
     background: var(--pitch-dark);
-    color: var(--chalk);
+    color: var(--on-dark);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 10px;
     gap: 8px;
   }
+  /* Both header icons read as buttons: a filled pill with a bright glyph, so
+     they stay obvious against the dark green in either theme. */
   .icon-btn {
-    background: transparent;
-    border: none;
-    color: var(--chalk);
-    font-size: 20px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.30);
+    color: var(--on-dark);
+    font-size: 19px;
+    line-height: 1;
     width: 42px;
     height: 42px;
-    border-radius: 10px;
+    flex-shrink: 0;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .icon-btn:active { background: rgba(255,255,255,0.12); }
-  .icon-btn:disabled { opacity: 0.35; }
+  .icon-btn:active { background: rgba(255,255,255,0.30); }
+  .icon-btn:disabled { opacity: 0.4; }
+  .help-icon { font-weight: 700; }
 
   .clock-btn {
     flex: 1;
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.16);
     border-radius: 12px;
-    color: var(--chalk);
+    color: var(--on-dark);
     padding: 6px 12px;
     display: flex;
     flex-direction: column;
@@ -121,7 +139,7 @@
 
   .scoreboard {
     background: var(--pitch);
-    color: var(--chalk);
+    color: var(--on-dark);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -190,14 +208,14 @@
     text-align: center;
   }
   .btn:active { transform: scale(0.98); }
-  .btn-primary { background: var(--pitch); color: var(--chalk); border-color: var(--pitch); }
+  .btn-primary { background: var(--pitch); color: var(--on-dark); border-color: var(--pitch); }
   .btn-gold { background: var(--gold); color: var(--pitch-dark); border-color: var(--gold-deep); }
-  .btn-danger { background: transparent; color: var(--red); border-color: var(--red); }
+  .btn-danger { background: transparent; color: var(--red-text); border-color: var(--red-text); }
   .btn-ghost { background: transparent; }
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { width: auto; flex: 1; }
   .toggle-seg { background: var(--chalk-dim); border-color: var(--line); color: var(--ink-soft); }
-  .toggle-seg.on { background: var(--pitch); color: var(--chalk); border-color: var(--pitch); }
+  .toggle-seg.on { background: var(--pitch); color: var(--on-dark); border-color: var(--pitch); }
 
   label.field-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
   input.text-input {
@@ -207,7 +225,9 @@
     border: 1px solid var(--line);
     background: var(--chalk-dim);
     color: var(--ink);
-    font-size: 15px;
+    /* 16px minimum: below this iOS Safari zooms the page in on focus and never
+       zooms back out, which leaves the whole layout cut off on the right. */
+    font-size: 16px;
     margin-bottom: 12px;
   }
   input.text-input:focus, .btn:focus-visible, .icon-btn:focus-visible, .clock-btn:focus-visible, .tile:focus-visible {
@@ -219,15 +239,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 2px;
+    padding: 12px 2px;
     border-bottom: 1px solid var(--line);
     gap: 12px;
+    width: 100%;
+    background: none;
+    border-left: none; border-right: none; border-top: none;
+    text-align: left;
+    color: inherit;
+    font-family: inherit;
+    min-height: 44px;
   }
-  .toggle-row:last-child { border-bottom: none; }
-  .toggle-row .toggle-copy { flex: 1; }
-  .toggle-row .toggle-copy .t-title { font-weight: 600; font-size: 14.5px; }
-  .toggle-row .toggle-copy .t-desc { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .toggle-row:last-of-type { border-bottom: none; }
+  .toggle-row:active { background: var(--chalk-dim); }
+  .toggle-row .toggle-copy { flex: 1; min-width: 0; display: block; }
+  .toggle-row .toggle-copy .t-title { display: block; font-weight: 600; font-size: 14.5px; }
+  .toggle-row .toggle-copy .t-desc { display: block; font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
   .switch {
+    display: block;
     width: 46px; height: 27px; border-radius: 20px;
     background: var(--line); border: none; position: relative; flex-shrink: 0;
   }
@@ -248,12 +277,12 @@
   .roster-item:last-child { border-bottom: none; }
   .roster-num {
     font-family: var(--font-display); font-weight: 600; font-size: 16px;
-    background: var(--pitch); color: var(--chalk);
+    background: var(--pitch); color: var(--on-dark);
     width: 34px; height: 34px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .roster-name { flex: 1; font-size: 15px; }
-  .roster-remove { background: none; border: none; color: var(--red); font-size: 13px; padding: 8px; }
+  .roster-remove { background: none; border: none; color: var(--red-text); font-size: 13px; padding: 8px 10px; min-height: 44px; }
 
   .add-player-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
   .add-player-row .num-input { width: 68px; }
@@ -283,11 +312,11 @@
   .field-badge {
     display: block;
     width: calc(100% + 16px);
-    margin: -10px -8px 8px;
-    padding: 8px 0;
+    margin: -10px -8px 6px;
+    padding: 13px 0;
     border: none;
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 700;
     background: var(--turf);
     color: #fff;
@@ -304,23 +333,29 @@
   }
   .tile-num {
     font-family: var(--font-display); font-weight: 700; font-size: 26px;
-    color: var(--pitch); line-height: 1;
+    color: var(--brand-text); line-height: 1;
   }
-  :root[data-theme="dark"] .tile-num, :root:not([data-theme="light"]) .tile-num { }
   .tile-name {
     font-size: 12.5px; font-weight: 600; margin-top: 3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .tile-goals { font-size: 11px; color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
-  .tile-controls { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
-  .mini-card { width: 18px; height: 22px; border-radius: 3px; border: 1px solid var(--line); }
+  .tile-controls { display: flex; justify-content: center; gap: 2px; margin-top: 2px; }
+  /* The coloured rectangle stays small, but its button carries a 44px hit area
+     so it can be tapped one-handed on a sideline. */
+  .card-btn {
+    background: none; border: none; padding: 0;
+    width: 44px; height: 44px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card-btn:disabled { opacity: 0.4; }
+  .mini-card { display: block; width: 20px; height: 26px; border-radius: 3px; border: 1px solid var(--line); }
   .mini-card.yellow-btn { background: rgba(232,201,61,0.4); border-color: rgba(185,127,34,0.55); }
   .mini-card.yellow-btn.card-yellow { background: var(--yellow-card); border-color: var(--gold-deep); }
   .mini-card.red-btn { background: rgba(193,68,59,0.4); border-color: rgba(122,38,32,0.55); }
   .mini-card.red-btn.card-red { background: var(--red); border-color: #7a2620; }
-  .mini-card:disabled { opacity: 0.4; }
   .tile.sent-off { opacity: 0.6; }
-  .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red); }
+  .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red-text); }
   .confirm-msg { font-size: 15px; line-height: 1.5; padding: 8px 4px 0; }
 
   .goal-btn-row { display: flex; gap: 10px; margin-bottom: 18px; }
@@ -356,7 +391,7 @@
     color: var(--pitch-dark);
   }
   .assist-chip:active { background: rgba(22,33,26,0.22); }
-  .assist-chip.chip-selected { background: var(--pitch); color: var(--chalk); }
+  .assist-chip.chip-selected { background: var(--pitch); color: var(--on-dark); }
 
   .event-log { margin-top: 4px; }
   .event-row {
@@ -364,15 +399,16 @@
     padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px;
   }
   .event-row:last-child { border-bottom: none; }
-  .event-minute { font-family: var(--font-display); color: var(--ink-soft); width: 34px; flex-shrink: 0; }
+  .event-minute { font-family: var(--font-display); color: var(--ink-soft); width: 32px; flex-shrink: 0; }
   .event-desc { flex: 1; }
-  .event-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .event-actions { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
   .event-edit, .event-delete {
     background: none; border: none; color: var(--ink-soft);
-    font-size: 13px; padding: 6px; flex-shrink: 0;
+    font-size: 15px; padding: 0; flex-shrink: 0;
+    min-width: 44px; min-height: 44px;
   }
-  .event-edit:active { color: var(--pitch); }
-  .event-delete:active { color: var(--red); }
+  .event-edit:active { color: var(--brand-text); }
+  .event-delete:active { color: var(--red-text); }
   .empty-state { color: var(--ink-soft); font-size: 13.5px; padding: 10px 2px; }
 
   .end-match-btn { margin-top: 22px; }
@@ -401,17 +437,17 @@
   .hi-meta { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
   .hi-scorers { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
   .result-pill { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
-  .result-pill.win { background: rgba(46,125,82,0.16); color: var(--turf); }
-  .result-pill.loss { background: rgba(193,68,59,0.14); color: var(--red); }
+  .result-pill.win { background: rgba(46,125,82,0.16); color: var(--brand-text); }
+  .result-pill.loss { background: rgba(193,68,59,0.14); color: var(--red-text); }
   .result-pill.draw { background: var(--chalk-dim); color: var(--ink-soft); }
-  .hi-remove { background: none; border: none; color: var(--ink-soft); font-size: 12px; padding: 6px; }
-  .hi-copy { background: none; border: none; color: var(--turf); font-size: 12px; font-weight: 700; padding: 6px; }
+  .hi-remove { background: none; border: none; color: var(--ink-soft); font-size: 12px; padding: 8px 10px; min-height: 44px; }
+  .hi-copy { background: none; border: none; color: var(--brand-text); font-size: 12px; font-weight: 700; padding: 8px 10px; min-height: 44px; }
   .hi-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
   .share-textarea {
     width: 100%; min-height: 150px; margin-top: 10px;
     padding: 10px; border-radius: 10px; border: 1px solid var(--line);
     background: var(--chalk-dim); color: var(--ink); font-family: var(--font-body);
-    font-size: 13.5px; line-height: 1.5; resize: vertical;
+    font-size: 16px; line-height: 1.5; resize: vertical;
   }
 
   .overlay {
@@ -433,6 +469,13 @@
     padding: 4px 16px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0;
   }
   .help-header h2 { margin: 0; }
+  /* .icon-btn is styled for the dark header; inside a sheet it sits on the panel
+     colour instead, so it drops the light pill and follows the sheet's text. */
+  .help-header .icon-btn {
+    color: var(--ink);
+    background: var(--chalk-dim);
+    border-color: var(--line);
+  }
   .help-body {
     overflow-y: auto;
     padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
@@ -441,10 +484,40 @@
   .help-section:last-child { margin-bottom: 0; }
   .help-section h3 {
     font-family: var(--font-display); font-weight: 600; font-size: 15px;
-    margin: 0 0 6px; color: var(--pitch);
+    margin: 0 0 6px; color: var(--brand-text);
   }
   .help-section p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
   .help-section p:last-child { margin-bottom: 0; }
+
+  .team-sheet { max-height: 82vh; display: flex; flex-direction: column; padding-left: 0; padding-right: 0; }
+  .team-list { overflow-y: auto; padding: 6px 8px 0; }
+  .team-row {
+    display: flex; align-items: center; gap: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .team-row:last-child { border-bottom: none; }
+  .team-row.current { background: var(--chalk-dim); border-radius: 10px; }
+  .team-pick {
+    flex: 1; min-width: 0; text-align: left; background: none; border: none;
+    padding: 13px 10px; display: flex; flex-direction: column; gap: 2px; color: var(--ink);
+  }
+  .team-pick-name { font-weight: 700; font-size: 15px; }
+  .team-pick-meta { font-size: 12px; color: var(--ink-soft); }
+  .team-del { background: none; border: none; color: var(--ink-soft); font-size: 15px; padding: 0; flex-shrink: 0; min-width: 44px; min-height: 44px; }
+  .team-del:active { color: var(--red-text); }
+
+  .team-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .team-card .tc-name { font-family: var(--font-display); font-weight: 600; font-size: 19px; }
+  .team-card .tc-meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .team-card .btn { width: auto; flex-shrink: 0; padding: 12px 16px; font-size: 14px; min-height: 44px; }
+  .playing-as { font-size: 13px; color: var(--ink-soft); margin: -6px 0 12px; }
+  .playing-as strong { color: var(--ink); }
+  .link-btn {
+    background: none; border: none; padding: 0; font-size: 13px;
+    color: var(--brand-text); font-weight: 700; text-decoration: underline;
+  }
 
   .bottom-nav {
     position: fixed;
@@ -470,7 +543,7 @@
   }
   .tab-btn .tab-icon { font-size: 20px; line-height: 1; }
   .tab-btn .tab-label { font-size: 11px; font-weight: 600; }
-  .tab-btn.active { color: var(--pitch); }
+  .tab-btn.active { color: var(--brand-text); }
   .tab-btn:active { background: var(--chalk-dim); }
 
   .file-input-hidden { display: none; }
@@ -506,7 +579,7 @@
 <body>
 <div id="app">
   <header class="topbar">
-    <button class="icon-btn" id="helpBtn" aria-label="How to use this app">❓</button>
+    <button class="icon-btn help-icon" id="helpBtn" aria-label="How to use this app">?</button>
     <button class="clock-btn" id="clockBtn">
       <span class="clock-time" id="clockTime">00:00</span>
       <span class="clock-state" id="clockState">No match yet</span>
@@ -555,30 +628,91 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
-  function defaultState() {
+  function defaultSettings() {
+    return { trackAssists: false, trackPlayingTime: false, trackCards: false };
+  }
+
+  function newTeam(name) {
     return {
-      version: 1,
-      teamName: "My Team",
+      id: uid(),
+      teamName: name || "My Team",
       roster: [],
-      settings: { trackAssists: false, trackPlayingTime: false, trackCards: false },
+      settings: defaultSettings(),
       activeMatch: null,
       history: []
     };
+  }
+
+  function defaultState() {
+    var t = newTeam("My Team");
+    return { version: 2, teams: [t], activeTeamId: t.id };
+  }
+
+  // Normalise any stored shape into the v2 multi-team shape. Version 1 stored a
+  // single team at the top level, so it becomes that account's first team —
+  // nothing a person already recorded may be dropped here.
+  function migrate(parsed) {
+    if (!parsed || typeof parsed !== "object") return defaultState();
+
+    var teams;
+    if (Array.isArray(parsed.teams) && parsed.teams.length) {
+      teams = parsed.teams;
+    } else {
+      var t = newTeam(parsed.teamName || "My Team");
+      t.roster = Array.isArray(parsed.roster) ? parsed.roster : [];
+      t.settings = Object.assign(defaultSettings(), parsed.settings || {});
+      t.activeMatch = parsed.activeMatch || null;
+      t.history = Array.isArray(parsed.history) ? parsed.history : [];
+      teams = [t];
+    }
+
+    teams = teams.map(function (t) {
+      return {
+        id: t.id || uid(),
+        teamName: t.teamName || "My Team",
+        roster: Array.isArray(t.roster) ? t.roster : [],
+        settings: Object.assign(defaultSettings(), t.settings || {}),
+        activeMatch: t.activeMatch || null,
+        history: Array.isArray(t.history) ? t.history : []
+      };
+    });
+
+    var activeId = parsed.activeTeamId;
+    if (!teams.some(function (t) { return t.id === activeId; })) activeId = teams[0].id;
+    return { version: 2, teams: teams, activeTeamId: activeId };
   }
 
   function load() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
-      var parsed = JSON.parse(raw);
-      var base = defaultState();
-      return Object.assign(base, parsed, {
-        settings: Object.assign(base.settings, parsed.settings || {})
-      });
+      return migrate(JSON.parse(raw));
     } catch (e) {
       console.error("Load failed", e);
       return defaultState();
     }
+  }
+
+  // The currently selected team. Self-healing: never returns undefined.
+  function T() {
+    for (var i = 0; i < state.teams.length; i++) {
+      if (state.teams[i].id === state.activeTeamId) return state.teams[i];
+    }
+    if (state.teams.length) {
+      state.activeTeamId = state.teams[0].id;
+      return state.teams[0];
+    }
+    var t = newTeam("My Team");
+    state.teams.push(t);
+    state.activeTeamId = t.id;
+    return t;
+  }
+
+  function teamById(id) {
+    for (var i = 0; i < state.teams.length; i++) {
+      if (state.teams[i].id === id) return state.teams[i];
+    }
+    return null;
   }
 
   function persist() {
@@ -591,15 +725,18 @@
   }
 
   var state = load();
-  var view = state.roster.length === 0 ? "team" : "match";
+  // Write the normalised (possibly migrated) shape straight back, so an upgrade
+  // isn't left half-applied if the app is closed without touching anything.
+  persist();
+  var view = T().roster.length === 0 ? "team" : "match";
   var pendingAssistEventId = null;
   var assistBarTimer = null;
 
   // ---------- utilities ----------
 
   function rosterById(id) {
-    for (var i = 0; i < state.roster.length; i++) {
-      if (state.roster[i].id === id) return state.roster[i];
+    for (var i = 0; i < T().roster.length; i++) {
+      if (T().roster[i].id === id) return T().roster[i];
     }
     return null;
   }
@@ -675,7 +812,7 @@
   }
 
   function goalTimeline(events, opponentName, record) {
-    var ourName = (record && record.teamName) || state.teamName;
+    var ourName = (record && record.teamName) || T().teamName;
     return (events || [])
       .filter(function (e) { return e.type === "goal" || e.type === "opponent_goal" || e.type === "own_goal"; })
       .map(function (e) {
@@ -838,6 +975,161 @@
     overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
   }
 
+  // A confirm with more than two outcomes, stacked so long labels stay readable.
+  function showChoice(message, options) {
+    var old = document.getElementById("choiceOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "choiceOverlay";
+    var buttons = options.map(function (o, i) {
+      return '<button class="btn ' + (o.danger ? "btn-danger" : "btn-primary") +
+        '" data-choice="' + i + '" style="margin-top:10px;">' + esc(o.label) + "</button>";
+    }).join("");
+    overlay.innerHTML =
+      '<div class="sheet">' +
+        '<div class="confirm-msg">' + esc(message) + "</div>" +
+        buttons +
+        '<button class="btn btn-ghost" id="choiceCancelBtn" style="margin-top:10px;">Cancel</button>' +
+      "</div>";
+    document.body.appendChild(overlay);
+    function cleanup() { overlay.remove(); }
+    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    document.getElementById("choiceCancelBtn").onclick = cleanup;
+    overlay.querySelectorAll("[data-choice]").forEach(function (btn) {
+      btn.onclick = function () {
+        cleanup();
+        options[parseInt(btn.getAttribute("data-choice"), 10)].onPick();
+      };
+    });
+  }
+
+  // ---------- teams ----------
+
+  function teamSummaryLine(t) {
+    var bits = [t.roster.length + (t.roster.length === 1 ? " player" : " players")];
+    if (t.history.length) bits.push(t.history.length + (t.history.length === 1 ? " match" : " matches"));
+    if (t.activeMatch) bits.push("match in progress");
+    return bits.join(" · ");
+  }
+
+  function switchTeam(id) {
+    if (!teamById(id) || id === state.activeTeamId) return;
+    state.activeTeamId = id;
+    pendingAssistEventId = null;
+    lastEventTapAt = {};
+    persist();
+    view = T().roster.length === 0 ? "team" : "match";
+    render();
+    showToast("Switched to " + T().teamName + ".");
+    // The 1s timer only watches the active team, so a clock left running on the
+    // team we just came back to is checked right now.
+    checkStaleClock();
+  }
+
+  function showTextPrompt(title, placeholder, initial, confirmLabel, onSubmit) {
+    var old = document.getElementById("promptOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "promptOverlay";
+    overlay.innerHTML =
+      '<div class="sheet">' +
+        '<div class="confirm-msg"><strong>' + esc(title) + "</strong></div>" +
+        '<input class="text-input" id="promptInput" style="margin-top:12px;margin-bottom:0;" placeholder="' + esc(placeholder) + '">' +
+        '<div class="btn-row" style="margin-top:16px;">' +
+          '<button class="btn btn-ghost" id="promptCancelBtn">Cancel</button>' +
+          '<button class="btn btn-primary" id="promptOkBtn">' + esc(confirmLabel) + "</button>" +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(overlay);
+    var input = document.getElementById("promptInput");
+    input.value = initial || "";
+    input.focus();
+    function cleanup() { overlay.remove(); }
+    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    document.getElementById("promptCancelBtn").onclick = cleanup;
+    function submit() {
+      var v = input.value.trim();
+      if (!v) { input.focus(); return; }
+      cleanup();
+      onSubmit(v);
+    }
+    document.getElementById("promptOkBtn").onclick = submit;
+    input.onkeydown = function (e) { if (e.key === "Enter") submit(); };
+  }
+
+  function addTeam() {
+    showTextPrompt("New team", "e.g. Excelsior Mariaburg - Blauw", "", "Create", function (name) {
+      var t = newTeam(name);
+      state.teams.push(t);
+      state.activeTeamId = t.id;
+      persist();
+      view = "team";
+      render();
+      showToast("Created " + name + ".");
+    });
+  }
+
+  function deleteTeam(id) {
+    var t = teamById(id);
+    if (!t) return;
+    if (state.teams.length === 1) {
+      showToast("This is your only team — clear its data instead.", "warning");
+      return;
+    }
+    var detail = t.history.length
+      ? " Its " + t.history.length + (t.history.length === 1 ? " match" : " matches") + " of history will be deleted too."
+      : "";
+    showConfirm('Delete "' + t.teamName + '"?' + detail + " This can't be undone.", "Delete", function () {
+      state.teams = state.teams.filter(function (x) { return x.id !== id; });
+      if (state.activeTeamId === id) state.activeTeamId = state.teams[0].id;
+      persist();
+      view = "team";
+      render();
+      showToast("Deleted " + t.teamName + ".", "warning");
+    }, true);
+  }
+
+  function showTeamPicker() {
+    var old = document.getElementById("teamOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "teamOverlay";
+    var rows = state.teams.map(function (t) {
+      var current = t.id === state.activeTeamId;
+      return (
+        '<div class="team-row' + (current ? " current" : "") + '">' +
+          '<button class="team-pick" data-pick-team="' + t.id + '">' +
+            '<span class="team-pick-name">' + esc(t.teamName) + (current ? " ✓" : "") + "</span>" +
+            '<span class="team-pick-meta">' + esc(teamSummaryLine(t)) + "</span>" +
+          "</button>" +
+          '<button class="team-del" data-del-team="' + t.id + '" aria-label="Delete team">✕</button>' +
+        "</div>"
+      );
+    }).join("");
+    overlay.innerHTML =
+      '<div class="sheet team-sheet">' +
+        '<div class="help-header"><h2 class="section-title">Teams</h2><button class="icon-btn" id="teamCloseBtn" aria-label="Close">✕</button></div>' +
+        '<div class="team-list">' + rows + "</div>" +
+        '<div style="padding:0 8px;">' +
+          '<button class="btn btn-primary" id="addTeamBtn" style="margin-top:12px;">Add a team</button>' +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(overlay);
+    function cleanup() { overlay.remove(); }
+    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    document.getElementById("teamCloseBtn").onclick = cleanup;
+    document.getElementById("addTeamBtn").onclick = function () { cleanup(); addTeam(); };
+    overlay.querySelectorAll("[data-pick-team]").forEach(function (btn) {
+      btn.onclick = function () { cleanup(); switchTeam(btn.getAttribute("data-pick-team")); };
+    });
+    overlay.querySelectorAll("[data-del-team]").forEach(function (btn) {
+      btn.onclick = function () { cleanup(); deleteTeam(btn.getAttribute("data-del-team")); };
+    });
+  }
+
   function showHelp() {
     var old = document.getElementById("helpOverlay");
     if (old) old.remove();
@@ -846,6 +1138,7 @@
     overlay.id = "helpOverlay";
     var sections = [
       ["Set up your team", "Go to <strong>Team</strong> and add each player's name and shirt number. This only needs doing once — it's saved on this device for every future match."],
+      ["Several teams", "Tap <strong>Switch</strong> at the top of the Team screen to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
       ["Start the clock", "Tap the timer at the top to start it. You can't log goals or cards until the clock is running — this keeps every event's minute accurate."],
@@ -856,7 +1149,7 @@
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
       ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report you can copy and share."],
       ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a Copy button on each match to re-share its report."],
-      ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file another parent or coach can load with <strong>Import team data</strong> — no retyping the roster."]
+      ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file of the team you're currently on. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."]
     ];
     var body = sections.map(function (s) {
       return '<div class="help-section"><h3>' + esc(s[0]) + "</h3><p>" + s[1] + "</p></div>";
@@ -911,10 +1204,10 @@
 
   function startNewMatch(opponentName, isHome) {
     var pt = {};
-    state.roster.forEach(function (p) {
+    T().roster.forEach(function (p) {
       pt[p.id] = { onField: true, accumMs: 0, onSince: 0 };
     });
-    state.activeMatch = {
+    T().activeMatch = {
       id: uid(),
       opponentName: opponentName || "Opponent",
       isHome: isHome !== false,
@@ -928,7 +1221,7 @@
   }
 
   function endMatch() {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var stats = computeStats(match);
     var minutes = playingTimeMinutes(match);
@@ -936,9 +1229,9 @@
       id: match.id,
       date: match.startedAt,
       opponentName: match.opponentName,
-      teamName: state.teamName,
+      teamName: T().teamName,
       isHome: match.isHome !== false,
-      rosterSnapshot: state.roster.map(function (p) {
+      rosterSnapshot: T().roster.map(function (p) {
         return { id: p.id, name: p.name, number: p.number };
       }),
       scoreUs: stats.scoreUs,
@@ -952,15 +1245,15 @@
       durationMinutes: currentMinute(match),
       events: match.events
     };
-    state.history.unshift(record);
-    state.activeMatch = null;
+    T().history.unshift(record);
+    T().activeMatch = null;
     persist();
     view = "summary";
     render();
   }
 
   function toggleClock() {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     if (match.clock.running) {
       match.clock.elapsedMs = clockElapsedMs(match);
@@ -992,7 +1285,7 @@
   }
 
   function logGoal(playerId) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     if (!isOnField(match, playerId)) {
       var benched = rosterById(playerId);
@@ -1004,7 +1297,7 @@
     var ev = { id: uid(), type: "goal", playerId: playerId, assistId: null, minuteAtEvent: currentMinute(match), ts: Date.now() };
     match.events.push(ev);
     persist();
-    if (state.settings.trackAssists) {
+    if (T().settings.trackAssists) {
       pendingAssistEventId = ev.id;
       clearTimeout(assistBarTimer);
       assistBarTimer = setTimeout(function () { pendingAssistEventId = null; render(); }, 6000);
@@ -1018,7 +1311,7 @@
   }
 
   function setAssist(assistPlayerId) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match || !pendingAssistEventId) return;
     var ev = null;
     for (var i = 0; i < match.events.length; i++) {
@@ -1032,7 +1325,7 @@
   }
 
   function logOpponentGoal() {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     if (!requireClockRunning(match)) return;
     if (!guardDoubleTap("opponent-goal")) return;
@@ -1044,7 +1337,7 @@
   // by: "us"   = our team put it in our own net  -> the point goes to the opponent
   // by: "them" = they put it in their own net    -> the point goes to us
   function logOwnGoal(by) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     if (!requireClockRunning(match)) return;
     if (!guardDoubleTap("own-goal:" + by)) return;
@@ -1054,13 +1347,13 @@
     showToast(
       by === "us"
         ? "Own goal — point to " + match.opponentName + "."
-        : "Own goal by " + match.opponentName + " — point to " + state.teamName + ".",
+        : "Own goal by " + match.opponentName + " — point to " + T().teamName + ".",
       "warning"
     );
   }
 
   function showOwnGoalPicker() {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     if (!requireClockRunning(match)) return;
     var old = document.getElementById("ownGoalOverlay");
@@ -1072,7 +1365,7 @@
       '<div class="sheet">' +
         '<div class="confirm-msg"><strong>Own goal</strong><br>Which team put it in their own net?</div>' +
         '<div class="btn-row" style="margin-top:16px;">' +
-          '<button class="btn btn-primary" id="ogUsBtn">' + esc(state.teamName) + "</button>" +
+          '<button class="btn btn-primary" id="ogUsBtn">' + esc(T().teamName) + "</button>" +
           '<button class="btn btn-primary" id="ogThemBtn">' + esc(match.opponentName) + "</button>" +
         "</div>" +
         '<button class="btn btn-ghost" id="ogCancelBtn" style="margin-top:10px;">Cancel</button>' +
@@ -1086,7 +1379,7 @@
   }
 
   function toggleCard(playerId, cardType) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var player = rosterById(playerId);
     if (hasRedCard(match, playerId)) {
@@ -1112,7 +1405,7 @@
   }
 
   function toggleField(playerId) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     if (hasRedCard(match, playerId)) {
       var player = rosterById(playerId);
@@ -1131,9 +1424,9 @@
     }
     if (ev.type === "opponent_goal") return "opponent goal";
     if (ev.type === "own_goal") {
-      var match = state.activeMatch;
+      var match = T().activeMatch;
       var oppName = match ? match.opponentName : "the opponent";
-      return "own goal by " + (ev.by === "us" ? state.teamName : oppName);
+      return "own goal by " + (ev.by === "us" ? T().teamName : oppName);
     }
     if (ev.type === "card") {
       var c = rosterById(ev.playerId);
@@ -1143,7 +1436,7 @@
   }
 
   function undoLast() {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match || match.events.length === 0) return;
     var removed = match.events.pop();
     // An auto-red is a consequence, not an action: also remove the yellow that triggered it.
@@ -1165,7 +1458,7 @@
   }
 
   function deleteEvent(eventId) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var idx = -1;
     for (var i = 0; i < match.events.length; i++) {
@@ -1212,7 +1505,7 @@
   }
 
   function applyGoalEdit(eventId, newPlayerId, newAssistId) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev) return;
@@ -1224,7 +1517,7 @@
   }
 
   function applyCardEdit(eventId, newPlayerId, newCardType) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev) return;
@@ -1238,7 +1531,7 @@
   }
 
   function applyOwnGoalEdit(eventId, newBy) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev) return;
@@ -1249,7 +1542,7 @@
   }
 
   function showEditEvent(eventId) {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev || (ev.type !== "goal" && ev.type !== "card" && ev.type !== "own_goal")) return;
@@ -1270,7 +1563,7 @@
           '<div class="sheet">' +
             '<div class="confirm-msg"><strong>Edit own goal</strong><br>Which team put it in their own net?</div>' +
             '<div class="btn-row" style="margin-top:14px;">' +
-              '<button class="btn toggle-seg' + (selBy === "us" ? " on" : "") + '" id="ogEditUsBtn">' + esc(state.teamName) + "</button>" +
+              '<button class="btn toggle-seg' + (selBy === "us" ? " on" : "") + '" id="ogEditUsBtn">' + esc(T().teamName) + "</button>" +
               '<button class="btn toggle-seg' + (selBy === "them" ? " on" : "") + '" id="ogEditThemBtn">' + esc(match.opponentName) + "</button>" +
             "</div>" +
             '<div class="btn-row" style="margin-top:16px;">' +
@@ -1291,13 +1584,13 @@
       var selScorer = ev.playerId;
       var selAssist = ev.assistId || null;
       var draw = function () {
-        var scorerChips = state.roster.map(function (p) {
+        var scorerChips = T().roster.map(function (p) {
           return '<button class="assist-chip' + (p.id === selScorer ? " chip-selected" : "") + '" data-pick-scorer="' + p.id + '">' + esc(p.name) + "</button>";
         }).join("");
         var assistSection = "";
-        if (state.settings.trackAssists) {
+        if (T().settings.trackAssists) {
           var assistChips =
-            state.roster.filter(function (p) { return p.id !== selScorer; }).map(function (p) {
+            T().roster.filter(function (p) { return p.id !== selScorer; }).map(function (p) {
               return '<button class="assist-chip' + (p.id === selAssist ? " chip-selected" : "") + '" data-pick-assist="' + p.id + '">' + esc(p.name) + "</button>";
             }).join("") +
             '<button class="assist-chip' + (!selAssist ? " chip-selected" : "") + '" data-pick-assist="none">No assist</button>';
@@ -1339,7 +1632,7 @@
       var selPlayer = ev.playerId;
       var selType = ev.cardType;
       var drawCard = function () {
-        var playerChips = state.roster.map(function (p) {
+        var playerChips = T().roster.map(function (p) {
           return '<button class="assist-chip' + (p.id === selPlayer ? " chip-selected" : "") + '" data-pick-player="' + p.id + '">' + esc(p.name) + "</button>";
         }).join("");
         overlay.innerHTML =
@@ -1377,13 +1670,13 @@
   function addPlayer(name, number) {
     name = (name || "").trim();
     if (!name) return;
-    state.roster.push({ id: uid(), name: name, number: (number || "").trim() });
+    T().roster.push({ id: uid(), name: name, number: (number || "").trim() });
     persist();
     render();
   }
 
   function removePlayer(id) {
-    state.roster = state.roster.filter(function (p) { return p.id !== id; });
+    T().roster = T().roster.filter(function (p) { return p.id !== id; });
     persist();
     render();
   }
@@ -1412,7 +1705,7 @@
       return players[pid];
     }
 
-    state.history.forEach(function (m) {
+    T().history.forEach(function (m) {
       team.matchesPlayed++;
       if (m.scoreUs > m.scoreThem) team.won++;
       else if (m.scoreUs < m.scoreThem) team.lost++;
@@ -1452,7 +1745,7 @@
     });
 
     // Prefer current shirt numbers and names where the player is still on the roster.
-    state.roster.forEach(function (p) {
+    T().roster.forEach(function (p) {
       if (players[p.id]) {
         players[p.id].name = p.name;
         players[p.id].number = p.number || "";
@@ -1489,7 +1782,7 @@
       }).sort(function (a, b) { return b.goals - a.goals || a.name.localeCompare(b.name); });
     }
 
-    var rows = state.history.map(function (m) {
+    var rows = T().history.map(function (m) {
       return {
         date: m.date,
         opponent: m.opponentName,
@@ -1504,7 +1797,7 @@
 
     // A match still being played is included too, flagged, so you can export
     // mid-match without ending it first.
-    var live = state.activeMatch;
+    var live = T().activeMatch;
     if (live) {
       var s = computeStats(live);
       rows.unshift({
@@ -1525,15 +1818,15 @@
     var payload = {
       exportedFrom: "Matchday Tracker",
       exportedAt: new Date().toISOString(),
-      teamName: state.teamName,
-      roster: state.roster,
-      settings: state.settings,
+      teamName: T().teamName,
+      roster: T().roster,
+      settings: T().settings,
       seasonStats: buildSeasonStats(),
       matchStats: buildMatchStats(),
-      history: state.history
+      history: T().history
     };
     var json = JSON.stringify(payload, null, 2);
-    var filename = slug(state.teamName) + "-team-data.json";
+    var filename = slug(T().teamName) + "-team-data.json";
 
     // Inside a published Claude artifact, use its native save prompt.
     if (window.claude && typeof window.claude.use === "function") {
@@ -1568,28 +1861,69 @@
     }
   }
 
+  function teamFromImport(data, id) {
+    return {
+      id: id || uid(),
+      teamName: data.teamName || "My Team",
+      roster: data.roster.map(function (p) {
+        return { id: p.id || uid(), name: p.name || "", number: p.number || "" };
+      }),
+      settings: Object.assign(defaultSettings(), data.settings || {}),
+      activeMatch: null,
+      history: Array.isArray(data.history) ? data.history : []
+    };
+  }
+
+  function finishImport(team, replacedId) {
+    if (replacedId) {
+      state.teams = state.teams.map(function (t) { return t.id === replacedId ? team : t; });
+    } else {
+      state.teams.push(team);
+    }
+    state.activeTeamId = team.id;
+    pendingAssistEventId = null;
+    lastEventTapAt = {};
+    persist();
+    view = "team";
+    render();
+    showToast("Imported " + team.teamName + " — " + team.roster.length + " players.");
+  }
+
   function importDataFromFile(file) {
     var reader = new FileReader();
     reader.onload = function () {
       try {
         var data = JSON.parse(reader.result);
         if (!data || !Array.isArray(data.roster)) throw new Error("bad shape");
-        showConfirm(
-          "Import \"" + (data.teamName || "this team") + "\"? This replaces the roster, settings and history currently stored on this device.",
-          "Import",
-          function () {
-            state.teamName = data.teamName || "My Team";
-            state.roster = data.roster.map(function (p) {
-              return { id: p.id || uid(), name: p.name || "", number: p.number || "" };
-            });
-            state.settings = Object.assign({ trackAssists: false, trackPlayingTime: false, trackCards: false }, data.settings || {});
-            state.history = Array.isArray(data.history) ? data.history : [];
-            persist();
-            view = "team";
-            render();
-            showToast("Imported " + state.roster.length + " players.");
-          },
-          true
+        var name = data.teamName || "My Team";
+
+        // A team already on this device with the same name is the one the file
+        // is probably an update of — but replacing it throws away its matches,
+        // so that is never assumed.
+        var existing = null;
+        for (var i = 0; i < state.teams.length; i++) {
+          if (state.teams[i].teamName === name) { existing = state.teams[i]; break; }
+        }
+
+        if (!existing) {
+          finishImport(teamFromImport(data), null);
+          return;
+        }
+
+        var lost = existing.history.length
+          ? "Replacing it deletes its " + existing.history.length +
+            (existing.history.length === 1 ? " recorded match." : " recorded matches.")
+          : "It has no recorded matches yet.";
+        showChoice(
+          '"' + name + '" already exists on this device. ' + lost,
+          [
+            { label: "Replace it", danger: true, onPick: function () { finishImport(teamFromImport(data, existing.id), existing.id); } },
+            { label: "Add as a second team", onPick: function () {
+                var t = teamFromImport(data);
+                t.teamName = name + " (imported)";
+                finishImport(t, null);
+              } }
+          ]
         );
       } catch (e) {
         showToast("That file doesn't look like a Matchday Tracker export.", "error");
@@ -1610,7 +1944,7 @@
     document.getElementById("tabTeam").classList.toggle("active", activeTab === "team");
     document.getElementById("tabHistory").classList.toggle("active", activeTab === "history");
 
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     document.getElementById("scoreboardBar").classList.toggle("hidden", !match && view !== "summary");
     document.getElementById("undoBtn").disabled = !match || match.events.length === 0;
     document.getElementById("clockBtn").style.visibility = match ? "visible" : "hidden";
@@ -1619,7 +1953,7 @@
       var stats = computeStats(match);
       document.getElementById("usScoreNum").textContent = stats.scoreUs;
       document.getElementById("themScoreNum").textContent = stats.scoreThem;
-      document.getElementById("usScoreLabel").textContent = state.teamName + (match.isHome !== false ? " (H)" : " (A)");
+      document.getElementById("usScoreLabel").textContent = T().teamName + (match.isHome !== false ? " (H)" : " (A)");
       document.getElementById("themScoreLabel").textContent = match.opponentName + (match.isHome !== false ? " (A)" : " (H)");
       document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(match));
       document.getElementById("clockState").textContent = match.clock.running ? "Running — tap to pause" : "Paused — tap to start";
@@ -1638,12 +1972,14 @@
 
   function renderMatchScreen() {
     var el = document.getElementById("matchScreen");
-    var match = state.activeMatch;
+    var match = T().activeMatch;
 
     if (!match) {
       el.innerHTML =
         '<h1 class="screen-title">Start a match</h1>' +
-        (state.roster.length === 0
+        '<p class="playing-as">Playing as <strong>' + esc(T().teamName) + "</strong>" +
+          (state.teams.length > 1 ? ' — <button class="link-btn" id="quickSwitchBtn">switch team</button>' : "") + "</p>" +
+        (T().roster.length === 0
           ? '<p class="hint">Add your players first, from the Team &amp; settings menu.</p>' +
             '<button class="btn btn-primary" id="goToTeamBtn">Go to Team &amp; settings</button>'
           : '<div class="card">' +
@@ -1656,7 +1992,9 @@
               '</div>' +
               '<button class="btn btn-primary" id="kickoffBtn">Kick off</button>' +
             '</div>');
-      if (state.roster.length === 0) {
+      var qs = document.getElementById("quickSwitchBtn");
+      if (qs) qs.onclick = showTeamPicker;
+      if (T().roster.length === 0) {
         document.getElementById("goToTeamBtn").onclick = function () { view = "team"; render(); };
       } else {
         var selectedIsHome = true;
@@ -1683,7 +2021,7 @@
     if (pendingAssistEventId) {
       var scorerEv = match.events.filter(function (e) { return e.id === pendingAssistEventId; })[0];
       var scorer = scorerEv ? rosterById(scorerEv.playerId) : null;
-      var chips = state.roster
+      var chips = T().roster
         .filter(function (p) { return (!scorer || p.id !== scorer.id) && isOnField(match, p.id); })
         .map(function (p) { return '<button class="assist-chip" data-assist="' + p.id + '">' + esc(p.name) + "</button>"; })
         .join("");
@@ -1694,25 +2032,27 @@
         "</div>";
     }
 
-    var tilesHtml = state.roster.map(function (p) {
+    var tilesHtml = T().roster.map(function (p) {
       var goals = stats.scorers[p.id] || 0;
       var assistCount = stats.assists[p.id] || 0;
       var bits = [];
       if (goals) bits.push(goals + (goals === 1 ? " goal" : " goals"));
-      if (state.settings.trackAssists && assistCount) bits.push(assistCount + " ast");
+      if (T().settings.trackAssists && assistCount) bits.push(assistCount + " ast");
       var onField = isOnField(match, p.id);
-      var sentOff = state.settings.trackCards && hasRedCard(match, p.id);
+      var sentOff = T().settings.trackCards && hasRedCard(match, p.id);
       var fieldBadge = '<button class="field-badge ' + (sentOff ? "sent-off-badge" : (onField ? "on" : "off")) + '" data-field="' + p.id + '"' + (sentOff ? " disabled" : "") + '>' + (sentOff ? "Sent off" : (onField ? "On pitch" : "Bench")) + "</button>";
       var controls = "";
-      if (state.settings.trackCards) {
+      if (T().settings.trackCards) {
         var pcards = stats.cards[p.id] || [];
         var yellows = pcards.filter(function (c) { return c === "yellow"; }).length;
         var reds = pcards.filter(function (c) { return c === "red"; }).length;
         if (yellows) bits.push(yellows + (yellows === 1 ? " yellow" : " yellows"));
         if (reds) bits.push("red");
         controls +=
-          '<button class="mini-card yellow-btn' + (yellows ? " card-yellow" : "") + '" data-card-yellow="' + p.id + '" aria-label="Give yellow card"' + (sentOff ? " disabled" : "") + "></button>" +
-          '<button class="mini-card red-btn' + (reds ? " card-red" : "") + '" data-card-red="' + p.id + '" aria-label="Give red card"' + (sentOff ? " disabled" : "") + "></button>";
+          '<button class="card-btn" data-card-yellow="' + p.id + '" aria-label="Give yellow card"' + (sentOff ? " disabled" : "") +
+            '><span class="mini-card yellow-btn' + (yellows ? " card-yellow" : "") + '"></span></button>' +
+          '<button class="card-btn" data-card-red="' + p.id + '" aria-label="Give red card"' + (sentOff ? " disabled" : "") +
+            '><span class="mini-card red-btn' + (reds ? " card-red" : "") + '"></span></button>';
       }
       return (
         '<div class="tile' + (onField ? "" : " benched") + (sentOff ? " sent-off" : "") + '" data-tile="' + p.id + '" data-goal="' + p.id + '">' +
@@ -1738,7 +2078,7 @@
         desc = "⚽ " + esc(match.opponentName);
       } else if (ev.type === "own_goal") {
         // Shown under the team it counts for, same convention as the timeline.
-        desc = "⚽ " + esc(ev.by === "us" ? match.opponentName : state.teamName) + " (own goal)";
+        desc = "⚽ " + esc(ev.by === "us" ? match.opponentName : T().teamName) + " (own goal)";
       } else if (ev.type === "card") {
         var cp = rosterById(ev.playerId);
         desc = (ev.cardType === "red" ? "🟥 " : "🟨 ") + esc(cp ? cp.name : "");
@@ -1751,7 +2091,7 @@
     }).join("");
 
     el.innerHTML =
-      (state.settings.trackAssists ? assistBarHtml : "") +
+      (T().settings.trackAssists ? assistBarHtml : "") +
       '<div class="player-grid">' + tilesHtml + "</div>" +
       '<div class="goal-btn-row">' +
         '<button class="opp-goal-btn" id="oppGoalBtn">+ ' + esc(match.opponentName) + " scored</button>" +
@@ -1800,7 +2140,7 @@
 
   function renderSummaryScreen() {
     var el = document.getElementById("matchScreen");
-    var record = state.history[0];
+    var record = T().history[0];
     if (!record) { view = "match"; render(); return; }
 
     var scorerRows = Object.keys(record.scorers).map(function (pid) {
@@ -1809,7 +2149,7 @@
 
     var scorerHtml = scorerRows.length
       ? scorerRows.map(function (r) {
-          var extra = state.settings.trackAssists && r.assists ? " · " + r.assists + " ast" : "";
+          var extra = T().settings.trackAssists && r.assists ? " · " + r.assists + " ast" : "";
           return '<div class="stat-row"><span class="sr-name">' + esc(r.name) + '</span><span class="sr-val">' + r.goals + (r.goals === 1 ? " goal" : " goals") + esc(extra) + "</span></div>";
         }).join("")
       : '<div class="empty-state">No goals scored by your team.</div>';
@@ -1841,7 +2181,7 @@
       '<div class="stat-list">' + scorerHtml + "</div>" +
       '<h2 class="section-title">Goal timeline</h2>' +
       '<div class="event-log">' + timelineHtml(timeline) + "</div>" +
-      (state.settings.trackPlayingTime && minuteRows.length ? '<h2 class="section-title">Playing time</h2><div class="stat-list">' + minutesHtml + "</div>" : "") +
+      (T().settings.trackPlayingTime && minuteRows.length ? '<h2 class="section-title">Playing time</h2><div class="stat-list">' + minutesHtml + "</div>" : "") +
       '<button class="btn btn-gold" id="copySummaryBtn" style="margin-top:18px;">Copy summary to share</button>' +
       '<div class="btn-row" style="margin-top:10px;">' +
         '<button class="btn btn-primary" id="newMatchBtn">Start next match</button>' +
@@ -1855,7 +2195,7 @@
 
   function renderTeamScreen() {
     var el = document.getElementById("teamScreen");
-    var rosterHtml = state.roster.map(function (p) {
+    var rosterHtml = T().roster.map(function (p) {
       return (
         '<div class="roster-item">' +
           '<div class="roster-num">' + esc(p.number || "–") + "</div>" +
@@ -1866,20 +2206,29 @@
     }).join("");
 
     function toggleRow(key, title, desc) {
-      var on = !!state.settings[key];
+      var on = !!T().settings[key];
       return (
-        '<div class="toggle-row">' +
-          '<div class="toggle-copy"><div class="t-title">' + title + '</div><div class="t-desc">' + desc + "</div></div>" +
-          '<button class="switch' + (on ? " on" : "") + '" data-toggle="' + key + '" aria-pressed="' + on + '"></button>' +
-        "</div>"
+        // The whole row is the button, so the small switch is never the only target.
+        '<button class="toggle-row" data-toggle="' + key + '" aria-pressed="' + on + '">' +
+          '<span class="toggle-copy"><span class="t-title">' + title + '</span><span class="t-desc">' + desc + "</span></span>" +
+          '<span class="switch' + (on ? " on" : "") + '"></span>' +
+        "</button>"
       );
     }
 
     el.innerHTML =
       '<h1 class="screen-title">Team &amp; settings</h1>' +
       '<div class="card">' +
-        '<label class="field-label" for="teamNameInput">Team name</label>' +
-        '<input class="text-input" id="teamNameInput" value="' + esc(state.teamName) + '" style="margin-bottom:0;">' +
+        '<div class="team-card">' +
+          "<div>" +
+            '<div class="tc-name">' + esc(T().teamName) + "</div>" +
+            '<div class="tc-meta">' + esc(teamSummaryLine(T())) +
+              (state.teams.length > 1 ? " · " + state.teams.length + " teams on this device" : "") + "</div>" +
+          "</div>" +
+          '<button class="btn btn-ghost" id="switchTeamBtn">Switch</button>' +
+        "</div>" +
+        '<label class="field-label" for="teamNameInput" style="margin-top:14px;">Team name</label>' +
+        '<input class="text-input" id="teamNameInput" value="' + esc(T().teamName) + '" style="margin-bottom:0;">' +
       "</div>" +
       '<h2 class="section-title">Players</h2>' +
       '<div class="card">' +
@@ -1904,9 +2253,11 @@
         '<button class="btn btn-ghost" id="importBtn">Import team data</button>' +
       "</div>";
 
+    document.getElementById("switchTeamBtn").onclick = showTeamPicker;
     document.getElementById("teamNameInput").onchange = function (e) {
-      state.teamName = e.target.value.trim() || "My Team";
+      T().teamName = e.target.value.trim() || "My Team";
       persist();
+      render();
     };
     document.getElementById("addPlayerBtn").onclick = function () {
       var num = document.getElementById("newNum").value;
@@ -1922,7 +2273,7 @@
     el.querySelectorAll("[data-toggle]").forEach(function (btn) {
       btn.onclick = function () {
         var key = btn.getAttribute("data-toggle");
-        state.settings[key] = !state.settings[key];
+        T().settings[key] = !T().settings[key];
         persist();
         render();
       };
@@ -1945,7 +2296,7 @@
       if (!seasonNames[pid]) seasonNames[pid] = nameInRecord(m, pid);
       return season[pid];
     }
-    state.history.forEach(function (m) {
+    T().history.forEach(function (m) {
       played++;
       if (m.scoreUs > m.scoreThem) wins++;
       else if (m.scoreUs < m.scoreThem) losses++;
@@ -1967,13 +2318,13 @@
     var seasonHtml = seasonRows.length
       ? seasonRows.map(function (r) {
           var extra = "";
-          if (state.settings.trackAssists) extra += " · " + r.assists + " ast";
-          if (state.settings.trackPlayingTime) extra += " · " + r.minutes + " min";
+          if (T().settings.trackAssists) extra += " · " + r.assists + " ast";
+          if (T().settings.trackPlayingTime) extra += " · " + r.minutes + " min";
           return '<div class="stat-row"><span class="sr-name">' + esc(r.name) + '</span><span class="sr-val">' + r.goals + (r.goals === 1 ? " goal" : " goals") + esc(extra) + "</span></div>";
         }).join("")
       : '<div class="empty-state">No matches recorded yet.</div>';
 
-    var listHtml = state.history.map(function (m) {
+    var listHtml = T().history.map(function (m) {
       var result = m.scoreUs > m.scoreThem ? "win" : (m.scoreUs < m.scoreThem ? "loss" : "draw");
       var resultLabel = result === "win" ? "W" : (result === "loss" ? "L" : "D");
       var scorerNames = Object.keys(m.scorers || {}).map(function (pid) {
@@ -2011,15 +2362,17 @@
         '<button class="btn btn-primary" id="exportBtn2">Export team data</button>' +
         '<button class="btn btn-ghost" id="importBtn2">Import team data</button>' +
       "</div>" +
-      '<button class="btn btn-danger" id="clearAllBtn" style="margin-top:12px;">Clear all data on this device</button>';
+      '<button class="btn btn-danger" id="clearAllBtn" style="margin-top:12px;">Clear all teams on this device</button>';
 
     document.getElementById("exportBtn2").onclick = exportData;
     document.getElementById("importBtn2").onclick = function () {
       document.getElementById("importFileInput").click();
     };
     document.getElementById("clearAllBtn").onclick = function () {
+      var n = state.teams.length;
       showConfirm(
-        "This deletes the roster, settings and all match history on this device. This can't be undone.",
+        "This deletes " + (n > 1 ? "all " + n + " teams" : "this team") +
+          " — rosters, settings and every recorded match on this device. This can't be undone.",
         "Clear everything",
         function () { state = defaultState(); persist(); view = "team"; render(); },
         true
@@ -2029,7 +2382,7 @@
       btn.onclick = function () {
         var id = btn.getAttribute("data-del");
         showConfirm("Delete this match from history?", "Delete", function () {
-          state.history = state.history.filter(function (m) { return m.id !== id; });
+          T().history = T().history.filter(function (m) { return m.id !== id; });
           persist();
           render();
         }, true);
@@ -2038,7 +2391,7 @@
     el.querySelectorAll("[data-copy]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-copy");
-        var m = state.history.filter(function (h) { return h.id === id; })[0];
+        var m = T().history.filter(function (h) { return h.id === id; })[0];
         if (m) copyShareText(buildShareText(m));
       };
     });
@@ -2083,7 +2436,7 @@
   }
 
   function checkStaleClock() {
-    var match = state.activeMatch;
+    var match = T().activeMatch;
     if (!match || !match.clock.running) return;
     var elapsed = clockElapsedMs(match);
     if (elapsed <= CLOCK_STALE_LIMIT_MS) return;
@@ -2104,10 +2457,10 @@
   }
 
   setInterval(function () {
-    if (state.activeMatch && state.activeMatch.clock.running) {
+    if (T().activeMatch && T().activeMatch.clock.running) {
       checkStaleClock();
-      if (view === "match" && state.activeMatch && state.activeMatch.clock.running) {
-        document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(state.activeMatch));
+      if (view === "match" && T().activeMatch && T().activeMatch.clock.running) {
+        document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(T().activeMatch));
       }
     }
   }, 1000);
