@@ -511,6 +511,8 @@
     font-size: 13.5px; line-height: 1.5;
   }
   .notice-warn { background: rgba(226,163,61,0.16); border: 1px solid var(--gold-deep); color: var(--ink); }
+  .notice-install { background: var(--chalk-dim); border: 1px solid var(--line); color: var(--ink); }
+  .notice-install .btn { padding: 11px 14px; font-size: 14px; }
   .notice-error { background: rgba(193,68,59,0.14); border: 1px solid var(--red-text); color: var(--ink); }
 
   .app-version {
@@ -657,7 +659,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "9";
+  var APP_VERSION = "11";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -1093,12 +1095,74 @@
 
   // ---------- teams ----------
 
+  // --- adding the app to the home screen ---------------------------------
+  // No site may install itself; the most a page can do is ask. Android and
+  // desktop Chrome hand us a real prompt via beforeinstallprompt. iOS offers no
+  // such API at all, so there the best possible is clear instructions.
+  var deferredInstall = null;
+  var INSTALL_KEY = "matchdayInstallHidden";
+
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+           navigator.standalone === true;
+  }
+
+  function isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+           (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function installHidden() {
+    try { return localStorage.getItem(INSTALL_KEY) === "1"; } catch (e) { return false; }
+  }
+
+  function hideInstallHint() {
+    try { localStorage.setItem(INSTALL_KEY, "1"); } catch (e) {}
+    render();
+  }
+
+  function installNoticeHtml() {
+    if (isStandalone() || installHidden()) return "";
+    if (deferredInstall) {
+      return '<div class="notice notice-install">' +
+        "<div><strong>Add to your home screen</strong> so it opens fullscreen and works without signal.</div>" +
+        '<div class="btn-row" style="margin-top:10px;">' +
+          '<button class="btn btn-primary" id="installBtn">Install</button>' +
+          '<button class="btn btn-ghost" id="installDismissBtn">Not now</button>' +
+        "</div></div>";
+    }
+    if (isIOS()) {
+      return '<div class="notice notice-install">' +
+        "<div><strong>Add to your home screen</strong> so it opens fullscreen and works without signal: " +
+        "tap the share button in Safari, then <strong>Add to Home Screen</strong>.</div>" +
+        '<button class="btn btn-ghost" id="installDismissBtn" style="margin-top:10px;">Got it</button>' +
+      "</div>";
+    }
+    return "";
+  }
+
+  function wireNotices() {
+    var install = document.getElementById("installBtn");
+    if (install) {
+      install.onclick = function () {
+        if (!deferredInstall) return;
+        deferredInstall.prompt();
+        var choice = deferredInstall.userChoice;
+        deferredInstall = null;
+        if (choice && choice.then) choice.then(function () { render(); });
+        else render();
+      };
+    }
+    var dismiss = document.getElementById("installDismissBtn");
+    if (dismiss) dismiss.onclick = hideInstallHint;
+  }
+
   function unexportedCount() {
     return Math.max(0, T().history.length - (T().lastExportCount || 0));
   }
 
   function noticeHtml() {
-    var out = "";
+    var out = installNoticeHtml();
     if (!storageOk) {
       out += '<div class="notice notice-error">This device isn\u2019t saving right now. ' +
              'Your matches only exist in this open app \u2014 export your data before closing it.</div>';
@@ -1248,6 +1312,7 @@
     overlay.className = "overlay";
     overlay.id = "helpOverlay";
     var sections = [
+      ["Put it on your home screen", "Opened in a browser, the app offers to add itself — on Android and desktop Chrome with an <strong>Install</strong> button, on iPhone with the steps to follow, because Apple gives websites no way to do it for you. Installed, it opens fullscreen and works without signal."],
       ["Set up your team", "Go to <strong>Team</strong> and add each player's name and shirt number. This only needs doing once — it's saved on this device for every future match."],
       ["Several teams", "Tap <strong>Switch</strong> at the top of the Team screen to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
@@ -2272,6 +2337,7 @@
     if (view === "team") renderTeamScreen();
     if (view === "history") renderHistoryScreen();
     if (view === "match") updateLiveMinutes();
+    wireNotices();
   }
 
   function renderMatchScreen() {
@@ -2280,6 +2346,7 @@
 
     if (!match) {
       el.innerHTML =
+        noticeHtml() +
         '<h1 class="screen-title">Start a match</h1>' +
         '<p class="playing-as">Playing as <strong>' + esc(T().teamName) + "</strong>" +
           (state.teams.length > 1 ? ' — <button class="link-btn" id="quickSwitchBtn">switch team</button>' : "") + "</p>" +
@@ -2539,7 +2606,8 @@
             '<div class="tc-meta">' + esc(teamSummaryLine(T())) +
               (state.teams.length > 1 ? " · " + state.teams.length + " teams on this device" : "") + "</div>" +
           "</div>" +
-          '<button class="btn btn-ghost" id="switchTeamBtn">Switch</button>' +
+          '<button class="btn btn-ghost" id="switchTeamBtn">' +
+            (state.teams.length > 1 ? "Switch" : "Teams") + "</button>" +
         "</div>" +
         '<label class="field-label" for="teamNameInput" style="margin-top:14px;">Team name</label>' +
         '<input class="text-input" id="teamNameInput" value="' + esc(T().teamName) + '" style="margin-bottom:0;">' +
@@ -2553,6 +2621,9 @@
           '<button class="btn btn-primary" id="addPlayerBtn">Add</button>' +
         "</div>" +
       "</div>" +
+      (T().roster.length && !T().activeMatch
+        ? '<button class="btn btn-primary" id="goToMatchBtn" style="margin-bottom:6px;">Start a match</button>'
+        : "") +
       '<h2 class="section-title">Match options</h2>' +
       '<p class="hint">Off by default — turn on only what you actually want to track.</p>' +
       '<div class="card">' +
@@ -2568,6 +2639,8 @@
       "</div>";
 
     document.getElementById("switchTeamBtn").onclick = showTeamPicker;
+    var goMatch = document.getElementById("goToMatchBtn");
+    if (goMatch) goMatch.onclick = function () { view = "match"; render(); };
     document.getElementById("teamNameInput").onchange = function (e) {
       T().teamName = e.target.value.trim() || "My Team";
       persist();
@@ -2794,6 +2867,17 @@
       }
     }
   }, 1000);
+
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferredInstall = e;
+    render();
+  });
+  window.addEventListener("appinstalled", function () {
+    deferredInstall = null;
+    try { localStorage.setItem(INSTALL_KEY, "1"); } catch (err) {}
+    render();
+  });
 
   document.addEventListener("visibilitychange", function () {
     // Timers are throttled while hidden, so redraw on return to snap the clock
