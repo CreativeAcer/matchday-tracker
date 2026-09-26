@@ -37,6 +37,7 @@
        keeps its contrast. */
     --brand-text: #1F5C40;
     --red-text: #A8362C;
+    --gold-text: #82570F;
     --red: #C1443B;
     --yellow-card: #E8C93D;
     --line: rgba(22,33,26,0.13);
@@ -51,6 +52,7 @@
       --chalk: #10201A;
       --brand-text: #74D2A0;
       --red-text: #F0897C;
+      --gold-text: #E8B85C;
       --chalk-dim: #0C1913;
       --panel: #17281F;
       --ink: #F1EEE3;
@@ -60,8 +62,9 @@
   }
   :root[data-theme="dark"] {
     --chalk: #10201A;
-      --brand-text: #74D2A0;
-      --red-text: #F0897C;
+    --brand-text: #74D2A0;
+    --red-text: #F0897C;
+    --gold-text: #E8B85C;
     --chalk-dim: #0C1913;
     --panel: #17281F;
     --ink: #F1EEE3;
@@ -166,6 +169,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .score-label-btn {
+    background: none; border: none; color: inherit; font: inherit;
+    padding: 2px 4px; width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .score-label-btn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .score-label-btn .pen { flex-shrink: 0; font-size: 11px; opacity: 0.8; }
   .score-sep { font-family: var(--font-display); font-size: 22px; opacity: 0.5; margin-top: -6px; }
 
   main.screen { flex: 1; padding: 16px 14px 100px; max-width: 640px; width: 100%; margin: 0 auto; }
@@ -340,6 +350,9 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .tile-goals { font-size: 11px; color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
+  .tile-mins { font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+  .tile.least-played { box-shadow: inset 0 0 0 2px var(--gold-deep); }
+  .tile.least-played .tile-mins { color: var(--gold-text); font-weight: 700; }
   .tile-controls { display: flex; justify-content: center; gap: 2px; margin-top: 2px; }
   /* The coloured rectangle stays small, but its button carries a 44px hit area
      so it can be tapped one-handed on a sideline. */
@@ -409,6 +422,10 @@
   }
   .event-edit:active { color: var(--brand-text); }
   .event-delete:active { color: var(--red-text); }
+  .period-head {
+    font-family: var(--font-display); font-weight: 600; font-size: 13px;
+    color: var(--ink-soft); margin: 12px 0 4px;
+  }
   .empty-state { color: var(--ink-soft); font-size: 13.5px; padding: 10px 2px; }
 
   .end-match-btn { margin-top: 22px; }
@@ -442,6 +459,7 @@
   .result-pill.draw { background: var(--chalk-dim); color: var(--ink-soft); }
   .hi-remove { background: none; border: none; color: var(--ink-soft); font-size: 12px; padding: 8px 10px; min-height: 44px; }
   .hi-copy { background: none; border: none; color: var(--brand-text); font-size: 12px; font-weight: 700; padding: 8px 10px; min-height: 44px; }
+  .hi-edit { background: none; border: none; color: var(--brand-text); font-size: 12px; font-weight: 700; padding: 8px 10px; min-height: 44px; }
   .hi-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
   .share-textarea {
     width: 100%; min-height: 150px; margin-top: 10px;
@@ -488,6 +506,18 @@
   }
   .help-section p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
   .help-section p:last-child { margin-bottom: 0; }
+  .notice {
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+    font-size: 13.5px; line-height: 1.5;
+  }
+  .notice-warn { background: rgba(226,163,61,0.16); border: 1px solid var(--gold-deep); color: var(--ink); }
+  .notice-error { background: rgba(193,68,59,0.14); border: 1px solid var(--red-text); color: var(--ink); }
+
+  .app-version {
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--ink-soft); text-align: center;
+  }
 
   .team-sheet { max-height: 82vh; display: flex; flex-direction: column; padding-left: 0; padding-right: 0; }
   .team-list { overflow-y: auto; padding: 6px 8px 0; }
@@ -595,7 +625,7 @@
     <span class="score-sep">–</span>
     <div class="score-side them">
       <span class="score-num" id="themScoreNum">0</span>
-      <span class="score-label" id="themScoreLabel">Opponent</span>
+      <button class="score-label score-label-btn" id="themScoreLabel">Opponent</button>
     </div>
   </div>
 
@@ -624,6 +654,12 @@
 
   var STORAGE_KEY = "matchdayTrackerData_v1";
 
+  // Shown at the bottom of the help sheet so you can confirm on the phone which
+  // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
+  // sw.js, and set APP_BUILT to the deploy date.
+  var APP_VERSION = "9";
+  var APP_BUILT = "2026-09-26";
+
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
@@ -639,7 +675,9 @@
       roster: [],
       settings: defaultSettings(),
       activeMatch: null,
-      history: []
+      history: [],
+      lastLineup: null,
+      lastExportCount: 0
     };
   }
 
@@ -673,7 +711,9 @@
         roster: Array.isArray(t.roster) ? t.roster : [],
         settings: Object.assign(defaultSettings(), t.settings || {}),
         activeMatch: t.activeMatch || null,
-        history: Array.isArray(t.history) ? t.history : []
+        history: Array.isArray(t.history) ? t.history : [],
+        lastLineup: Array.isArray(t.lastLineup) ? t.lastLineup : null,
+        lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
     });
 
@@ -708,6 +748,18 @@
     return t;
   }
 
+  // Display order is by shirt number, numerically — "10" must not sort before
+  // "2". Storage order is left alone.
+  function sortedRoster() {
+    return T().roster.slice().sort(function (a, b) {
+      var na = parseInt(a.number, 10), nb = parseInt(b.number, 10);
+      var aNum = !isNaN(na), bNum = !isNaN(nb);
+      if (aNum && bNum && na !== nb) return na - nb;
+      if (aNum !== bNum) return aNum ? -1 : 1;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }
+
   function teamById(id) {
     for (var i = 0; i < state.teams.length; i++) {
       if (state.teams[i].id === id) return state.teams[i];
@@ -715,12 +767,20 @@
     return null;
   }
 
+  var storageOk = true;
+
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (!storageOk) { storageOk = true; render(); }
     } catch (e) {
       console.error("Save failed", e);
-      showToast("Couldn't save — storage may be full or unavailable.", "error");
+      // Everything still works in memory, but it is one app-close from being
+      // lost, so this warning stays on screen instead of flashing past.
+      if (storageOk) {
+        storageOk = false;
+        showToast("Couldn't save to this device — export your data now.", "error");
+      }
     }
   }
 
@@ -761,7 +821,7 @@
   }
 
   function clockElapsedMs(match) {
-    if (!match) return 0;
+    if (!match || !match.clock) return 0;
     var extra = match.clock.running ? (Date.now() - match.clock.runningSince) : 0;
     return match.clock.elapsedMs + extra;
   }
@@ -822,25 +882,38 @@
           if (e.assistId) {
             assistName = record ? nameInRecord(record, e.assistId) : (rosterById(e.assistId) ? rosterById(e.assistId).name : null);
           }
-          return { minute: e.minuteAtEvent, forUs: true, name: scorerName, assistName: assistName, ownGoal: false };
+          return { minute: e.minuteAtEvent, period: e.period || 1, forUs: true, name: scorerName, assistName: assistName, ownGoal: false };
         }
         if (e.type === "own_goal") {
           // Listed under the team it counts FOR, flagged as an own goal.
           var forUs = e.by !== "us";
-          return { minute: e.minuteAtEvent, forUs: forUs, name: forUs ? ourName : opponentName, assistName: null, ownGoal: true };
+          return { minute: e.minuteAtEvent, period: e.period || 1, forUs: forUs, name: forUs ? ourName : opponentName, assistName: null, ownGoal: true };
         }
-        return { minute: e.minuteAtEvent, forUs: false, name: opponentName, assistName: null, ownGoal: false };
+        return { minute: e.minuteAtEvent, period: e.period || 1, forUs: false, name: opponentName, assistName: null, ownGoal: false };
       });
   }
 
   function timelineHtml(timeline) {
     if (!timeline.length) return '<div class="empty-state">No goals scored.</div>';
+    var multi = timeline.some(function (t) { return (t.period || 1) > 1; });
+    var shown = {};
     return timeline.map(function (t) {
+      var head = "";
+      if (multi && !shown[t.period || 1]) {
+        shown[t.period || 1] = true;
+        head = '<div class="period-head">Period ' + (t.period || 1) + "</div>";
+      }
+      return head + oneTimelineRow(t);
+    }).join("");
+  }
+
+  function oneTimelineRow(t) {
+    return (function (t) {
       var desc = "⚽ " + esc(t.name) +
         (t.ownGoal ? " (own goal)" : "") +
         (t.assistName ? " (assist: " + esc(t.assistName) + ")" : "");
       return '<div class="event-row"><span class="event-minute">' + t.minute + "'</span><span class=\"event-desc\">" + desc + "</span></div>";
-    }).join("");
+    })(t);
   }
 
   function buildShareText(record) {
@@ -881,13 +954,27 @@
     if (timeline.length) {
       lines.push("");
       lines.push("Goals:");
+      var multi = timeline.some(function (t) { return (t.period || 1) > 1; });
+      var seen = {};
       timeline.forEach(function (t) {
+        var per = t.period || 1;
+        if (multi && !seen[per]) { seen[per] = true; lines.push("— Period " + per + " —"); }
         lines.push(t.minute + "' " + t.name +
           (t.ownGoal ? " (own goal)" : "") +
           (t.assistName ? " (assist: " + t.assistName + ")" : ""));
       });
     }
     return lines.join("\n");
+  }
+
+  // The system share sheet lands straight in WhatsApp; copying is the fallback
+  // where it isn't available or the user backs out.
+  async function shareOrCopy(text) {
+    if (navigator.share) {
+      try { await navigator.share({ text: text }); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    copyShareText(text);
   }
 
   async function copyShareText(text) {
@@ -1005,6 +1092,30 @@
   }
 
   // ---------- teams ----------
+
+  function unexportedCount() {
+    return Math.max(0, T().history.length - (T().lastExportCount || 0));
+  }
+
+  function noticeHtml() {
+    var out = "";
+    if (!storageOk) {
+      out += '<div class="notice notice-error">This device isn\u2019t saving right now. ' +
+             'Your matches only exist in this open app \u2014 export your data before closing it.</div>';
+    }
+    var n = unexportedCount();
+    if (storageOk && n >= 3) {
+      out += '<div class="notice notice-warn">' + n + ' matches recorded since your last backup. ' +
+             'Use <strong>Export team data</strong> to keep a copy.</div>';
+    }
+    return out;
+  }
+
+  function markExported() {
+    T().lastExportCount = T().history.length;
+    persist();
+    render();
+  }
 
   function teamSummaryLine(t) {
     var bits = [t.roster.length + (t.roster.length === 1 ? " player" : " players")];
@@ -1144,20 +1255,30 @@
       ["Start the clock", "Tap the timer at the top to start it. You can't log goals or cards until the clock is running — this keeps every event's minute accurate."],
       ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed button below the grid for the opponent's goals."],
       ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
-      ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake."],
+      ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
+      ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
+      ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
-      ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report you can copy and share."],
-      ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a Copy button on each match to re-share its report."],
+      ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report. <strong>Share summary</strong> sends it straight to a chat app where your phone supports it, and copies it otherwise."],
+      ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match to re-share its report."],
+      ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>Fix</strong> on a match in History to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
+      ["Keep a backup", "Everything lives on this device only. After a few matches the app reminds you to use <strong>Export team data</strong> — keep that file somewhere safe, because clearing your browser data would otherwise take the season with it."],
       ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file of the team you're currently on. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."]
     ];
     var body = sections.map(function (s) {
       return '<div class="help-section"><h3>' + esc(s[0]) + "</h3><p>" + s[1] + "</p></div>";
     }).join("");
+    var built = new Date(APP_BUILT);
+    var builtStr = isNaN(built) ? APP_BUILT
+      : built.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
     overlay.innerHTML =
       '<div class="sheet help-sheet">' +
         '<div class="help-header"><h2 class="section-title">How to use this app</h2><button class="icon-btn" id="helpCloseBtn" aria-label="Close">✕</button></div>' +
-        '<div class="help-body">' + body + "</div>" +
+        '<div class="help-body">' + body +
+          '<div class="app-version">Matchday Tracker · version ' + esc(APP_VERSION) +
+            " · " + esc(builtStr) + "</div>" +
+        "</div>" +
       "</div>";
     document.body.appendChild(overlay);
     function cleanup() { overlay.remove(); }
@@ -1186,6 +1307,7 @@
   }
 
   function setOnField(match, playerId, onField) {
+    if (!match.playingTime) return; // finished matches carry no pitch state
     if (!match.playingTime[playerId]) match.playingTime[playerId] = { onField: true, accumMs: 0, onSince: clockElapsedMs(match) };
     var pt = match.playingTime[playerId];
     if (pt.onField === onField) return;
@@ -1203,9 +1325,16 @@
   // ---------- match lifecycle ----------
 
   function startNewMatch(opponentName, isHome) {
+    // Reuse the lineup from last time so the bench doesn't have to be rebuilt
+    // before every match. Players added since then start on the pitch.
+    var last = Array.isArray(T().lastLineup) ? T().lastLineup : null;
+    var known = {};
+    (T().roster || []).forEach(function (p) { known[p.id] = true; });
+    var reusable = last && last.some(function (id) { return known[id]; });
     var pt = {};
     T().roster.forEach(function (p) {
-      pt[p.id] = { onField: true, accumMs: 0, onSince: 0 };
+      var on = reusable ? last.indexOf(p.id) !== -1 : true;
+      pt[p.id] = { onField: on, accumMs: 0, onSince: on ? 0 : null };
     });
     T().activeMatch = {
       id: uid(),
@@ -1213,6 +1342,7 @@
       isHome: isHome !== false,
       startedAt: new Date().toISOString(),
       clock: { elapsedMs: 0, running: false, runningSince: null },
+      period: 1,
       events: [],
       playingTime: pt
     };
@@ -1245,6 +1375,9 @@
       durationMinutes: currentMinute(match),
       events: match.events
     };
+    if (Array.isArray(match.startingLineup) && match.startingLineup.length) {
+      T().lastLineup = match.startingLineup;
+    }
     T().history.unshift(record);
     T().activeMatch = null;
     persist();
@@ -1260,6 +1393,14 @@
       match.clock.running = false;
       match.clock.runningSince = null;
     } else {
+      // The first time the clock runs is when the coach has finished setting
+      // the bench, so that is the lineup worth remembering.
+      if (!match.lineupCaptured) {
+        match.lineupCaptured = true;
+        match.startingLineup = Object.keys(match.playingTime).filter(function (pid) {
+          return match.playingTime[pid].onField;
+        });
+      }
       match.clock.running = true;
       match.clock.runningSince = Date.now();
     }
@@ -1294,7 +1435,7 @@
     }
     if (!requireClockRunning(match)) return;
     if (!guardDoubleTap("goal:" + playerId)) return;
-    var ev = { id: uid(), type: "goal", playerId: playerId, assistId: null, minuteAtEvent: currentMinute(match), ts: Date.now() };
+    var ev = { id: uid(), type: "goal", playerId: playerId, assistId: null, minuteAtEvent: currentMinute(match), period: match.period || 1, ts: Date.now() };
     match.events.push(ev);
     persist();
     if (T().settings.trackAssists) {
@@ -1329,7 +1470,7 @@
     if (!match) return;
     if (!requireClockRunning(match)) return;
     if (!guardDoubleTap("opponent-goal")) return;
-    match.events.push({ id: uid(), type: "opponent_goal", playerId: null, minuteAtEvent: currentMinute(match), ts: Date.now() });
+    match.events.push({ id: uid(), type: "opponent_goal", playerId: null, minuteAtEvent: currentMinute(match), period: match.period || 1, ts: Date.now() });
     persist();
     render();
   }
@@ -1341,7 +1482,7 @@
     if (!match) return;
     if (!requireClockRunning(match)) return;
     if (!guardDoubleTap("own-goal:" + by)) return;
-    match.events.push({ id: uid(), type: "own_goal", by: by, playerId: null, minuteAtEvent: currentMinute(match), ts: Date.now() });
+    match.events.push({ id: uid(), type: "own_goal", by: by, playerId: null, minuteAtEvent: currentMinute(match), period: match.period || 1, ts: Date.now() });
     persist();
     render();
     showToast(
@@ -1388,17 +1529,14 @@
     }
     if (!requireClockRunning(match)) return;
     if (!guardDoubleTap("card:" + playerId + ":" + cardType)) return;
-    match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: cardType, minuteAtEvent: currentMinute(match), ts: Date.now() });
+    match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: cardType, minuteAtEvent: currentMinute(match), period: match.period || 1, ts: Date.now() });
 
-    var counts = cardCounts(match, playerId);
-    var sentOff = cardType === "red";
-    if (cardType === "yellow" && counts.yellows >= 2) {
-      match.events.push({ id: uid(), type: "card", playerId: playerId, cardType: "red", auto: true, minuteAtEvent: currentMinute(match), ts: Date.now() });
-      sentOff = true;
-    }
-    if (sentOff) {
-      setOnField(match, playerId, false);
-      showToast((player ? player.name : "Player") + " is sent off" + (cardType === "yellow" ? " — second yellow" : "") + ".", "warning");
+    // One place decides what a card implies (auto-red, benching), so logging,
+    // editing and undoing can never drift apart.
+    reconcileCardConsequences(match, [playerId]);
+    if (hasRedCard(match, playerId)) {
+      showToast((player ? player.name : "Player") + " is sent off" +
+        (cardType === "yellow" ? " — second yellow" : "") + ".", "warning");
     }
     persist();
     render();
@@ -1417,6 +1555,44 @@
     render();
   }
 
+  // Minutes are refreshed in place every second; re-rendering the whole grid
+  // would fight with taps and rebuild the DOM under the coach's finger.
+  function updateLiveMinutes() {
+    var match = T().activeMatch;
+    var nodes = document.querySelectorAll("[data-mins]");
+    if (!match || !nodes.length) return;
+    var mins = playingTimeMinutes(match);
+    var lowest = Infinity;
+    T().roster.forEach(function (p) {
+      var m = mins[p.id] || 0;
+      if (m < lowest) lowest = m;
+    });
+    // Before the match has really got going everyone is level, so flagging the
+    // "least played" player would just be noise.
+    var meaningful = clockElapsedMs(match) >= 5 * 60000;
+    nodes.forEach(function (el) {
+      var pid = el.getAttribute("data-mins");
+      var m = mins[pid] || 0;
+      el.textContent = m + " min";
+      var tile = document.querySelector('.tile[data-tile="' + pid + '"]');
+      if (tile) tile.classList.toggle("least-played", meaningful && m === lowest);
+    });
+  }
+
+  function startNextPeriod() {
+    var match = T().activeMatch;
+    if (!match) return;
+    if (match.clock.running) {
+      match.clock.elapsedMs = clockElapsedMs(match);
+      match.clock.running = false;
+      match.clock.runningSince = null;
+    }
+    match.period = (match.period || 1) + 1;
+    persist();
+    render();
+    showToast("Break — period " + match.period + " starts when you start the clock.", "warning");
+  }
+
   function describeEvent(ev) {
     if (ev.type === "goal") {
       var p = rosterById(ev.playerId);
@@ -1424,8 +1600,8 @@
     }
     if (ev.type === "opponent_goal") return "opponent goal";
     if (ev.type === "own_goal") {
-      var match = T().activeMatch;
-      var oppName = match ? match.opponentName : "the opponent";
+      var match = editTarget();
+      var oppName = match && match.opponentName ? match.opponentName : "the opponent";
       return "own goal by " + (ev.by === "us" ? T().teamName : oppName);
     }
     if (ev.type === "card") {
@@ -1458,7 +1634,7 @@
   }
 
   function deleteEvent(eventId) {
-    var match = T().activeMatch;
+    var match = editTarget();
     if (!match) return;
     var idx = -1;
     for (var i = 0; i < match.events.length; i++) {
@@ -1469,8 +1645,7 @@
     if (pendingAssistEventId === eventId) pendingAssistEventId = null;
     lastEventTapAt = {};
     reconcileCardConsequences(match, [removed.playerId]);
-    persist();
-    render();
+    afterEdit(match);
     showToast("Removed: " + describeEvent(removed));
   }
 
@@ -1481,7 +1656,13 @@
       seen[pid] = true;
       var counts = cardCounts(match, pid);
       if (counts.yellows >= 2 && counts.reds === 0) {
-        match.events.push({ id: uid(), type: "card", playerId: pid, cardType: "red", auto: true, minuteAtEvent: currentMinute(match), ts: Date.now() });
+        var yellows = match.events.filter(function (e) {
+          return e.type === "card" && e.playerId === pid && e.cardType === "yellow";
+        });
+        var trigger = yellows[yellows.length - 1] || {};
+        match.events.push({ id: uid(), type: "card", playerId: pid, cardType: "red", auto: true,
+          minuteAtEvent: trigger.minuteAtEvent != null ? trigger.minuteAtEvent : currentMinute(match),
+          period: trigger.period || match.period || 1, ts: Date.now() });
         counts = cardCounts(match, pid);
       } else if (counts.yellows < 2 && counts.reds > 0) {
         // Drop auto-reds that no longer have two yellows behind them (manual reds are left alone).
@@ -1493,8 +1674,47 @@
         }
         counts = cardCounts(match, pid);
       }
-      if (counts.reds > 0) setOnField(match, pid, false);
+      // Benching is a consequence of the red card, so undoing the card has to
+      // undo the benching too — but only when the card put them there, never a
+      // substitution the coach made by hand.
+      var pt = match.playingTime && match.playingTime[pid];
+      if (counts.reds > 0) {
+        setOnField(match, pid, false);
+        if (pt) pt.sentOff = true;
+      } else if (pt && pt.sentOff) {
+        pt.sentOff = false;
+        setOnField(match, pid, true);
+      }
     });
+  }
+
+  // null = the match being played; otherwise the id of a match in history.
+  var editMatchId = null;
+  var matchEditRedraw = null;
+
+  function editTarget() {
+    if (!editMatchId) return T().activeMatch;
+    return T().history.filter(function (m) { return m.id === editMatchId; })[0] || null;
+  }
+
+  // A finished match stores its totals alongside its events, so after an edit
+  // they have to be derived again or the score and the log disagree.
+  function recomputeRecord(rec) {
+    var stats = computeStats(rec);
+    rec.scoreUs = stats.scoreUs;
+    rec.scoreThem = stats.scoreThem;
+    rec.scorers = stats.scorers;
+    rec.assists = stats.assists;
+    rec.cards = stats.cards;
+    rec.ownGoalsFor = stats.ownGoalsFor;
+    rec.ownGoalsAgainst = stats.ownGoalsAgainst;
+  }
+
+  function afterEdit(container) {
+    if (editMatchId && container) recomputeRecord(container);
+    persist();
+    render();
+    if (matchEditRedraw) matchEditRedraw();
   }
 
   function findEvent(match, eventId) {
@@ -1505,19 +1725,18 @@
   }
 
   function applyGoalEdit(eventId, newPlayerId, newAssistId) {
-    var match = T().activeMatch;
+    var match = editTarget();
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev) return;
     ev.playerId = newPlayerId;
     ev.assistId = newAssistId || null;
-    persist();
-    render();
+    afterEdit(match);
     showToast("Updated: " + describeEvent(ev));
   }
 
   function applyCardEdit(eventId, newPlayerId, newCardType) {
-    var match = T().activeMatch;
+    var match = editTarget();
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev) return;
@@ -1525,24 +1744,94 @@
     ev.playerId = newPlayerId;
     ev.cardType = newCardType;
     reconcileCardConsequences(match, [oldPlayerId, newPlayerId]);
-    persist();
-    render();
+    afterEdit(match);
     showToast("Updated: " + describeEvent(ev));
   }
 
   function applyOwnGoalEdit(eventId, newBy) {
-    var match = T().activeMatch;
+    var match = editTarget();
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev) return;
     ev.by = newBy;
-    persist();
-    render();
+    afterEdit(match);
     showToast("Updated: " + describeEvent(ev));
   }
 
+  function showEditMatch(matchId) {
+    editMatchId = matchId;
+    var old = document.getElementById("matchEditOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "matchEditOverlay";
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.remove();
+      editMatchId = null;
+      matchEditRedraw = null;
+      render();
+    }
+
+    function draw() {
+      var rec = editTarget();
+      if (!rec) { close(); return; }
+      var rows = rec.events.map(function (ev) {
+        var desc = "";
+        if (ev.type === "goal") {
+          desc = "⚽ " + esc(nameInRecord(rec, ev.playerId));
+          if (ev.assistId) desc += " (assist: " + esc(nameInRecord(rec, ev.assistId)) + ")";
+        } else if (ev.type === "opponent_goal") {
+          desc = "⚽ " + esc(rec.opponentName);
+        } else if (ev.type === "own_goal") {
+          desc = "⚽ " + esc(ev.by === "us" ? rec.opponentName : rec.teamName) + " (own goal)";
+        } else if (ev.type === "card") {
+          desc = (ev.cardType === "red" ? "🟥 " : "🟨 ") + esc(nameInRecord(rec, ev.playerId));
+        }
+        var editable = ev.type === "goal" || ev.type === "card" || ev.type === "own_goal";
+        return '<div class="event-row"><span class="event-minute">' + (ev.minuteAtEvent || 0) +
+          "'</span><span class=\"event-desc\">" + desc + '</span><div class="event-actions">' +
+          (editable ? '<button class="event-edit" data-edit-event="' + ev.id + '" aria-label="Edit">✎</button>' : "") +
+          '<button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete">✕</button>' +
+          "</div></div>";
+      }).join("");
+
+      overlay.innerHTML =
+        '<div class="sheet help-sheet">' +
+          '<div class="help-header"><h2 class="section-title">Correct this match</h2>' +
+            '<button class="icon-btn" id="matchEditCloseBtn" aria-label="Close">✕</button></div>' +
+          '<div class="help-body">' +
+            '<div class="summary-score" style="padding-top:0;">' +
+              '<div class="ss-num">' + rec.scoreUs + " – " + rec.scoreThem + "</div>" +
+              '<div class="ss-teams">' + esc(rec.teamName) + " vs " + esc(rec.opponentName) + "</div>" +
+            "</div>" +
+            '<p class="hint">The score and season totals update as you change entries.</p>' +
+            '<div class="event-log">' +
+              (rows || '<div class="empty-state">Nothing was logged in this match.</div>') +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("matchEditCloseBtn").onclick = close;
+      overlay.querySelectorAll("[data-edit-event]").forEach(function (btn) {
+        btn.onclick = function () { showEditEvent(btn.getAttribute("data-edit-event")); };
+      });
+      overlay.querySelectorAll("[data-del-event]").forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute("data-del-event");
+          showConfirm("Delete this entry from the match?", "Delete", function () { deleteEvent(id); }, true);
+        };
+      });
+    }
+
+    matchEditRedraw = draw;
+    overlay.onclick = function (e) { if (e.target === overlay) close(); };
+    draw();
+  }
+
   function showEditEvent(eventId) {
-    var match = T().activeMatch;
+    var match = editTarget();
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev || (ev.type !== "goal" && ev.type !== "card" && ev.type !== "own_goal")) return;
@@ -1584,13 +1873,13 @@
       var selScorer = ev.playerId;
       var selAssist = ev.assistId || null;
       var draw = function () {
-        var scorerChips = T().roster.map(function (p) {
+        var scorerChips = sortedRoster().map(function (p) {
           return '<button class="assist-chip' + (p.id === selScorer ? " chip-selected" : "") + '" data-pick-scorer="' + p.id + '">' + esc(p.name) + "</button>";
         }).join("");
         var assistSection = "";
         if (T().settings.trackAssists) {
           var assistChips =
-            T().roster.filter(function (p) { return p.id !== selScorer; }).map(function (p) {
+            sortedRoster().filter(function (p) { return p.id !== selScorer; }).map(function (p) {
               return '<button class="assist-chip' + (p.id === selAssist ? " chip-selected" : "") + '" data-pick-assist="' + p.id + '">' + esc(p.name) + "</button>";
             }).join("") +
             '<button class="assist-chip' + (!selAssist ? " chip-selected" : "") + '" data-pick-assist="none">No assist</button>';
@@ -1632,7 +1921,7 @@
       var selPlayer = ev.playerId;
       var selType = ev.cardType;
       var drawCard = function () {
-        var playerChips = T().roster.map(function (p) {
+        var playerChips = sortedRoster().map(function (p) {
           return '<button class="assist-chip' + (p.id === selPlayer ? " chip-selected" : "") + '" data-pick-player="' + p.id + '">' + esc(p.name) + "</button>";
         }).join("");
         overlay.innerHTML =
@@ -1669,10 +1958,18 @@
 
   function addPlayer(name, number) {
     name = (name || "").trim();
-    if (!name) return;
-    T().roster.push({ id: uid(), name: name, number: (number || "").trim() });
+    number = (number || "").trim();
+    if (!name) {
+      showToast("Enter a name first.", "warning");
+      var nameEl = document.getElementById("newName");
+      if (nameEl) nameEl.focus();
+      return;
+    }
+    var clash = number && T().roster.filter(function (p) { return p.number === number; })[0];
+    T().roster.push({ id: uid(), name: name, number: number });
     persist();
     render();
+    if (clash) showToast("Heads up: number " + number + " is also " + clash.name + ".", "warning");
   }
 
   function removePlayer(id) {
@@ -1835,6 +2132,7 @@
         if (downloads) {
           var result = await downloads.save({ filename: filename, data: json });
           showToast(result.status === "saved" ? "Saved " + filename : "Sent");
+          markExported();
           return;
         }
       } catch (err) {
@@ -1855,6 +2153,7 @@
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       showToast("Saved " + filename);
+      markExported();
     } catch (err) {
       console.error(err);
       showToast("Couldn't export right now.", "error");
@@ -1870,7 +2169,9 @@
       }),
       settings: Object.assign(defaultSettings(), data.settings || {}),
       activeMatch: null,
-      history: Array.isArray(data.history) ? data.history : []
+      history: Array.isArray(data.history) ? data.history : [],
+      lastLineup: null,
+      lastExportCount: Array.isArray(data.history) ? data.history.length : 0
     };
   }
 
@@ -1954,7 +2255,9 @@
       document.getElementById("usScoreNum").textContent = stats.scoreUs;
       document.getElementById("themScoreNum").textContent = stats.scoreThem;
       document.getElementById("usScoreLabel").textContent = T().teamName + (match.isHome !== false ? " (H)" : " (A)");
-      document.getElementById("themScoreLabel").textContent = match.opponentName + (match.isHome !== false ? " (A)" : " (H)");
+      document.getElementById("themScoreLabel").innerHTML =
+        '<span class="lbl">' + esc(match.opponentName + (match.isHome !== false ? " (A)" : " (H)")) +
+        '</span><span class="pen" aria-hidden="true">✎</span>';
       document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(match));
       document.getElementById("clockState").textContent = match.clock.running ? "Running — tap to pause" : "Paused — tap to start";
       document.getElementById("clockState").classList.toggle("running", match.clock.running);
@@ -1968,6 +2271,7 @@
     if (view === "summary") renderSummaryScreen();
     if (view === "team") renderTeamScreen();
     if (view === "history") renderHistoryScreen();
+    if (view === "match") updateLiveMinutes();
   }
 
   function renderMatchScreen() {
@@ -2021,7 +2325,7 @@
     if (pendingAssistEventId) {
       var scorerEv = match.events.filter(function (e) { return e.id === pendingAssistEventId; })[0];
       var scorer = scorerEv ? rosterById(scorerEv.playerId) : null;
-      var chips = T().roster
+      var chips = sortedRoster()
         .filter(function (p) { return (!scorer || p.id !== scorer.id) && isOnField(match, p.id); })
         .map(function (p) { return '<button class="assist-chip" data-assist="' + p.id + '">' + esc(p.name) + "</button>"; })
         .join("");
@@ -2032,12 +2336,12 @@
         "</div>";
     }
 
-    var tilesHtml = T().roster.map(function (p) {
+    var tilesHtml = sortedRoster().map(function (p) {
       var goals = stats.scorers[p.id] || 0;
       var assistCount = stats.assists[p.id] || 0;
       var bits = [];
       if (goals) bits.push(goals + (goals === 1 ? " goal" : " goals"));
-      if (T().settings.trackAssists && assistCount) bits.push(assistCount + " ast");
+      if (T().settings.trackAssists && assistCount) bits.push(assistCount + (assistCount === 1 ? " assist" : " assists"));
       var onField = isOnField(match, p.id);
       var sentOff = T().settings.trackCards && hasRedCard(match, p.id);
       var fieldBadge = '<button class="field-badge ' + (sentOff ? "sent-off-badge" : (onField ? "on" : "off")) + '" data-field="' + p.id + '"' + (sentOff ? " disabled" : "") + '>' + (sentOff ? "Sent off" : (onField ? "On pitch" : "Bench")) + "</button>";
@@ -2060,6 +2364,8 @@
           '<div class="tile-num">' + esc(p.number || "") + "</div>" +
           '<div class="tile-name">' + esc(p.name) + "</div>" +
           '<div class="tile-goals">' + esc(bits.join(" · ")) + "</div>" +
+          (T().settings.trackPlayingTime
+            ? '<div class="tile-mins" data-mins="' + p.id + '"></div>' : "") +
           (controls ? '<div class="tile-controls">' + controls + "</div>" : "") +
         "</div>"
       );
@@ -2099,9 +2405,13 @@
       "</div>" +
       '<h2 class="section-title">Match log</h2>' +
       '<div class="event-log">' + (eventsHtml || '<div class="empty-state">No events logged yet — tap a player to add a goal.</div>') + "</div>" +
-      '<button class="btn btn-danger end-match-btn" id="endMatchBtn">End match</button>';
+      '<div class="btn-row end-match-btn">' +
+        '<button class="btn btn-ghost" id="halfTimeBtn">Half time</button>' +
+        '<button class="btn btn-danger" id="endMatchBtn">End match</button>' +
+      "</div>";
 
     document.getElementById("oppGoalBtn").onclick = logOpponentGoal;
+    document.getElementById("halfTimeBtn").onclick = startNextPeriod;
     document.getElementById("ownGoalBtn").onclick = showOwnGoalPicker;
     document.getElementById("endMatchBtn").onclick = function () {
       showConfirm("End the match? This saves the result to history.", "End match", endMatch, true);
@@ -2130,11 +2440,12 @@
     el.querySelectorAll("[data-del-event]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-del-event");
+        editMatchId = null;
         showConfirm("Delete this entry from the log?", "Delete", function () { deleteEvent(id); }, true);
       };
     });
     el.querySelectorAll("[data-edit-event]").forEach(function (btn) {
-      btn.onclick = function () { showEditEvent(btn.getAttribute("data-edit-event")); };
+      btn.onclick = function () { editMatchId = null; showEditEvent(btn.getAttribute("data-edit-event")); };
     });
   }
 
@@ -2149,7 +2460,7 @@
 
     var scorerHtml = scorerRows.length
       ? scorerRows.map(function (r) {
-          var extra = T().settings.trackAssists && r.assists ? " · " + r.assists + " ast" : "";
+          var extra = T().settings.trackAssists && r.assists ? " · " + r.assists + (r.assists === 1 ? " assist" : " assists") : "";
           return '<div class="stat-row"><span class="sr-name">' + esc(r.name) + '</span><span class="sr-val">' + r.goals + (r.goals === 1 ? " goal" : " goals") + esc(extra) + "</span></div>";
         }).join("")
       : '<div class="empty-state">No goals scored by your team.</div>';
@@ -2171,6 +2482,7 @@
     var shareText = buildShareText(record);
 
     el.innerHTML =
+      noticeHtml() +
       '<h1 class="screen-title">Match summary</h1>' +
       '<div class="summary-score">' +
         '<div class="ss-num">' + record.scoreUs + " – " + record.scoreThem + "</div>" +
@@ -2182,20 +2494,21 @@
       '<h2 class="section-title">Goal timeline</h2>' +
       '<div class="event-log">' + timelineHtml(timeline) + "</div>" +
       (T().settings.trackPlayingTime && minuteRows.length ? '<h2 class="section-title">Playing time</h2><div class="stat-list">' + minutesHtml + "</div>" : "") +
-      '<button class="btn btn-gold" id="copySummaryBtn" style="margin-top:18px;">Copy summary to share</button>' +
+      '<button class="btn btn-gold" id="copySummaryBtn" style="margin-top:18px;">' +
+        (navigator.share ? "Share summary" : "Copy summary to share") + "</button>" +
       '<div class="btn-row" style="margin-top:10px;">' +
         '<button class="btn btn-primary" id="newMatchBtn">Start next match</button>' +
         '<button class="btn btn-ghost" id="doneBtn">Done</button>' +
       "</div>";
 
-    document.getElementById("copySummaryBtn").onclick = function () { copyShareText(shareText); };
+    document.getElementById("copySummaryBtn").onclick = function () { shareOrCopy(shareText); };
     document.getElementById("newMatchBtn").onclick = function () { view = "match"; render(); };
     document.getElementById("doneBtn").onclick = function () { view = "match"; render(); };
   }
 
   function renderTeamScreen() {
     var el = document.getElementById("teamScreen");
-    var rosterHtml = T().roster.map(function (p) {
+    var rosterHtml = sortedRoster().map(function (p) {
       return (
         '<div class="roster-item">' +
           '<div class="roster-num">' + esc(p.number || "–") + "</div>" +
@@ -2217,6 +2530,7 @@
     }
 
     el.innerHTML =
+      noticeHtml() +
       '<h1 class="screen-title">Team &amp; settings</h1>' +
       '<div class="card">' +
         '<div class="team-card">' +
@@ -2318,7 +2632,7 @@
     var seasonHtml = seasonRows.length
       ? seasonRows.map(function (r) {
           var extra = "";
-          if (T().settings.trackAssists) extra += " · " + r.assists + " ast";
+          if (T().settings.trackAssists) extra += " · " + r.assists + (r.assists === 1 ? " assist" : " assists");
           if (T().settings.trackPlayingTime) extra += " · " + r.minutes + " min";
           return '<div class="stat-row"><span class="sr-name">' + esc(r.name) + '</span><span class="sr-val">' + r.goals + (r.goals === 1 ? " goal" : " goals") + esc(extra) + "</span></div>";
         }).join("")
@@ -2339,7 +2653,8 @@
           '<div class="hi-top">' +
             '<div><span class="hi-score">' + m.scoreUs + " – " + m.scoreThem + "</span> <span class=\"result-pill " + result + "\">" + resultLabel + "</span></div>" +
             '<div class="hi-actions">' +
-              '<button class="hi-copy" data-copy="' + m.id + '">Copy</button>' +
+              '<button class="hi-copy" data-copy="' + m.id + '">' + (navigator.share ? "Share" : "Copy") + "</button>" +
+              '<button class="hi-edit" data-fix="' + m.id + '">Fix</button>' +
               '<button class="hi-remove" data-del="' + m.id + '">Delete</button>' +
             "</div>" +
           "</div>" +
@@ -2350,6 +2665,7 @@
     }).join("");
 
     el.innerHTML =
+      noticeHtml() +
       '<h1 class="screen-title">History</h1>' +
       '<div class="card">' +
         '<div class="stat-row"><span class="sr-name">Record</span><span class="sr-val">' + played + " played · " + wins + "W " + draws + "D " + losses + "L</span></div>" +
@@ -2388,11 +2704,14 @@
         }, true);
       };
     });
+    el.querySelectorAll("[data-fix]").forEach(function (btn) {
+      btn.onclick = function () { showEditMatch(btn.getAttribute("data-fix")); };
+    });
     el.querySelectorAll("[data-copy]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-copy");
         var m = T().history.filter(function (h) { return h.id === id; })[0];
-        if (m) copyShareText(buildShareText(m));
+        if (m) shareOrCopy(buildShareText(m));
       };
     });
   }
@@ -2407,6 +2726,16 @@
   });
   document.getElementById("helpBtn").onclick = showHelp;
   document.getElementById("clockBtn").onclick = toggleClock;
+  document.getElementById("themScoreLabel").onclick = function () {
+    var match = T().activeMatch;
+    if (!match) return;
+    showTextPrompt("Opponent name", "e.g. FC Riverside", match.opponentName, "Save", function (name) {
+      T().activeMatch.opponentName = name;
+      persist();
+      render();
+      showToast("Opponent renamed to " + name + ".");
+    });
+  };
   document.getElementById("undoBtn").onclick = undoLast;
   document.getElementById("importFileInput").onchange = function (e) {
     var file = e.target.files && e.target.files[0];
@@ -2461,9 +2790,16 @@
       checkStaleClock();
       if (view === "match" && T().activeMatch && T().activeMatch.clock.running) {
         document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(T().activeMatch));
+        updateLiveMinutes();
       }
     }
   }, 1000);
+
+  document.addEventListener("visibilitychange", function () {
+    // Timers are throttled while hidden, so redraw on return to snap the clock
+    // and the live minutes back to the real elapsed time.
+    if (document.visibilityState === "visible") render();
+  });
 
   render();
   checkStaleClock();
