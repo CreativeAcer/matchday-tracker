@@ -323,18 +323,20 @@
   .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red); }
   .confirm-msg { font-size: 15px; line-height: 1.5; padding: 8px 4px 0; }
 
+  .goal-btn-row { display: flex; gap: 10px; margin-bottom: 18px; }
   .opp-goal-btn {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     background: var(--chalk-dim);
     border: 1px dashed var(--ink-soft);
     border-radius: 14px;
-    padding: 16px;
+    padding: 16px 12px;
     font-weight: 700;
     font-size: 15px;
     color: var(--ink);
-    margin-bottom: 18px;
   }
   .opp-goal-btn:active { background: var(--line); }
+  .own-goal-btn { flex: 0 0 34%; }
 
   .assist-bar {
     position: sticky;
@@ -633,6 +635,7 @@
 
   function computeStats(match) {
     var scoreUs = 0, scoreThem = 0;
+    var ownGoalsFor = 0, ownGoalsAgainst = 0;
     var scorers = {}, assists = {}, cards = {};
     match.events.forEach(function (ev) {
       if (ev.type === "goal") {
@@ -641,12 +644,21 @@
         if (ev.assistId) assists[ev.assistId] = (assists[ev.assistId] || 0) + 1;
       } else if (ev.type === "opponent_goal") {
         scoreThem++;
+      } else if (ev.type === "own_goal") {
+        // An own goal counts for the OTHER team and is never credited to a
+        // player, so it can't land in anyone's scoring stats.
+        if (ev.by === "us") { scoreThem++; ownGoalsAgainst++; }
+        else { scoreUs++; ownGoalsFor++; }
       } else if (ev.type === "card") {
         if (!cards[ev.playerId]) cards[ev.playerId] = [];
         cards[ev.playerId].push(ev.cardType);
       }
     });
-    return { scoreUs: scoreUs, scoreThem: scoreThem, scorers: scorers, assists: assists, cards: cards };
+    return {
+      scoreUs: scoreUs, scoreThem: scoreThem,
+      scorers: scorers, assists: assists, cards: cards,
+      ownGoalsFor: ownGoalsFor, ownGoalsAgainst: ownGoalsAgainst
+    };
   }
 
   function playingTimeMinutes(match) {
@@ -663,8 +675,9 @@
   }
 
   function goalTimeline(events, opponentName, record) {
+    var ourName = (record && record.teamName) || state.teamName;
     return (events || [])
-      .filter(function (e) { return e.type === "goal" || e.type === "opponent_goal"; })
+      .filter(function (e) { return e.type === "goal" || e.type === "opponent_goal" || e.type === "own_goal"; })
       .map(function (e) {
         if (e.type === "goal") {
           var scorerName = record ? nameInRecord(record, e.playerId) : (rosterById(e.playerId) ? rosterById(e.playerId).name : "Unknown");
@@ -672,16 +685,23 @@
           if (e.assistId) {
             assistName = record ? nameInRecord(record, e.assistId) : (rosterById(e.assistId) ? rosterById(e.assistId).name : null);
           }
-          return { minute: e.minuteAtEvent, forUs: true, name: scorerName, assistName: assistName };
+          return { minute: e.minuteAtEvent, forUs: true, name: scorerName, assistName: assistName, ownGoal: false };
         }
-        return { minute: e.minuteAtEvent, forUs: false, name: opponentName, assistName: null };
+        if (e.type === "own_goal") {
+          // Listed under the team it counts FOR, flagged as an own goal.
+          var forUs = e.by !== "us";
+          return { minute: e.minuteAtEvent, forUs: forUs, name: forUs ? ourName : opponentName, assistName: null, ownGoal: true };
+        }
+        return { minute: e.minuteAtEvent, forUs: false, name: opponentName, assistName: null, ownGoal: false };
       });
   }
 
   function timelineHtml(timeline) {
     if (!timeline.length) return '<div class="empty-state">No goals scored.</div>';
     return timeline.map(function (t) {
-      var desc = "⚽ " + esc(t.name) + (t.assistName ? " (assist: " + esc(t.assistName) + ")" : "");
+      var desc = "⚽ " + esc(t.name) +
+        (t.ownGoal ? " (own goal)" : "") +
+        (t.assistName ? " (assist: " + esc(t.assistName) + ")" : "");
       return '<div class="event-row"><span class="event-minute">' + t.minute + "'</span><span class=\"event-desc\">" + desc + "</span></div>";
     }).join("");
   }
@@ -699,11 +719,35 @@
     var lines = [];
     if (dateStr) lines.push(dateStr);
     lines.push(homeName + " (Home) " + homeScore + " – " + awayScore + " " + awayName + " (Away)");
+
+    // Goals per player for THIS match, so the shared report carries the tally
+    // and not just the minute-by-minute list.
+    var tally = Object.keys(record.scorers || {}).map(function (pid) {
+      return {
+        name: nameInRecord(record, pid),
+        goals: record.scorers[pid],
+        assists: (record.assists || {})[pid] || 0
+      };
+    }).sort(function (a, b) { return b.goals - a.goals || a.name.localeCompare(b.name); });
+
+    if (tally.length) {
+      lines.push("");
+      lines.push("Goals per player:");
+      tally.forEach(function (r) {
+        lines.push(r.name + ": " + r.goals +
+          (r.assists ? " (" + r.assists + " assist" + (r.assists === 1 ? "" : "s") + ")" : ""));
+      });
+    }
+    if (record.ownGoalsFor) lines.push("Own goals in our favour: " + record.ownGoalsFor);
+    if (record.ownGoalsAgainst) lines.push("Own goals against us: " + record.ownGoalsAgainst);
+
     if (timeline.length) {
       lines.push("");
       lines.push("Goals:");
       timeline.forEach(function (t) {
-        lines.push(t.minute + "' " + t.name + (t.assistName ? " (assist: " + t.assistName + ")" : ""));
+        lines.push(t.minute + "' " + t.name +
+          (t.ownGoal ? " (own goal)" : "") +
+          (t.assistName ? " (assist: " + t.assistName + ")" : ""));
       });
     }
     return lines.join("\n");
@@ -806,6 +850,7 @@
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
       ["Start the clock", "Tap the timer at the top to start it. You can't log goals or cards until the clock is running — this keeps every event's minute accurate."],
       ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed button below the grid for the opponent's goals."],
+      ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
@@ -898,6 +943,8 @@
       }),
       scoreUs: stats.scoreUs,
       scoreThem: stats.scoreThem,
+      ownGoalsFor: stats.ownGoalsFor,
+      ownGoalsAgainst: stats.ownGoalsAgainst,
       scorers: stats.scorers,
       assists: stats.assists,
       cards: stats.cards,
@@ -994,6 +1041,50 @@
     render();
   }
 
+  // by: "us"   = our team put it in our own net  -> the point goes to the opponent
+  // by: "them" = they put it in their own net    -> the point goes to us
+  function logOwnGoal(by) {
+    var match = state.activeMatch;
+    if (!match) return;
+    if (!requireClockRunning(match)) return;
+    if (!guardDoubleTap("own-goal:" + by)) return;
+    match.events.push({ id: uid(), type: "own_goal", by: by, playerId: null, minuteAtEvent: currentMinute(match), ts: Date.now() });
+    persist();
+    render();
+    showToast(
+      by === "us"
+        ? "Own goal — point to " + match.opponentName + "."
+        : "Own goal by " + match.opponentName + " — point to " + state.teamName + ".",
+      "warning"
+    );
+  }
+
+  function showOwnGoalPicker() {
+    var match = state.activeMatch;
+    if (!match) return;
+    if (!requireClockRunning(match)) return;
+    var old = document.getElementById("ownGoalOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "ownGoalOverlay";
+    overlay.innerHTML =
+      '<div class="sheet">' +
+        '<div class="confirm-msg"><strong>Own goal</strong><br>Which team put it in their own net?</div>' +
+        '<div class="btn-row" style="margin-top:16px;">' +
+          '<button class="btn btn-primary" id="ogUsBtn">' + esc(state.teamName) + "</button>" +
+          '<button class="btn btn-primary" id="ogThemBtn">' + esc(match.opponentName) + "</button>" +
+        "</div>" +
+        '<button class="btn btn-ghost" id="ogCancelBtn" style="margin-top:10px;">Cancel</button>' +
+      "</div>";
+    document.body.appendChild(overlay);
+    function cleanup() { overlay.remove(); }
+    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    document.getElementById("ogCancelBtn").onclick = cleanup;
+    document.getElementById("ogUsBtn").onclick = function () { cleanup(); logOwnGoal("us"); };
+    document.getElementById("ogThemBtn").onclick = function () { cleanup(); logOwnGoal("them"); };
+  }
+
   function toggleCard(playerId, cardType) {
     var match = state.activeMatch;
     if (!match) return;
@@ -1039,6 +1130,11 @@
       return "goal by " + (p ? p.name : "player");
     }
     if (ev.type === "opponent_goal") return "opponent goal";
+    if (ev.type === "own_goal") {
+      var match = state.activeMatch;
+      var oppName = match ? match.opponentName : "the opponent";
+      return "own goal by " + (ev.by === "us" ? state.teamName : oppName);
+    }
     if (ev.type === "card") {
       var c = rosterById(ev.playerId);
       return (ev.cardType === "red" ? "red card" : "yellow card") + (c ? " — " + c.name : "");
@@ -1141,11 +1237,22 @@
     showToast("Updated: " + describeEvent(ev));
   }
 
+  function applyOwnGoalEdit(eventId, newBy) {
+    var match = state.activeMatch;
+    if (!match) return;
+    var ev = findEvent(match, eventId);
+    if (!ev) return;
+    ev.by = newBy;
+    persist();
+    render();
+    showToast("Updated: " + describeEvent(ev));
+  }
+
   function showEditEvent(eventId) {
     var match = state.activeMatch;
     if (!match) return;
     var ev = findEvent(match, eventId);
-    if (!ev || (ev.type !== "goal" && ev.type !== "card")) return;
+    if (!ev || (ev.type !== "goal" && ev.type !== "card" && ev.type !== "own_goal")) return;
 
     var old = document.getElementById("editOverlay");
     if (old) old.remove();
@@ -1156,7 +1263,31 @@
     function close() { overlay.remove(); }
     overlay.onclick = function (e) { if (e.target === overlay) close(); };
 
-    if (ev.type === "goal") {
+    if (ev.type === "own_goal") {
+      var selBy = ev.by === "us" ? "us" : "them";
+      var drawOwn = function () {
+        overlay.innerHTML =
+          '<div class="sheet">' +
+            '<div class="confirm-msg"><strong>Edit own goal</strong><br>Which team put it in their own net?</div>' +
+            '<div class="btn-row" style="margin-top:14px;">' +
+              '<button class="btn toggle-seg' + (selBy === "us" ? " on" : "") + '" id="ogEditUsBtn">' + esc(state.teamName) + "</button>" +
+              '<button class="btn toggle-seg' + (selBy === "them" ? " on" : "") + '" id="ogEditThemBtn">' + esc(match.opponentName) + "</button>" +
+            "</div>" +
+            '<div class="btn-row" style="margin-top:16px;">' +
+              '<button class="btn btn-ghost" id="editCancelBtn">Cancel</button>' +
+              '<button class="btn btn-primary" id="editSaveBtn">Save</button>' +
+            "</div>" +
+          "</div>";
+        document.getElementById("ogEditUsBtn").onclick = function () { selBy = "us"; drawOwn(); };
+        document.getElementById("ogEditThemBtn").onclick = function () { selBy = "them"; drawOwn(); };
+        document.getElementById("editCancelBtn").onclick = close;
+        document.getElementById("editSaveBtn").onclick = function () {
+          close();
+          applyOwnGoalEdit(eventId, selBy);
+        };
+      };
+      drawOwn();
+    } else if (ev.type === "goal") {
       var selScorer = ev.playerId;
       var selAssist = ev.assistId || null;
       var draw = function () {
@@ -1263,6 +1394,133 @@
     return (str || "team").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "team";
   }
 
+  // Readable season totals bundled into the export. Derived from history, so it
+  // is ignored on import — history stays the single source of truth.
+  function buildSeasonStats() {
+    var players = {};
+    var order = [];
+    var team = { matchesPlayed: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, ownGoalsFor: 0, ownGoalsAgainst: 0 };
+
+    function entry(pid, record) {
+      if (!players[pid]) {
+        players[pid] = {
+          id: pid, name: nameInRecord(record, pid), number: "",
+          matchesPlayed: 0, goals: 0, assists: 0, minutes: 0, yellowCards: 0, redCards: 0
+        };
+        order.push(pid);
+      }
+      return players[pid];
+    }
+
+    state.history.forEach(function (m) {
+      team.matchesPlayed++;
+      if (m.scoreUs > m.scoreThem) team.won++;
+      else if (m.scoreUs < m.scoreThem) team.lost++;
+      else team.drawn++;
+      team.goalsFor += m.scoreUs || 0;
+      team.goalsAgainst += m.scoreThem || 0;
+      team.ownGoalsFor += m.ownGoalsFor || 0;
+      team.ownGoalsAgainst += m.ownGoalsAgainst || 0;
+
+      var appeared = {};
+      function sawPlayer(pid) {
+        if (appeared[pid]) return;
+        appeared[pid] = true;
+        entry(pid, m).matchesPlayed++;
+      }
+      (m.rosterSnapshot || []).forEach(function (p) { sawPlayer(p.id); });
+
+      Object.keys(m.scorers || {}).forEach(function (pid) {
+        sawPlayer(pid);
+        entry(pid, m).goals += m.scorers[pid];
+      });
+      Object.keys(m.assists || {}).forEach(function (pid) {
+        sawPlayer(pid);
+        entry(pid, m).assists += m.assists[pid];
+      });
+      Object.keys(m.playingTimeMinutes || {}).forEach(function (pid) {
+        sawPlayer(pid);
+        entry(pid, m).minutes += m.playingTimeMinutes[pid];
+      });
+      Object.keys(m.cards || {}).forEach(function (pid) {
+        sawPlayer(pid);
+        var e = entry(pid, m);
+        (m.cards[pid] || []).forEach(function (c) {
+          if (c === "red") e.redCards++; else e.yellowCards++;
+        });
+      });
+    });
+
+    // Prefer current shirt numbers and names where the player is still on the roster.
+    state.roster.forEach(function (p) {
+      if (players[p.id]) {
+        players[p.id].name = p.name;
+        players[p.id].number = p.number || "";
+      }
+    });
+
+    var rows = order.map(function (pid) { return players[pid]; })
+      .sort(function (a, b) { return b.goals - a.goals || a.name.localeCompare(b.name); });
+
+    return { note: "Derived from history for easy reading; ignored on import.", team: team, players: rows };
+  }
+
+  // Per-match breakdown with player names and goal counts, so each match in the
+  // export is readable on its own instead of only as player IDs in history.
+  function buildMatchStats() {
+    function playerRows(scorers, assists, minutes, cards, nameOf) {
+      var ids = {};
+      [scorers, assists, minutes, cards].forEach(function (src) {
+        Object.keys(src || {}).forEach(function (pid) { ids[pid] = true; });
+      });
+      return Object.keys(ids).map(function (pid) {
+        var c = (cards || {})[pid] || [];
+        return {
+          id: pid,
+          name: nameOf(pid),
+          goals: (scorers || {})[pid] || 0,
+          assists: (assists || {})[pid] || 0,
+          minutes: (minutes || {})[pid] || 0,
+          yellowCards: c.filter(function (x) { return x !== "red"; }).length,
+          redCards: c.filter(function (x) { return x === "red"; }).length
+        };
+      }).filter(function (r) {
+        return r.goals || r.assists || r.minutes || r.yellowCards || r.redCards;
+      }).sort(function (a, b) { return b.goals - a.goals || a.name.localeCompare(b.name); });
+    }
+
+    var rows = state.history.map(function (m) {
+      return {
+        date: m.date,
+        opponent: m.opponentName,
+        homeOrAway: m.isHome !== false ? "Home" : "Away",
+        scoreUs: m.scoreUs, scoreThem: m.scoreThem,
+        ownGoalsFor: m.ownGoalsFor || 0,
+        ownGoalsAgainst: m.ownGoalsAgainst || 0,
+        players: playerRows(m.scorers, m.assists, m.playingTimeMinutes, m.cards,
+          function (pid) { return nameInRecord(m, pid); })
+      };
+    });
+
+    // A match still being played is included too, flagged, so you can export
+    // mid-match without ending it first.
+    var live = state.activeMatch;
+    if (live) {
+      var s = computeStats(live);
+      rows.unshift({
+        inProgress: true,
+        date: live.startedAt,
+        opponent: live.opponentName,
+        homeOrAway: live.isHome !== false ? "Home" : "Away",
+        scoreUs: s.scoreUs, scoreThem: s.scoreThem,
+        ownGoalsFor: s.ownGoalsFor, ownGoalsAgainst: s.ownGoalsAgainst,
+        players: playerRows(s.scorers, s.assists, playingTimeMinutes(live), s.cards,
+          function (pid) { var p = rosterById(pid); return p ? p.name : "Unknown"; })
+      });
+    }
+    return rows;
+  }
+
   async function exportData() {
     var payload = {
       exportedFrom: "Matchday Tracker",
@@ -1270,6 +1528,8 @@
       teamName: state.teamName,
       roster: state.roster,
       settings: state.settings,
+      seasonStats: buildSeasonStats(),
+      matchStats: buildMatchStats(),
       history: state.history
     };
     var json = JSON.stringify(payload, null, 2);
@@ -1476,11 +1736,14 @@
         }
       } else if (ev.type === "opponent_goal") {
         desc = "⚽ " + esc(match.opponentName);
+      } else if (ev.type === "own_goal") {
+        // Shown under the team it counts for, same convention as the timeline.
+        desc = "⚽ " + esc(ev.by === "us" ? match.opponentName : state.teamName) + " (own goal)";
       } else if (ev.type === "card") {
         var cp = rosterById(ev.playerId);
         desc = (ev.cardType === "red" ? "🟥 " : "🟨 ") + esc(cp ? cp.name : "");
       }
-      var editable = ev.type === "goal" || ev.type === "card";
+      var editable = ev.type === "goal" || ev.type === "card" || ev.type === "own_goal";
       var actions = editable
         ? '<button class="event-edit" data-edit-event="' + ev.id + '" aria-label="Edit this entry">✎</button><button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>'
         : '<button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>';
@@ -1490,12 +1753,16 @@
     el.innerHTML =
       (state.settings.trackAssists ? assistBarHtml : "") +
       '<div class="player-grid">' + tilesHtml + "</div>" +
-      '<button class="opp-goal-btn" id="oppGoalBtn">+ ' + esc(match.opponentName) + " scored</button>" +
+      '<div class="goal-btn-row">' +
+        '<button class="opp-goal-btn" id="oppGoalBtn">+ ' + esc(match.opponentName) + " scored</button>" +
+        '<button class="opp-goal-btn own-goal-btn" id="ownGoalBtn">Own goal</button>' +
+      "</div>" +
       '<h2 class="section-title">Match log</h2>' +
       '<div class="event-log">' + (eventsHtml || '<div class="empty-state">No events logged yet — tap a player to add a goal.</div>') + "</div>" +
       '<button class="btn btn-danger end-match-btn" id="endMatchBtn">End match</button>';
 
     document.getElementById("oppGoalBtn").onclick = logOpponentGoal;
+    document.getElementById("ownGoalBtn").onclick = showOwnGoalPicker;
     document.getElementById("endMatchBtn").onclick = function () {
       showConfirm("End the match? This saves the result to history.", "End match", endMatch, true);
     };
