@@ -73,6 +73,47 @@ Matchday Tracker turns your phone into a simple match-day companion:
 * 📤 **Export & Import:** Move your team data smoothly between devices.
 * 💾 **Offline-Friendly:** Your data stays safe in your browser with zero backend requirements.
 
+## Features
+ 
+## Features
+
+**During the match**
+- Tap a player's tile to log a goal — the score updates instantly
+- Optional assists, yellow/red cards and playing time, all off by default
+- **Line-up plan** — set who plays each quarter or half before kick-off; the app applies the first period
+  at kick-off and proposes the next at every break, listing who comes on and who goes off
+- On pitch / bench per player, so a benched player can't be tapped by mistake
+- Live minutes on every tile, with the least-played player outlined
+- The lineup you started with is reused next match, so the bench is set once
+- Own goals for either team, never credited to a player
+- Running clock that keeps counting while the phone is locked
+- Half-time button that pauses the clock and starts a new period
+- Undo, plus edit and delete on every entry in the match log
+- Correct the opponent's name mid-match if you mistyped it
+
+**Rules it enforces so you don't have to**
+- A second yellow automatically becomes a red
+- A red card benches the player for the rest of the match
+- Nothing can be logged before the clock is started, so every minute is accurate
+
+**After the match**
+- **Match card** — the result as a shareable picture: score, scorers with shirt numbers and every goal's minute
+- Summary with the score, goals per player and a minute-by-minute timeline, grouped by period
+- One tap to share the report as text instead, or copy it
+- Season history with top scorers, re-shareable per match as a card or as text
+- **Fix** any finished match — edit or delete entries and the score, scorers and season totals are recalculated
+- A reminder to export a backup once a few matches have gone unsaved
+
+**Teams and sharing**
+- Several teams on one device, each with its own roster, settings, history and match in progress
+- Export a team to a JSON file; another parent or coach imports it without retyping the roster
+- Importing adds a team — it never overwrites the teams already on the device
+
+**On the phone**
+- Installs to the home screen and runs fullscreen
+- Works with no signal at the pitch
+- Light and dark mode
+
 ---
 
 ## 🏆 Built for Matchday
