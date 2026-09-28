@@ -507,6 +507,20 @@
   .plan-count { font-family: var(--font-display); font-size: 20px; min-width: 24px; text-align: center; }
   .plan-even { width: auto; padding: 0 14px; height: 44px; }
   .plan-scroll { max-height: 52vh; }
+  .plan-hint { font-size: 12px; color: var(--ink-soft); padding: 0 2px; }
+  /* With 8 periods the columns cannot fit beside a readable name at phone
+     width, so the name column is pinned and the periods scroll. Cells keep
+     their full 44px target rather than being squeezed. */
+  .plan-wide { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .plan-wide .plan-r { width: max-content; min-width: 100%; }
+  .plan-wide .plan-name {
+    flex: 0 0 156px; position: sticky; left: 0; z-index: 1;
+    background: var(--panel); padding-right: 6px;
+    /* The row centres its items, so without this the pinned column is only as
+       tall as its text and the scrolling cells show through above and below. */
+    align-self: stretch;
+  }
+  .plan-wide .plan-share { font-size: 11px; }
   .plan-r { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
   .plan-r:last-child { border-bottom: none; }
   .plan-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 5px 0; }
@@ -530,6 +544,29 @@
   }
   .plan-foot { border-bottom: none; padding-top: 4px; }
   .plan-foot .plan-name { font-size: 12px; color: var(--ink-soft); }
+  /* The browser draws the calendar and clock glyphs itself, and iOS colours
+     them differently from other engines — on a dark field they came out
+     invisible. Painting our own shape through a mask takes the colour out of
+     the browser's hands: background-color follows --ink, so it flips with the
+     theme automatically and needs no per-theme duplicate. */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    width: 22px; height: 22px; margin-left: 4px;
+    background-image: none;
+    background-color: var(--ink);
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+    -webkit-mask-size: 21px 21px; mask-size: 21px 21px;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E");
+  }
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E");
+  }
   .prep-scroll { max-height: 62vh; }
   .prep-item { padding: 12px 2px; border-bottom: 1px solid var(--line); }
   .prep-item:last-child { border-bottom: none; }
@@ -750,10 +787,16 @@
 
   var STORAGE_KEY = "matchdayTrackerData_v1";
 
+  // 2 halves, 4 quarters, or 8 short periods — youth football uses all three.
+  // Declared here, not beside the planner: load() normalises saved plans on
+  // startup, so this must already hold its value by then.
+  var PLAN_FORMATS = [2, 4, 8];
+  var PLAN_FORMAT_LABELS = { 2: "2 halves", 4: "4 quarters", 8: "8 periods" };
+
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "16";
+  var APP_VERSION = "18";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -1355,8 +1398,8 @@
 
   function normalisePlan(p) {
     if (!p || !Array.isArray(p.lineups)) return null;
-    var periods = (p.periods === 2 || p.periods === 4) ? p.periods : p.lineups.length;
-    if (periods !== 2 && periods !== 4) return null;
+    var periods = PLAN_FORMATS.indexOf(p.periods) !== -1 ? p.periods : p.lineups.length;
+    if (PLAN_FORMATS.indexOf(periods) === -1) return null;
     var lineups = [];
     for (var i = 0; i < periods; i++) {
       var row = p.lineups[i];
@@ -1386,10 +1429,12 @@
 
   function periodName(periods, index) {
     if (periods === 2) return index === 0 ? "1st half" : "2nd half";
-    return "Q" + (index + 1);
+    if (periods === 8) return "Period " + (index + 1);
+    return "Quarter " + (index + 1);
   }
   function periodShort(periods, index) {
-    return periods === 2 ? (index === 0 ? "1st" : "2nd") : "Q" + (index + 1);
+    if (periods === 2) return index === 0 ? "1st" : "2nd";
+    return (periods === 8 ? "P" : "Q") + (index + 1);
   }
 
   // Round robin: every period takes the next block of players, wrapping round.
@@ -1469,10 +1514,32 @@
     function toggle(pi, q) {
       var arr = work.lineups[q], k = arr.indexOf(ids[pi]);
       if (k === -1) arr.push(ids[pi]); else arr.splice(k, 1);
-      draw();
+      refreshCell(pi, q);
+    }
+
+    // No redraw: a rebuild resets scrollLeft, which throws the coach back to
+    // the first period every time they tick a box in a later one.
+    function refreshCell(pi, q) {
+      var on = isOn(pi, q);
+      var cell = overlay.querySelector('[data-cell="' + pi + "_" + q + '"]');
+      if (cell) {
+        if (on) cell.classList.add("on"); else cell.classList.remove("on");
+        cell.setAttribute("aria-pressed", on ? "true" : "false");
+        cell.textContent = on ? "\u2713" : "";
+      }
+      var share = overlay.querySelector('[data-share="' + pi + '"]');
+      if (share) {
+        var t = 0;
+        for (var i = 0; i < periods; i++) if (isOn(pi, i)) t++;
+        share.textContent = t + "/" + periods;
+      }
+      var tot = overlay.querySelector('[data-tot="' + q + '"]');
+      if (tot) tot.textContent = work.lineups[q].length;
     }
 
     function draw() {
+      var keep = overlay.querySelector(".plan-scroll");
+      var keepX = keep ? keep.scrollLeft : 0, keepY = keep ? keep.scrollTop : 0;
       var head = '<div class="plan-r plan-head"><div class="plan-name"></div>';
       for (var q = 0; q < periods; q++) head += '<div class="plan-h">' + esc(periodShort(periods, q)) + "</div>";
       head += "</div>";
@@ -1490,12 +1557,12 @@
         return '<div class="plan-r">' +
           '<div class="plan-name"><span class="plan-num">' + esc(p.number || "–") + "</span>" +
             '<span class="plan-nm">' + esc(p.name) + "</span>" +
-            '<span class="plan-share">' + total + "/" + periods + "</span></div>" +
+            '<span class="plan-share" data-share="' + pi + '">' + total + "/" + periods + "</span></div>" +
           cells + "</div>";
       }).join("");
 
       var totals = '<div class="plan-r plan-foot"><div class="plan-name">On the pitch</div>';
-      for (var c = 0; c < periods; c++) totals += '<div class="plan-tot">' + work.lineups[c].length + "</div>";
+      for (var c = 0; c < periods; c++) totals += '<div class="plan-tot" data-tot="' + c + '">' + work.lineups[c].length + "</div>";
       totals += "</div>";
 
       overlay.innerHTML =
@@ -1508,10 +1575,15 @@
               '<button class="plan-pm" id="planPlus" aria-label="One more">+</button></div>' +
             '<button class="btn btn-ghost plan-even" id="planEven">Spread evenly</button>' +
           "</div>" +
-          '<div class="card-scroll plan-scroll">' + head + body + totals + "</div>" +
+          (periods > 4 ? '<div class="plan-hint">Scroll sideways for the later periods.</div>' : "") +
+          '<div class="card-scroll plan-scroll' + (periods > 4 ? " plan-wide" : "") + '">' +
+            head + body + totals + "</div>" +
           '<button class="btn btn-primary" id="planSave">Save plan</button>' +
           '<button class="btn btn-ghost" id="planCancel">Cancel</button>' +
         "</div>";
+
+      var back = overlay.querySelector(".plan-scroll");
+      if (back) { back.scrollLeft = keepX; back.scrollTop = keepY; }
 
       overlay.querySelectorAll("[data-cell]").forEach(function (btn) {
         btn.onclick = function () {
@@ -1641,7 +1713,7 @@
     if (absent) bits.push(absent + (absent === 1 ? " player away" : " players away"));
     var plan = normalisePlan(u.plan);
     if (plan && plan.lineups.some(function (r) { return r.length; })) {
-      bits.push(plan.periods === 2 ? "2 halves planned" : "4 quarters planned");
+      bits.push((PLAN_FORMAT_LABELS[plan.periods] || plan.periods + " periods") + " planned");
     }
     return bits.join(" · ");
   }
@@ -1704,6 +1776,8 @@
     }
 
     function draw() {
+      var keep = overlay.querySelector(".prep-scroll");
+      var keepY = keep ? keep.scrollTop : 0;
       var dt = splitDate();
       var absentRows = roster.map(function (p) {
         var away = entry.unavailable.indexOf(p.id) !== -1;
@@ -1723,8 +1797,10 @@
         planBlock =
           '<label class="field-label">Match format</label>' +
           '<div class="btn-row" style="margin-bottom:10px;">' +
-            '<button class="btn toggle-seg' + (periods === 2 ? " on" : "") + '" id="prepHalves">2 halves</button>' +
-            '<button class="btn toggle-seg' + (periods === 4 ? " on" : "") + '" id="prepQuarters">4 quarters</button>' +
+            PLAN_FORMATS.map(function (nP) {
+              return '<button class="btn toggle-seg' + (periods === nP ? " on" : "") +
+                '" data-prep-fmt="' + nP + '">' + PLAN_FORMAT_LABELS[nP] + "</button>";
+            }).join("") +
           "</div>" +
           '<button class="btn btn-ghost" id="prepPlanBtn">Line-up plan</button>' +
           '<div class="plan-summary">' + esc(planned) + "</div>";
@@ -1756,6 +1832,9 @@
           '<button class="btn btn-ghost" id="prepCancel">Cancel</button>' +
         "</div>";
 
+      var back = overlay.querySelector(".prep-scroll");
+      if (back) back.scrollTop = keepY;
+
       document.getElementById("prepHome").onclick = function () { readFields(); entry.isHome = true; draw(); };
       document.getElementById("prepAway").onclick = function () { readFields(); entry.isHome = false; draw(); };
       overlay.querySelectorAll("[data-away]").forEach(function (btn) {
@@ -1774,8 +1853,14 @@
         };
       });
       if (T().settings.planLineups) {
-        document.getElementById("prepHalves").onclick = function () { readFields(); periods = 2; entry.plan = null; draw(); };
-        document.getElementById("prepQuarters").onclick = function () { readFields(); periods = 4; entry.plan = null; draw(); };
+        overlay.querySelectorAll("[data-prep-fmt]").forEach(function (btn) {
+          btn.onclick = function () {
+            readFields();
+            periods = parseInt(btn.getAttribute("data-prep-fmt"), 10);
+            entry.plan = null; // a different format needs a fresh plan
+            draw();
+          };
+        });
         document.getElementById("prepPlanBtn").onclick = function () {
           readFields();
           overlay.style.display = "none";
@@ -2249,8 +2334,8 @@
       ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
-      ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
-      ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each quarter or half. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, and at every break the app asks whether to apply the next one \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
+      ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
+      ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
       ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
@@ -3310,8 +3395,10 @@
               (T().settings.planLineups
                 ? '<label class="field-label">Match format</label>' +
                   '<div class="btn-row" style="margin-bottom:10px;">' +
-                    '<button class="btn toggle-seg' + (pendingPeriods === 2 ? " on" : "") + '" id="halvesBtn">2 halves</button>' +
-                    '<button class="btn toggle-seg' + (pendingPeriods === 4 ? " on" : "") + '" id="quartersBtn">4 quarters</button>' +
+                    PLAN_FORMATS.map(function (nP) {
+                      return '<button class="btn toggle-seg' + (pendingPeriods === nP ? " on" : "") +
+                        '" data-kick-fmt="' + nP + '">' + PLAN_FORMAT_LABELS[nP] + "</button>";
+                    }).join("") +
                   "</div>" +
                   '<button class="btn btn-ghost" id="planBtn">Line-up plan</button>' +
                   '<div class="plan-summary" id="planSummary">' + planSummaryText() + "</div>"
@@ -3345,8 +3432,9 @@
             pendingPlan = null; // a different format needs a fresh plan
             render();
           };
-          document.getElementById("halvesBtn").onclick = function () { setFormat(2); };
-          document.getElementById("quartersBtn").onclick = function () { setFormat(4); };
+          el.querySelectorAll("[data-kick-fmt]").forEach(function (btn) {
+            btn.onclick = function () { setFormat(parseInt(btn.getAttribute("data-kick-fmt"), 10)); };
+          });
           document.getElementById("planBtn").onclick = function () {
             showLineupPlanner(pendingPlan || T().lastPlan, pendingPeriods, function (plan) {
               pendingPlan = plan;
