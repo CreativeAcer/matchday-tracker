@@ -50,6 +50,10 @@ A lightweight, offline-friendly match tracker built for youth soccer coaches, pa
       <img src="screenshots/plan-grid-light.png" alt="Team switcher sheet" width="250"><br>
       <sub><b>Team &amp; preparation</b> — game plan</sub>
     </td>
+    <td align="center">
+      <img src="screenshots/prep-list.png" alt="Team switcher sheet" width="250"><br>
+      <sub><b>Team &amp; preparation</b> — prep list</sub>
+    </td>
   </tr>
 </table>
 
