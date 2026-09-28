@@ -43,10 +43,12 @@
     --line: rgba(22,33,26,0.13);
     --font-display: 'Oswald', 'Arial Narrow', sans-serif;
     --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color-scheme: light;
     box-sizing: border-box;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      color-scheme: dark;
       --chalk: #10201A;
       --brand-text: #74D2A0;
       --red-text: #F0897C;
@@ -59,6 +61,7 @@
     }
   }
   :root[data-theme="dark"] {
+    color-scheme: dark;
     --chalk: #10201A;
     --brand-text: #74D2A0;
     --red-text: #F0897C;
@@ -489,6 +492,84 @@
     margin: 0; text-align: center; font-size: 14px;
     line-height: 1.45; color: var(--ink-soft);
   }
+  .plan-title {
+    font-family: var(--font-display); font-weight: 600; font-size: 19px;
+    color: var(--ink); padding: 2px 2px 0;
+  }
+  .plan-summary { font-size: 13px; color: var(--ink-soft); margin: 8px 2px 14px; }
+  .plan-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .plan-step { display: flex; align-items: center; gap: 8px; }
+  .plan-step-lbl { font-size: 14px; color: var(--ink-soft); }
+  .plan-pm {
+    width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--chalk-dim); color: var(--ink); font-size: 20px; line-height: 1;
+  }
+  .plan-count { font-family: var(--font-display); font-size: 20px; min-width: 24px; text-align: center; }
+  .plan-even { width: auto; padding: 0 14px; height: 44px; }
+  .plan-scroll { max-height: 52vh; }
+  .plan-r { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
+  .plan-r:last-child { border-bottom: none; }
+  .plan-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .plan-num {
+    width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px;
+    background: var(--pitch); color: var(--on-dark); font-family: var(--font-display);
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .plan-nm { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-share { font-size: 12px; color: var(--ink-soft); flex-shrink: 0; margin-left: auto; padding-right: 4px; }
+  .plan-cell {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 11px;
+    border: 1px solid var(--line); background: transparent;
+    color: var(--on-dark); font-size: 17px; line-height: 1;
+  }
+  .plan-cell.on { background: var(--pitch); border-color: var(--pitch); }
+  .plan-head { border-bottom: none; }
+  .plan-h, .plan-tot {
+    width: 44px; flex-shrink: 0; text-align: center; font-size: 12px;
+    font-weight: 600; color: var(--ink-soft);
+  }
+  .plan-foot { border-bottom: none; padding-top: 4px; }
+  .plan-foot .plan-name { font-size: 12px; color: var(--ink-soft); }
+  .prep-scroll { max-height: 62vh; }
+  .prep-item { padding: 12px 2px; border-bottom: 1px solid var(--line); }
+  .prep-item:last-child { border-bottom: none; }
+  .prep-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .prep-when-lbl {
+    font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink);
+  }
+  .prep-late {
+    font-family: var(--font-body); font-size: 11px; font-weight: 700; color: var(--gold-text);
+    border: 1px solid var(--gold-text); border-radius: 6px; padding: 1px 5px; margin-left: 4px;
+  }
+  .prep-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .prep-opp { font-size: 14px; color: var(--ink-soft); margin-top: 3px; }
+  .prep-sum { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .prep-start { margin-top: 10px; }
+  .prep-when { display: flex; gap: 8px; margin-bottom: 14px; }
+  .prep-when .text-input { flex: 1; min-width: 0; margin-bottom: 0; }
+  .prep-av-list { margin-bottom: 14px; }
+  .prep-av {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    background: none; border: none; border-bottom: 1px solid var(--line);
+    padding: 7px 2px; text-align: left; color: var(--ink); min-height: 46px;
+  }
+  .prep-av:last-child { border-bottom: none; }
+  .prep-av-nm { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prep-av-tag {
+    font-size: 12px; font-weight: 700; color: var(--brand-text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; flex-shrink: 0;
+  }
+  .prep-av.away .prep-av-nm { color: var(--ink-soft); text-decoration: line-through; }
+  .prep-av.away .plan-num { background: var(--chalk-dim); color: var(--ink-soft); }
+  .prep-av.away .prep-av-tag { color: var(--red-text); border-color: var(--red-text); }
+  .plan-changes { padding: 2px 2px 0; }
+  .plan-line { font-size: 15px; color: var(--ink); margin-top: 6px; line-height: 1.4; }
+  .pl-on, .pl-off {
+    display: inline-block; min-width: 34px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.5px; margin-right: 6px;
+  }
+  .pl-on { color: var(--brand-text); }
+  .pl-off { color: var(--red-text); }
   .help-sheet {
     max-height: 82vh;
     display: flex;
@@ -672,7 +753,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "13";
+  var APP_VERSION = "16";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -680,7 +761,7 @@
   }
 
   function defaultSettings() {
-    return { trackAssists: false, trackPlayingTime: false, trackCards: false };
+    return { trackAssists: false, trackPlayingTime: false, trackCards: false, planLineups: false };
   }
 
   function newTeam(name) {
@@ -692,6 +773,8 @@
       activeMatch: null,
       history: [],
       lastLineup: null,
+      lastPlan: null,
+      upcoming: [],
       lastExportCount: 0
     };
   }
@@ -728,6 +811,9 @@
         activeMatch: t.activeMatch || null,
         history: Array.isArray(t.history) ? t.history : [],
         lastLineup: Array.isArray(t.lastLineup) ? t.lastLineup : null,
+        lastPlan: normalisePlan(t.lastPlan),
+        upcoming: Array.isArray(t.upcoming)
+          ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
     });
@@ -1238,6 +1324,527 @@
     }, "image/png");
   }
 
+  /* ---------- Line-up plan -------------------------------------------------
+     A coach sets who is on the pitch for each quarter (or half) before the
+     match. The plan is applied at kick-off and PROPOSED at every break, never
+     applied silently, so a break costs one tap instead of six. Because most
+     youth substitutions happen at the breaks, this is also what makes the
+     playing-time figures trustworthy rather than a best effort. */
+
+  var pendingPeriods = 4;      // the format chosen on the kick-off screen
+  var pendingPlan = null;      // the plan being built there
+  var pendingFormatSet = false; // true once the coach picks a format by hand
+
+  // Follow last week's format unless the coach has overridden it, so a saved
+  // plan is never quietly dropped for being the wrong shape.
+  function syncPendingFormat() {
+    if (pendingFormatSet) return;
+    var lp = normalisePlan(T().lastPlan);
+    if (lp) pendingPeriods = lp.periods;
+  }
+
+  function planSummaryText() {
+    var plan = planForRoster(normalisePlan(pendingPlan || T().lastPlan), sortedRoster());
+    if (!plan || plan.periods !== pendingPeriods || !plan.lineups.some(function (r) { return r.length; })) {
+      return "No plan yet \u2014 everyone currently on the pitch starts.";
+    }
+    return plan.lineups.map(function (r, i) {
+      return periodShort(plan.periods, i) + " " + r.length;
+    }).join("  \u00b7  ") + "  on the pitch";
+  }
+
+  function normalisePlan(p) {
+    if (!p || !Array.isArray(p.lineups)) return null;
+    var periods = (p.periods === 2 || p.periods === 4) ? p.periods : p.lineups.length;
+    if (periods !== 2 && periods !== 4) return null;
+    var lineups = [];
+    for (var i = 0; i < periods; i++) {
+      var row = p.lineups[i];
+      lineups.push(Array.isArray(row) ? row.filter(function (x) { return typeof x === "string"; }) : []);
+    }
+    return { periods: periods, lineups: lineups };
+  }
+
+  // A plan outlives roster changes, so drop anyone who has since left.
+  function planForRoster(plan, roster) {
+    if (!plan) return null;
+    var known = {};
+    roster.forEach(function (p) { known[p.id] = true; });
+    return {
+      periods: plan.periods,
+      lineups: plan.lineups.map(function (ids) {
+        return ids.filter(function (id) { return known[id]; });
+      })
+    };
+  }
+
+  function emptyPlan(periods) {
+    var lineups = [];
+    for (var i = 0; i < periods; i++) lineups.push([]);
+    return { periods: periods, lineups: lineups };
+  }
+
+  function periodName(periods, index) {
+    if (periods === 2) return index === 0 ? "1st half" : "2nd half";
+    return "Q" + (index + 1);
+  }
+  function periodShort(periods, index) {
+    return periods === 2 ? (index === 0 ? "1st" : "2nd") : "Q" + (index + 1);
+  }
+
+  // Round robin: every period takes the next block of players, wrapping round.
+  // Over P periods of K players across N players this is as even as it gets.
+  function spreadEvenly(ids, periods, onCount) {
+    var n = ids.length, lineups = [], p, j;
+    if (!n) { for (p = 0; p < periods; p++) lineups.push([]); return lineups; }
+    var k = Math.max(0, Math.min(onCount, n));
+    for (p = 0; p < periods; p++) {
+      var start = (p * k) % n, row = [];
+      for (j = 0; j < k; j++) row.push(ids[(start + j) % n]);
+      lineups.push(row);
+    }
+    return lineups;
+  }
+
+  function planLineup(plan, period) {
+    if (!plan || !Array.isArray(plan.lineups)) return null;
+    var row = plan.lineups[period - 1];
+    return Array.isArray(row) ? row : null;
+  }
+
+  // What applying this period would change, so it can be shown before it happens.
+  function planChanges(match, period) {
+    var row = planLineup(match && match.plan, period);
+    if (!row) return null;
+    var want = {};
+    row.forEach(function (id) { want[id] = true; });
+    var on = [], off = [];
+    (T().roster || []).forEach(function (p) {
+      var pt = match.playingTime && match.playingTime[p.id];
+      if (pt && pt.sentOff) return; // a red card outranks any plan
+      var now = isOnField(match, p.id);
+      if (want[p.id] && !now) on.push(p.id);
+      if (!want[p.id] && now) off.push(p.id);
+    });
+    return { on: on, off: off, lineup: row };
+  }
+
+  function applyPlanPeriod(match, period) {
+    var ch = planChanges(match, period);
+    if (!ch) return null;
+    ch.on.forEach(function (id) { setOnField(match, id, true); });
+    ch.off.forEach(function (id) { setOnField(match, id, false); });
+    return ch;
+  }
+
+  function planNameOf(id) {
+    var p = rosterById(id);
+    return p ? p.name : "Unknown";
+  }
+
+  function showLineupPlanner(plan, periods, onSave, excludeIds, onCancel) {
+    var away = excludeIds || [];
+    var roster = sortedRoster().filter(function (p) { return away.indexOf(p.id) === -1; });
+    if (!roster.length) { showToast("Nobody is available to plan with."); if (onCancel) onCancel(); return; }
+    var ids = roster.map(function (p) { return p.id; });
+
+    var work = planForRoster(normalisePlan(plan), roster);
+    if (!work || work.periods !== periods) {
+      var base = work ? work.lineups : [];
+      work = emptyPlan(periods);
+      for (var i = 0; i < periods; i++) {
+        work.lineups[i] = (base[i] || base[base.length - 1] || []).slice();
+      }
+    }
+    var onCount = work.lineups[0].length || Math.min(roster.length, 7);
+
+    var old = document.getElementById("planOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "planOverlay";
+    document.body.appendChild(overlay);
+
+    function isOn(pi, q) { return work.lineups[q].indexOf(ids[pi]) !== -1; }
+    function toggle(pi, q) {
+      var arr = work.lineups[q], k = arr.indexOf(ids[pi]);
+      if (k === -1) arr.push(ids[pi]); else arr.splice(k, 1);
+      draw();
+    }
+
+    function draw() {
+      var head = '<div class="plan-r plan-head"><div class="plan-name"></div>';
+      for (var q = 0; q < periods; q++) head += '<div class="plan-h">' + esc(periodShort(periods, q)) + "</div>";
+      head += "</div>";
+
+      var body = roster.map(function (p, pi) {
+        var cells = "";
+        for (var q = 0; q < periods; q++) {
+          cells += '<button class="plan-cell' + (isOn(pi, q) ? " on" : "") +
+            '" data-cell="' + pi + "_" + q + '" aria-pressed="' + isOn(pi, q) +
+            '" aria-label="' + esc(p.name) + " " + esc(periodName(periods, q)) + '">' +
+            (isOn(pi, q) ? "✓" : "") + "</button>";
+        }
+        var total = 0;
+        for (var t = 0; t < periods; t++) if (isOn(pi, t)) total++;
+        return '<div class="plan-r">' +
+          '<div class="plan-name"><span class="plan-num">' + esc(p.number || "–") + "</span>" +
+            '<span class="plan-nm">' + esc(p.name) + "</span>" +
+            '<span class="plan-share">' + total + "/" + periods + "</span></div>" +
+          cells + "</div>";
+      }).join("");
+
+      var totals = '<div class="plan-r plan-foot"><div class="plan-name">On the pitch</div>';
+      for (var c = 0; c < periods; c++) totals += '<div class="plan-tot">' + work.lineups[c].length + "</div>";
+      totals += "</div>";
+
+      overlay.innerHTML =
+        '<div class="card-sheet">' +
+          '<div class="plan-title">Line-up plan</div>' +
+          '<div class="plan-tools">' +
+            '<div class="plan-step"><span class="plan-step-lbl">On the pitch</span>' +
+              '<button class="plan-pm" id="planMinus" aria-label="One fewer">−</button>' +
+              '<span class="plan-count" id="planCount">' + onCount + "</span>" +
+              '<button class="plan-pm" id="planPlus" aria-label="One more">+</button></div>' +
+            '<button class="btn btn-ghost plan-even" id="planEven">Spread evenly</button>' +
+          "</div>" +
+          '<div class="card-scroll plan-scroll">' + head + body + totals + "</div>" +
+          '<button class="btn btn-primary" id="planSave">Save plan</button>' +
+          '<button class="btn btn-ghost" id="planCancel">Cancel</button>' +
+        "</div>";
+
+      overlay.querySelectorAll("[data-cell]").forEach(function (btn) {
+        btn.onclick = function () {
+          var parts = btn.getAttribute("data-cell").split("_");
+          toggle(parseInt(parts[0], 10), parseInt(parts[1], 10));
+        };
+      });
+      document.getElementById("planMinus").onclick = function () {
+        if (onCount > 0) { onCount--; document.getElementById("planCount").textContent = onCount; }
+      };
+      document.getElementById("planPlus").onclick = function () {
+        if (onCount < roster.length) { onCount++; document.getElementById("planCount").textContent = onCount; }
+      };
+      document.getElementById("planEven").onclick = function () {
+        work.lineups = spreadEvenly(ids, periods, onCount);
+        draw();
+      };
+      document.getElementById("planCancel").onclick = function () { overlay.remove(); if (onCancel) onCancel(); };
+      document.getElementById("planSave").onclick = function () {
+        overlay.remove();
+        onSave({ periods: periods, lineups: work.lineups.map(function (r) { return r.slice(); }) });
+      };
+    }
+
+    overlay.onclick = function (e) {
+      if (e.target === overlay) { overlay.remove(); if (onCancel) onCancel(); }
+    };
+    draw();
+  }
+
+  // Shown when a new period starts. Never applies anything on its own.
+  function proposePlanAtBreak(match) {
+    var ch = planChanges(match, match.period);
+    if (!ch) return false;
+    if (!ch.on.length && !ch.off.length) {
+      showToast("Break — " + periodName(match.plan.periods, match.period - 1) +
+        " uses the same line-up.", "warning");
+      return true;
+    }
+    var old = document.getElementById("breakOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "breakOverlay";
+    var lines = "";
+    if (ch.on.length) lines += '<div class="plan-line"><span class="pl-on">On</span> ' +
+      esc(ch.on.map(planNameOf).join(", ")) + "</div>";
+    if (ch.off.length) lines += '<div class="plan-line"><span class="pl-off">Off</span> ' +
+      esc(ch.off.map(planNameOf).join(", ")) + "</div>";
+    overlay.innerHTML =
+      '<div class="sheet">' +
+        '<div class="confirm-msg">' + esc(periodName(match.plan.periods, match.period - 1)) +
+          " — apply the planned line-up?</div>" +
+        '<div class="plan-changes">' + lines + "</div>" +
+        '<button class="btn btn-primary" id="breakApply" style="margin-top:10px;">Apply</button>' +
+        '<button class="btn btn-ghost" id="breakEdit" style="margin-top:10px;">Edit the plan</button>' +
+        '<button class="btn btn-ghost" id="breakKeep" style="margin-top:10px;">Keep who is on now</button>' +
+      "</div>";
+    document.body.appendChild(overlay);
+    document.getElementById("breakApply").onclick = function () {
+      overlay.remove();
+      var applied = applyPlanPeriod(match, match.period);
+      persist(); render();
+      if (applied) showToast("Line-up applied — " + applied.on.length + " on, " + applied.off.length + " off.");
+    };
+    document.getElementById("breakKeep").onclick = function () { overlay.remove(); };
+    document.getElementById("breakEdit").onclick = function () {
+      overlay.remove();
+      showLineupPlanner(match.plan, match.plan.periods, function (p) {
+        match.plan = p; persist(); render();
+        proposePlanAtBreak(match);
+      });
+    };
+    return true;
+  }
+
+  /* ---------- Prepared matches --------------------------------------------
+     A coach can set a match up days ahead — opponent, home or away, kick-off,
+     who cannot make it and the line-up plan — and then start it at the pitch
+     with one tap. Nothing here runs a match; a prepared match only becomes an
+     active one when it is started, and it is removed from the list then. */
+
+  function normaliseUpcoming(u) {
+    if (!u || typeof u !== "object") return null;
+    return {
+      id: typeof u.id === "string" ? u.id : uid(),
+      opponentName: typeof u.opponentName === "string" ? u.opponentName : "",
+      isHome: u.isHome !== false,
+      kickoffAt: typeof u.kickoffAt === "string" ? u.kickoffAt : "",
+      unavailable: Array.isArray(u.unavailable)
+        ? u.unavailable.filter(function (x) { return typeof x === "string"; }) : [],
+      plan: normalisePlan(u.plan)
+    };
+  }
+
+  function upcomingList() {
+    var list = (T().upcoming || []).slice();
+    list.sort(function (a, b) {
+      if (!a.kickoffAt && !b.kickoffAt) return 0;
+      if (!a.kickoffAt) return 1;       // undated sink to the bottom
+      if (!b.kickoffAt) return -1;
+      return a.kickoffAt < b.kickoffAt ? -1 : a.kickoffAt > b.kickoffAt ? 1 : 0;
+    });
+    return list;
+  }
+
+  function kickoffLabel(u) {
+    if (!u.kickoffAt) return "No date yet";
+    var d = new Date(u.kickoffAt);
+    if (isNaN(d)) return "No date yet";
+    var day = d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+    var time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    return day + " · " + time;
+  }
+
+  // Kept in the list well past kick-off: a match that was never started is
+  // more likely forgotten than cancelled, and silently deleting it would be worse.
+  function isOverdue(u) {
+    if (!u.kickoffAt) return false;
+    var d = new Date(u.kickoffAt);
+    return !isNaN(d) && (Date.now() - d.getTime()) > 6 * 60 * 60 * 1000;
+  }
+
+  function prepSummary(u) {
+    var bits = [];
+    var absent = (u.unavailable || []).length;
+    if (absent) bits.push(absent + (absent === 1 ? " player away" : " players away"));
+    var plan = normalisePlan(u.plan);
+    if (plan && plan.lineups.some(function (r) { return r.length; })) {
+      bits.push(plan.periods === 2 ? "2 halves planned" : "4 quarters planned");
+    }
+    return bits.join(" · ");
+  }
+
+  function saveUpcoming(entry) {
+    var list = T().upcoming || (T().upcoming = []);
+    var i = -1;
+    list.forEach(function (u, k) { if (u.id === entry.id) i = k; });
+    if (i === -1) list.push(entry); else list[i] = entry;
+    persist();
+  }
+
+  function deleteUpcoming(id) {
+    T().upcoming = (T().upcoming || []).filter(function (u) { return u.id !== id; });
+    persist();
+  }
+
+  function startPreparedMatch(id) {
+    var u = (T().upcoming || []).filter(function (x) { return x.id === id; })[0];
+    if (!u) return;
+    deleteUpcoming(id);
+    startNewMatch(u.opponentName, u.isHome, u.plan, u.unavailable);
+  }
+
+  function showMatchPrep(existing) {
+    var roster = sortedRoster();
+    var entry = existing
+      ? {
+          id: existing.id, opponentName: existing.opponentName, isHome: existing.isHome,
+          kickoffAt: existing.kickoffAt, unavailable: (existing.unavailable || []).slice(),
+          plan: normalisePlan(existing.plan)
+        }
+      : { id: uid(), opponentName: "", isHome: true, kickoffAt: "", unavailable: [], plan: null };
+
+    var periods = (entry.plan && entry.plan.periods) ||
+      (normalisePlan(T().lastPlan) || {}).periods || 4;
+
+    var old = document.getElementById("prepOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "prepOverlay";
+    document.body.appendChild(overlay);
+
+    function splitDate() {
+      if (!entry.kickoffAt) return ["", ""];
+      var parts = entry.kickoffAt.split("T");
+      return [parts[0] || "", (parts[1] || "").slice(0, 5)];
+    }
+    function readFields() {
+      var opp = document.getElementById("prepOpp");
+      if (opp) entry.opponentName = opp.value;
+      var d = document.getElementById("prepDate"), t = document.getElementById("prepTime");
+      var dv = d ? d.value : "", tv = t ? t.value : "";
+      entry.kickoffAt = dv ? dv + "T" + (tv || "00:00") : "";
+    }
+    function availableIds() {
+      return roster.filter(function (p) { return entry.unavailable.indexOf(p.id) === -1; })
+                   .map(function (p) { return p.id; });
+    }
+
+    function draw() {
+      var dt = splitDate();
+      var absentRows = roster.map(function (p) {
+        var away = entry.unavailable.indexOf(p.id) !== -1;
+        return '<button class="prep-av' + (away ? " away" : "") + '" data-away="' + p.id + '" aria-pressed="' + away + '">' +
+          '<span class="plan-num">' + esc(p.number || "–") + "</span>" +
+          '<span class="prep-av-nm">' + esc(p.name) + "</span>" +
+          '<span class="prep-av-tag">' + (away ? "Away" : "There") + "</span>" +
+        "</button>";
+      }).join("");
+
+      var planBlock = "";
+      if (T().settings.planLineups) {
+        var plan = entry.plan;
+        var planned = plan && plan.lineups.some(function (r) { return r.length; })
+          ? plan.lineups.map(function (r, i) { return periodShort(plan.periods, i) + " " + r.length; }).join("  ·  ")
+          : "Not planned yet";
+        planBlock =
+          '<label class="field-label">Match format</label>' +
+          '<div class="btn-row" style="margin-bottom:10px;">' +
+            '<button class="btn toggle-seg' + (periods === 2 ? " on" : "") + '" id="prepHalves">2 halves</button>' +
+            '<button class="btn toggle-seg' + (periods === 4 ? " on" : "") + '" id="prepQuarters">4 quarters</button>' +
+          "</div>" +
+          '<button class="btn btn-ghost" id="prepPlanBtn">Line-up plan</button>' +
+          '<div class="plan-summary">' + esc(planned) + "</div>";
+      }
+
+      overlay.innerHTML =
+        '<div class="card-sheet">' +
+          '<div class="plan-title">' + (existing ? "Edit prepared match" : "Prepare a match") + "</div>" +
+          '<div class="card-scroll prep-scroll">' +
+            '<label class="field-label" for="prepOpp">Opponent</label>' +
+            '<input class="text-input" id="prepOpp" placeholder="e.g. KFC Brasschaat" value="' + esc(entry.opponentName) + '">' +
+            '<label class="field-label">Home or away?</label>' +
+            '<div class="btn-row" style="margin-bottom:14px;">' +
+              '<button class="btn toggle-seg' + (entry.isHome ? " on" : "") + '" id="prepHome">Home</button>' +
+              '<button class="btn toggle-seg' + (entry.isHome ? "" : " on") + '" id="prepAway">Away</button>' +
+            "</div>" +
+            '<label class="field-label">Kick-off</label>' +
+            '<div class="prep-when">' +
+              '<input class="text-input" type="date" id="prepDate" value="' + esc(dt[0]) + '">' +
+              '<input class="text-input" type="time" id="prepTime" value="' + esc(dt[1]) + '">' +
+            "</div>" +
+            (roster.length
+              ? '<label class="field-label">Who can’t make it?</label>' +
+                '<div class="prep-av-list">' + absentRows + "</div>"
+              : '<p class="hint">Add your players first to plan who plays.</p>') +
+            planBlock +
+          "</div>" +
+          '<button class="btn btn-primary" id="prepSave">' + (existing ? "Save changes" : "Save match") + "</button>" +
+          '<button class="btn btn-ghost" id="prepCancel">Cancel</button>' +
+        "</div>";
+
+      document.getElementById("prepHome").onclick = function () { readFields(); entry.isHome = true; draw(); };
+      document.getElementById("prepAway").onclick = function () { readFields(); entry.isHome = false; draw(); };
+      overlay.querySelectorAll("[data-away]").forEach(function (btn) {
+        btn.onclick = function () {
+          readFields();
+          var id = btn.getAttribute("data-away");
+          var k = entry.unavailable.indexOf(id);
+          if (k === -1) entry.unavailable.push(id); else entry.unavailable.splice(k, 1);
+          // Someone who is not coming cannot hold a place in the line-up.
+          if (entry.plan) {
+            entry.plan.lineups = entry.plan.lineups.map(function (r) {
+              return r.filter(function (x) { return entry.unavailable.indexOf(x) === -1; });
+            });
+          }
+          draw();
+        };
+      });
+      if (T().settings.planLineups) {
+        document.getElementById("prepHalves").onclick = function () { readFields(); periods = 2; entry.plan = null; draw(); };
+        document.getElementById("prepQuarters").onclick = function () { readFields(); periods = 4; entry.plan = null; draw(); };
+        document.getElementById("prepPlanBtn").onclick = function () {
+          readFields();
+          overlay.style.display = "none";
+          showLineupPlanner(entry.plan || T().lastPlan, periods, function (plan) {
+            entry.plan = plan;
+            overlay.style.display = "";
+            draw();
+          }, entry.unavailable, function () { overlay.style.display = ""; });
+        };
+      }
+      document.getElementById("prepCancel").onclick = function () { overlay.remove(); };
+      document.getElementById("prepSave").onclick = function () {
+        readFields();
+        if (!entry.opponentName.trim() && !entry.kickoffAt) {
+          showToast("Give it at least an opponent or a date.", "warning");
+          return;
+        }
+        overlay.remove();
+        saveUpcoming(entry);
+        render();
+        showToast("Match saved — start it from the Match tab.");
+      };
+    }
+
+    overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+    draw();
+  }
+
+  function upcomingHtml() {
+    var list = upcomingList();
+    if (!list.length) return "";
+    return '<h2 class="section-title">Ready to play</h2>' +
+      '<div class="card">' + list.map(function (u) {
+        var sum = prepSummary(u);
+        return '<div class="prep-item' + (isOverdue(u) ? " overdue" : "") + '">' +
+          '<div class="prep-top">' +
+            '<div class="prep-when-lbl">' + esc(kickoffLabel(u)) + (isOverdue(u) ? ' <span class="prep-late">past</span>' : "") + "</div>" +
+            '<div class="prep-actions">' +
+              '<button class="hi-copy" data-prep-edit="' + u.id + '">Edit</button>' +
+              '<button class="hi-remove" data-prep-del="' + u.id + '">Delete</button>' +
+            "</div>" +
+          "</div>" +
+          '<div class="prep-opp">vs ' + esc(u.opponentName || "Opponent") + " · " + (u.isHome ? "Home" : "Away") + "</div>" +
+          (sum ? '<div class="prep-sum">' + esc(sum) + "</div>" : "") +
+          '<button class="btn btn-primary prep-start" data-prep-start="' + u.id + '">Start this match</button>' +
+        "</div>";
+      }).join("") + "</div>";
+  }
+
+  function wireUpcoming(el) {
+    el.querySelectorAll("[data-prep-start]").forEach(function (b) {
+      b.onclick = function () { startPreparedMatch(b.getAttribute("data-prep-start")); };
+    });
+    el.querySelectorAll("[data-prep-edit]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute("data-prep-edit");
+        showMatchPrep((T().upcoming || []).filter(function (u) { return u.id === id; })[0]);
+      };
+    });
+    el.querySelectorAll("[data-prep-del]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute("data-prep-del");
+        var u = (T().upcoming || []).filter(function (x) { return x.id === id; })[0];
+        showConfirm("Delete the prepared match against " + ((u && u.opponentName) || "Opponent") + "?",
+          "Delete", function () { deleteUpcoming(id); render(); showToast("Prepared match deleted.", "warning"); }, true);
+      };
+    });
+  }
+
   function buildShareText(record) {
     var isHome = record.isHome !== false;
     var homeName = isHome ? record.teamName : record.opponentName;
@@ -1642,6 +2249,8 @@
       ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
+      ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
+      ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each quarter or half. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, and at every break the app asks whether to apply the next one \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
       ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
@@ -1710,16 +2319,21 @@
 
   // ---------- match lifecycle ----------
 
-  function startNewMatch(opponentName, isHome) {
+  function startNewMatch(opponentName, isHome, plan, unavailable) {
     // Reuse the lineup from last time so the bench doesn't have to be rebuilt
     // before every match. Players added since then start on the pitch.
     var last = Array.isArray(T().lastLineup) ? T().lastLineup : null;
     var known = {};
     (T().roster || []).forEach(function (p) { known[p.id] = true; });
     var reusable = last && last.some(function (id) { return known[id]; });
+    var usePlan = T().settings.planLineups ? planForRoster(normalisePlan(plan), T().roster) : null;
+    var firstRow = usePlan ? planLineup(usePlan, 1) : null;
+    if (firstRow && !firstRow.length) firstRow = null; // an empty first period means "no plan yet"
     var pt = {};
+    var away = Array.isArray(unavailable) ? unavailable : [];
     T().roster.forEach(function (p) {
-      var on = reusable ? last.indexOf(p.id) !== -1 : true;
+      var on = firstRow ? firstRow.indexOf(p.id) !== -1 : (reusable ? last.indexOf(p.id) !== -1 : true);
+      if (away.indexOf(p.id) !== -1) on = false; // not at the pitch today
       pt[p.id] = { onField: on, accumMs: 0, onSince: on ? 0 : null };
     });
     T().activeMatch = {
@@ -1730,6 +2344,8 @@
       clock: { elapsedMs: 0, running: false, runningSince: null },
       period: 1,
       events: [],
+      plan: usePlan,
+      unavailable: away.slice(),
       playingTime: pt
     };
     persist();
@@ -1764,6 +2380,7 @@
     if (Array.isArray(match.startingLineup) && match.startingLineup.length) {
       T().lastLineup = match.startingLineup;
     }
+    if (match.plan) T().lastPlan = normalisePlan(match.plan);
     T().history.unshift(record);
     T().activeMatch = null;
     persist();
@@ -1976,6 +2593,7 @@
     match.period = (match.period || 1) + 1;
     persist();
     render();
+    if (T().settings.planLineups && match.plan && proposePlanAtBreak(match)) return;
     showToast("Break — period " + match.period + " starts when you start the clock.", "warning");
   }
 
@@ -2504,6 +3122,8 @@
       teamName: T().teamName,
       roster: T().roster,
       settings: T().settings,
+      lastPlan: T().lastPlan,
+      upcoming: T().upcoming,
       seasonStats: buildSeasonStats(),
       matchStats: buildMatchStats(),
       history: T().history
@@ -2557,6 +3177,9 @@
       activeMatch: null,
       history: Array.isArray(data.history) ? data.history : [],
       lastLineup: null,
+      lastPlan: normalisePlan(data.lastPlan),
+      upcoming: Array.isArray(data.upcoming)
+        ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
       lastExportCount: Array.isArray(data.history) ? data.history.length : 0
     };
   }
@@ -2666,9 +3289,11 @@
     var match = T().activeMatch;
 
     if (!match) {
+      if (T().settings.planLineups) syncPendingFormat();
       el.innerHTML =
         noticeHtml() +
         '<h1 class="screen-title">Start a match</h1>' +
+        upcomingHtml() +
         '<p class="playing-as">Playing as <strong>' + esc(T().teamName) + "</strong>" +
           (state.teams.length > 1 ? ' — <button class="link-btn" id="quickSwitchBtn">switch team</button>' : "") + "</p>" +
         (T().roster.length === 0
@@ -2682,10 +3307,23 @@
                 '<button class="btn toggle-seg on" id="homeBtn">Home</button>' +
                 '<button class="btn toggle-seg" id="awayBtn">Away</button>' +
               '</div>' +
+              (T().settings.planLineups
+                ? '<label class="field-label">Match format</label>' +
+                  '<div class="btn-row" style="margin-bottom:10px;">' +
+                    '<button class="btn toggle-seg' + (pendingPeriods === 2 ? " on" : "") + '" id="halvesBtn">2 halves</button>' +
+                    '<button class="btn toggle-seg' + (pendingPeriods === 4 ? " on" : "") + '" id="quartersBtn">4 quarters</button>' +
+                  "</div>" +
+                  '<button class="btn btn-ghost" id="planBtn">Line-up plan</button>' +
+                  '<div class="plan-summary" id="planSummary">' + planSummaryText() + "</div>"
+                : "") +
               '<button class="btn btn-primary" id="kickoffBtn">Kick off</button>' +
-            '</div>');
+            "</div>" +
+            '<button class="btn btn-ghost" id="prepBtn" style="margin-top:12px;">Prepare a match for later</button>');
       var qs = document.getElementById("quickSwitchBtn");
       if (qs) qs.onclick = showTeamPicker;
+      wireUpcoming(el);
+      var pb = document.getElementById("prepBtn");
+      if (pb) pb.onclick = function () { showMatchPrep(null); };
       if (T().roster.length === 0) {
         document.getElementById("goToTeamBtn").onclick = function () { view = "team"; render(); };
       } else {
@@ -2700,8 +3338,27 @@
           document.getElementById("awayBtn").classList.add("on");
           document.getElementById("homeBtn").classList.remove("on");
         };
+        if (T().settings.planLineups) {
+          var setFormat = function (nPeriods) {
+            pendingPeriods = nPeriods;
+            pendingFormatSet = true;
+            pendingPlan = null; // a different format needs a fresh plan
+            render();
+          };
+          document.getElementById("halvesBtn").onclick = function () { setFormat(2); };
+          document.getElementById("quartersBtn").onclick = function () { setFormat(4); };
+          document.getElementById("planBtn").onclick = function () {
+            showLineupPlanner(pendingPlan || T().lastPlan, pendingPeriods, function (plan) {
+              pendingPlan = plan;
+              render();
+            });
+          };
+        }
         document.getElementById("kickoffBtn").onclick = function () {
-          startNewMatch(document.getElementById("opponentInput").value, selectedIsHome);
+          startNewMatch(document.getElementById("opponentInput").value, selectedIsHome,
+            pendingPlan || T().lastPlan);
+          pendingPlan = null;
+          pendingFormatSet = false;
         };
       }
       return;
@@ -2795,11 +3452,20 @@
       '<div class="event-log">' + (eventsHtml || '<div class="empty-state">No events logged yet — tap a player to add a goal.</div>') + "</div>" +
       '<div class="btn-row end-match-btn">' +
         '<button class="btn btn-ghost" id="halfTimeBtn">Half time</button>' +
+        (T().settings.planLineups && match.plan
+          ? '<button class="btn btn-ghost" id="matchPlanBtn">Line-up plan</button>' : "") +
         '<button class="btn btn-danger" id="endMatchBtn">End match</button>' +
       "</div>";
 
     document.getElementById("oppGoalBtn").onclick = logOpponentGoal;
     document.getElementById("halfTimeBtn").onclick = startNextPeriod;
+    var mpb = document.getElementById("matchPlanBtn");
+    if (mpb) mpb.onclick = function () {
+      showLineupPlanner(match.plan, match.plan.periods, function (plan) {
+        match.plan = plan; persist(); render();
+        showToast("Plan saved — it is proposed at the next break.");
+      });
+    };
     document.getElementById("ownGoalBtn").onclick = showOwnGoalPicker;
     document.getElementById("endMatchBtn").onclick = function () {
       showConfirm("End the match? This saves the result to history.", "End match", endMatch, true);
@@ -2953,6 +3619,7 @@
         toggleRow("trackAssists", "Assists", "Ask who assisted after each goal") +
         toggleRow("trackPlayingTime", "Playing time", "Show total minutes played in match summaries. Who's on the pitch is always tracked, so benched players can't be tapped by mistake.") +
         toggleRow("trackCards", "Cards", "Log yellow and red cards") +
+        toggleRow("planLineups", "Line-up plan", "Set who plays each quarter or half before kick-off. The app proposes it at every break, so a change of line-up is one tap instead of six.") +
       "</div>" +
       '<h2 class="section-title">Share this team</h2>' +
       '<p class="hint">Export your roster and settings so another parent or coach can import them instead of typing everything in again.</p>' +
