@@ -72,8 +72,6 @@ Matchday Tracker turns your phone into a simple match-day companion:
 * 📈 **Season History:** Keep tabs on past matches and top scorers over time.
 * 📤 **Export & Import:** Move your team data smoothly between devices.
 * 💾 **Offline-Friendly:** Your data stays safe in your browser with zero backend requirements.
-
-## Features
  
 ## Features
 
