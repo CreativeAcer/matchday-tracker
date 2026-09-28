@@ -41,6 +41,16 @@ A lightweight, offline-friendly match tracker built for youth soccer coaches, pa
       <sub><b>Dark mode</b> — follows the system theme</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center">
+      <img src="screenshots/plan-break.png" alt="Team and settings screen" width="250"><br>
+      <sub><b>Team &amp; preparation</b> — game plan</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/plan-grid-light.png" alt="Team switcher sheet" width="250"><br>
+      <sub><b>Team &amp; preparation</b> — game plan</sub>
+    </td>
+  </tr>
 </table>
 
 <sub>Screenshots use demo data, not a real roster.</sub>
