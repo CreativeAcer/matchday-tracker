@@ -139,6 +139,8 @@
     font-weight: 600;
     letter-spacing: 0.5px;
   }
+  .clock-total { font-size: 10px; color: rgba(250,248,242,0.55); letter-spacing: 0.3px; }
+  .clock-time.over { color: var(--gold); }
   .clock-state { font-size: 11px; color: var(--gold); }
   .clock-state.running { color: #8FD9AE; }
 
@@ -745,6 +747,7 @@
     <button class="icon-btn help-icon" id="helpBtn" aria-label="How to use this app">?</button>
     <button class="clock-btn" id="clockBtn">
       <span class="clock-time" id="clockTime">00:00</span>
+      <span class="clock-total hidden" id="clockTotal"></span>
       <span class="clock-state" id="clockState">No match yet</span>
     </button>
     <button class="icon-btn" id="undoBtn" aria-label="Undo last event">↺</button>
@@ -790,13 +793,19 @@
   // 2 halves, 4 quarters, or 8 short periods — youth football uses all three.
   // Declared here, not beside the planner: load() normalises saved plans on
   // startup, so this must already hold its value by then.
+  // A period length is optional; it only drives the "running over" cue.
+  function cleanPeriodMinutes(v) {
+    var m = parseInt(v, 10);
+    return (m > 0 && m <= 60) ? m : null;   // parseInt gives NaN, and NaN > 0 is false
+  }
+
   var PLAN_FORMATS = [2, 4, 8];
   var PLAN_FORMAT_LABELS = { 2: "2 halves", 4: "4 quarters", 8: "8 periods" };
 
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "19";
+  var APP_VERSION = "20";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -817,6 +826,7 @@
       history: [],
       lastLineup: null,
       lastPlan: null,
+      lastPeriodMinutes: null,
       upcoming: [],
       lastExportCount: 0
     };
@@ -855,6 +865,7 @@
         history: Array.isArray(t.history) ? t.history : [],
         lastLineup: Array.isArray(t.lastLineup) ? t.lastLineup : null,
         lastPlan: normalisePlan(t.lastPlan),
+        lastPeriodMinutes: cleanPeriodMinutes(t.lastPeriodMinutes),
         upcoming: Array.isArray(t.upcoming)
           ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
@@ -968,6 +979,50 @@
     if (!match || !match.clock) return 0;
     var extra = match.clock.running ? (Date.now() - match.clock.runningSince) : 0;
     return match.clock.elapsedMs + extra;
+  }
+
+  // The clock is one continuous MATCH clock, so a goal in the last quarter is
+  // stamped 52' rather than 7' — that is what makes the report readable, since
+  // it carries no period number. periodStartMs marks where the current period
+  // began on that same clock, which is all the period display needs.
+  function periodElapsedMs(match) {
+    return Math.max(0, clockElapsedMs(match) - (match.periodStartMs || 0));
+  }
+  function periodHasRun(match) {
+    return periodElapsedMs(match) > 0;
+  }
+  function periodOverrunMs(match) {
+    if (!match || !match.periodMinutes) return 0;
+    return Math.max(0, periodElapsedMs(match) - match.periodMinutes * 60000);
+  }
+  function periodTag(match) {
+    var p = match.period || 1;
+    var fmt = (match.plan && match.plan.periods) || match.periodFormat;
+    if (fmt) return periodShort(fmt, p - 1);
+    return "P" + p;
+  }
+
+  // The only place the clock face is written. The per-second tick used to
+  // write it too, which wiped the period label and the overrun colour a second
+  // after every render.
+  function paintClock(match) {
+    var timeEl = document.getElementById("clockTime");
+    var totalEl = document.getElementById("clockTotal");
+    if (!match) {
+      timeEl.textContent = "00:00";
+      timeEl.classList.remove("over");
+      totalEl.classList.add("hidden");
+      totalEl.textContent = "";
+      return;
+    }
+    var inPeriod = (match.period || 1) > 1;
+    timeEl.textContent = inPeriod
+      ? periodTag(match) + " \u00b7 " + formatClock(periodElapsedMs(match))
+      : formatClock(clockElapsedMs(match));
+    if (periodOverrunMs(match) > 0) timeEl.classList.add("over");
+    else timeEl.classList.remove("over");
+    if (inPeriod) totalEl.classList.remove("hidden"); else totalEl.classList.add("hidden");
+    totalEl.textContent = inPeriod ? formatClock(clockElapsedMs(match)) + " total" : "";
   }
 
   function currentMinute(match) {
@@ -1377,10 +1432,12 @@
   var pendingPeriods = 4;      // the format chosen on the kick-off screen
   var pendingPlan = null;      // the plan being built there
   var pendingFormatSet = false; // true once the coach picks a format by hand
+  var pendingPeriodMinutes = null;
 
   // Follow last week's format unless the coach has overridden it, so a saved
   // plan is never quietly dropped for being the wrong shape.
   function syncPendingFormat() {
+    if (pendingPeriodMinutes == null) pendingPeriodMinutes = T().lastPeriodMinutes;
     if (pendingFormatSet) return;
     var lp = normalisePlan(T().lastPlan);
     if (lp) pendingPeriods = lp.periods;
@@ -1675,6 +1732,7 @@
       kickoffAt: typeof u.kickoffAt === "string" ? u.kickoffAt : "",
       unavailable: Array.isArray(u.unavailable)
         ? u.unavailable.filter(function (x) { return typeof x === "string"; }) : [],
+      periodMinutes: cleanPeriodMinutes(u.periodMinutes),
       plan: normalisePlan(u.plan)
     };
   }
@@ -1711,6 +1769,7 @@
     var bits = [];
     var absent = (u.unavailable || []).length;
     if (absent) bits.push(absent + (absent === 1 ? " player away" : " players away"));
+    if (u.periodMinutes) bits.push(u.periodMinutes + " min each");
     var plan = normalisePlan(u.plan);
     if (plan && plan.lineups.some(function (r) { return r.length; })) {
       bits.push((PLAN_FORMAT_LABELS[plan.periods] || plan.periods + " periods") + " planned");
@@ -1735,7 +1794,8 @@
     var u = (T().upcoming || []).filter(function (x) { return x.id === id; })[0];
     if (!u) return;
     deleteUpcoming(id);
-    startNewMatch(u.opponentName, u.isHome, u.plan, u.unavailable);
+    startNewMatch(u.opponentName, u.isHome, u.plan, u.unavailable, u.periodMinutes,
+      u.plan ? u.plan.periods : null);
   }
 
   function showMatchPrep(existing) {
@@ -1744,9 +1804,11 @@
       ? {
           id: existing.id, opponentName: existing.opponentName, isHome: existing.isHome,
           kickoffAt: existing.kickoffAt, unavailable: (existing.unavailable || []).slice(),
+          periodMinutes: existing.periodMinutes || null,
           plan: normalisePlan(existing.plan)
         }
-      : { id: uid(), opponentName: "", isHome: true, kickoffAt: "", unavailable: [], plan: null };
+      : { id: uid(), opponentName: "", isHome: true, kickoffAt: "", unavailable: [],
+          periodMinutes: T().lastPeriodMinutes, plan: null };
 
     var periods = (entry.plan && entry.plan.periods) ||
       (normalisePlan(T().lastPlan) || {}).periods || 4;
@@ -1769,6 +1831,8 @@
       var d = document.getElementById("prepDate"), t = document.getElementById("prepTime");
       var dv = d ? d.value : "", tv = t ? t.value : "";
       entry.kickoffAt = dv ? dv + "T" + (tv || "00:00") : "";
+      var pm = document.getElementById("prepMins");
+      if (pm) entry.periodMinutes = cleanPeriodMinutes(pm.value);
     }
     function availableIds() {
       return roster.filter(function (p) { return entry.unavailable.indexOf(p.id) === -1; })
@@ -1822,6 +1886,9 @@
               '<input class="text-input" type="date" id="prepDate" value="' + esc(dt[0]) + '">' +
               '<input class="text-input" type="time" id="prepTime" value="' + esc(dt[1]) + '">' +
             "</div>" +
+            '<label class="field-label" for="prepMins">Length of each half or quarter, in minutes (optional)</label>' +
+            '<input class="text-input" id="prepMins" inputmode="numeric" maxlength="2" placeholder="e.g. 15" value="' +
+              esc(entry.periodMinutes || "") + '">' +
             (roster.length
               ? '<label class="field-label">Who can’t make it?</label>' +
                 '<div class="prep-av-list">' + absentRows + "</div>"
@@ -2329,14 +2396,14 @@
       ["Several teams", "Tap <strong>Switch</strong> at the top of the Team screen to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
-      ["Start the clock", "Tap the timer at the top to start it. You can't log goals or cards until the clock is running — this keeps every event's minute accurate."],
+      ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on."],
       ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed button below the grid for the opponent's goals."],
       ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
       ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
-      ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
+      ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
       ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report."],
@@ -2404,7 +2471,7 @@
 
   // ---------- match lifecycle ----------
 
-  function startNewMatch(opponentName, isHome, plan, unavailable) {
+  function startNewMatch(opponentName, isHome, plan, unavailable, periodMinutes, periodFormat) {
     // Reuse the lineup from last time so the bench doesn't have to be rebuilt
     // before every match. Players added since then start on the pitch.
     var last = Array.isArray(T().lastLineup) ? T().lastLineup : null;
@@ -2431,6 +2498,9 @@
       events: [],
       plan: usePlan,
       unavailable: away.slice(),
+      periodMinutes: cleanPeriodMinutes(periodMinutes),
+      periodFormat: PLAN_FORMATS.indexOf(periodFormat) !== -1 ? periodFormat : null,
+      periodStartMs: 0,
       playingTime: pt
     };
     persist();
@@ -2466,6 +2536,7 @@
       T().lastLineup = match.startingLineup;
     }
     if (match.plan) T().lastPlan = normalisePlan(match.plan);
+    if (match.periodMinutes) T().lastPeriodMinutes = match.periodMinutes;
     T().history.unshift(record);
     T().activeMatch = null;
     persist();
@@ -2670,14 +2741,37 @@
   function startNextPeriod() {
     var match = T().activeMatch;
     if (!match) return;
+    // Same rule as scoring: nothing happens on a clock that never ran. Without
+    // this you can tap your way to period 6 on a match still showing 00:00,
+    // and every tap eats a period out of the line-up plan.
+    if (!periodHasRun(match)) {
+      showToast("The clock hasn\u2019t run this period yet — start it first.", "warning");
+      return;
+    }
+    if (match.plan && match.plan.periods && (match.period || 1) >= match.plan.periods) {
+      showConfirm("That was the last of the " + match.plan.periods +
+        " planned periods. Start another one?", "Start another", function () {
+          advancePeriod(match);
+        }, false);
+      return;
+    }
+    advancePeriod(match);
+  }
+
+  function advancePeriod(match) {
     if (match.clock.running) {
       match.clock.elapsedMs = clockElapsedMs(match);
       match.clock.running = false;
       match.clock.runningSince = null;
     }
+    var over = periodOverrunMs(match);
     match.period = (match.period || 1) + 1;
+    match.periodStartMs = clockElapsedMs(match);
     persist();
     render();
+    if (over > 1000) {
+      showToast("That period ran " + formatClock(over) + " over.", "warning");
+    }
     if (T().settings.planLineups && match.plan && proposePlanAtBreak(match)) return;
     showToast("Break — period " + match.period + " starts when you start the clock.", "warning");
   }
@@ -3208,6 +3302,7 @@
       roster: T().roster,
       settings: T().settings,
       lastPlan: T().lastPlan,
+      lastPeriodMinutes: T().lastPeriodMinutes,
       upcoming: T().upcoming,
       seasonStats: buildSeasonStats(),
       matchStats: buildMatchStats(),
@@ -3263,6 +3358,7 @@
       history: Array.isArray(data.history) ? data.history : [],
       lastLineup: null,
       lastPlan: normalisePlan(data.lastPlan),
+      lastPeriodMinutes: cleanPeriodMinutes(data.lastPeriodMinutes),
       upcoming: Array.isArray(data.upcoming)
         ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
       lastExportCount: Array.isArray(data.history) ? data.history.length : 0
@@ -3352,11 +3448,11 @@
       document.getElementById("themScoreLabel").innerHTML =
         '<span class="lbl">' + esc(match.opponentName + (match.isHome !== false ? " (A)" : " (H)")) +
         '</span><span class="pen" aria-hidden="true">✎</span>';
-      document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(match));
+      paintClock(match);
       document.getElementById("clockState").textContent = match.clock.running ? "Running — tap to pause" : "Paused — tap to start";
       document.getElementById("clockState").classList.toggle("running", match.clock.running);
     } else {
-      document.getElementById("clockTime").textContent = "00:00";
+      paintClock(null);
       document.getElementById("clockState").textContent = "No match yet";
       document.getElementById("clockState").classList.remove("running");
     }
@@ -3374,7 +3470,7 @@
     var match = T().activeMatch;
 
     if (!match) {
-      if (T().settings.planLineups) syncPendingFormat();
+      syncPendingFormat();
       el.innerHTML =
         noticeHtml() +
         '<h1 class="screen-title">Start a match</h1>' +
@@ -3392,6 +3488,9 @@
                 '<button class="btn toggle-seg on" id="homeBtn">Home</button>' +
                 '<button class="btn toggle-seg" id="awayBtn">Away</button>' +
               '</div>' +
+              '<label class="field-label" for="periodMinsInput">Length of each half or quarter, in minutes (optional)</label>' +
+              '<input class="text-input" id="periodMinsInput" inputmode="numeric" maxlength="2" placeholder="e.g. 15" value="' +
+                esc(pendingPeriodMinutes || "") + '">' +
               (T().settings.planLineups
                 ? '<label class="field-label">Match format</label>' +
                   '<div class="btn-row" style="margin-bottom:10px;">' +
@@ -3443,10 +3542,13 @@
           };
         }
         document.getElementById("kickoffBtn").onclick = function () {
+          var pm = document.getElementById("periodMinsInput");
           startNewMatch(document.getElementById("opponentInput").value, selectedIsHome,
-            pendingPlan || T().lastPlan);
+            pendingPlan || T().lastPlan, null, pm ? pm.value : null,
+            T().settings.planLineups ? pendingPeriods : null);
           pendingPlan = null;
           pendingFormatSet = false;
+          pendingPeriodMinutes = null;
         };
       }
       return;
@@ -3947,7 +4049,7 @@
     if (T().activeMatch && T().activeMatch.clock.running) {
       checkStaleClock();
       if (view === "match" && T().activeMatch && T().activeMatch.clock.running) {
-        document.getElementById("clockTime").textContent = formatClock(clockElapsedMs(T().activeMatch));
+        paintClock(T().activeMatch);
         updateLiveMinutes();
       }
     }
