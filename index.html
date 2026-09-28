@@ -544,29 +544,29 @@
   }
   .plan-foot { border-bottom: none; padding-top: 4px; }
   .plan-foot .plan-name { font-size: 12px; color: var(--ink-soft); }
-  /* The browser draws the calendar and clock glyphs itself, and iOS colours
-     them differently from other engines — on a dark field they came out
-     invisible. Painting our own shape through a mask takes the colour out of
-     the browser's hands: background-color follows --ink, so it flips with the
-     theme automatically and needs no per-theme duplicate. */
+  /* iOS does not render ::-webkit-calendar-picker-indicator at all, so styling
+     it can never put a glyph on the screen there — the field just looked empty.
+     The icon is drawn as the input's own background instead, which every engine
+     paints. The native indicator is kept at full size but made invisible, so on
+     engines that do have one it still works as the click target, right where
+     our icon appears. */
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
-    opacity: 1;
-    width: 22px; height: 22px; margin-left: 4px;
-    background-image: none;
-    background-color: var(--ink);
-    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-    -webkit-mask-position: center; mask-position: center;
-    -webkit-mask-size: 21px 21px; mask-size: 21px 21px;
+    opacity: 0;
   }
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E");
+  .text-input[type="date"], .text-input[type="time"] {
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    background-size: 21px 21px;
   }
-  input[type="time"]::-webkit-calendar-picker-indicator {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E");
+  .text-input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%2316211A%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E"); }
+  .text-input[type="time"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%2316211A%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E"); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .text-input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23F1EEE3%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E"); }
+    :root:not([data-theme="light"]) .text-input[type="time"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23F1EEE3%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E"); }
   }
+  :root[data-theme="dark"] .text-input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23F1EEE3%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%272%27%2F%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27%2F%3E%3C%2Fsvg%3E"); }
+  :root[data-theme="dark"] .text-input[type="time"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23F1EEE3%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27%2F%3E%3Cpath%20d%3D%27M12%207v5l3.5%202%27%2F%3E%3C%2Fsvg%3E"); }
   .prep-scroll { max-height: 62vh; }
   .prep-item { padding: 12px 2px; border-bottom: 1px solid var(--line); }
   .prep-item:last-child { border-bottom: none; }
@@ -796,7 +796,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "18";
+  var APP_VERSION = "19";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
