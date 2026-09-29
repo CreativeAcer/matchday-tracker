@@ -811,7 +811,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "22";
+  var APP_VERSION = "23";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -834,6 +834,7 @@
       lastPlan: null,
       lastPeriodMinutes: null,
       upcoming: [],
+      lastExportPrep: "",
       lastExportCount: 0
     };
   }
@@ -874,6 +875,7 @@
         lastPeriodMinutes: cleanPeriodMinutes(t.lastPeriodMinutes),
         upcoming: Array.isArray(t.upcoming)
           ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
+        lastExportPrep: typeof t.lastExportPrep === "string" ? t.lastExportPrep : "",
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
     });
@@ -2268,6 +2270,24 @@
     return Math.max(0, T().history.length - (T().lastExportCount || 0));
   }
 
+  // A fingerprint of the prepared matches, so the backup reminder notices work
+  // that was PLANNED and not yet played. Counting matches alone missed it: a
+  // coach who has set up five matches and played none was never nudged.
+  function prepSignature(list) {
+    return (list || []).map(function (u) {
+      var plan = u.plan ? u.plan.periods + "x" + u.plan.lineups.map(function (r) {
+        return r.length;
+      }).join(",") : "-";
+      return [u.id, u.opponentName || "", u.kickoffAt || "", u.isHome !== false ? "H" : "A",
+              (u.unavailable || []).length, u.periodMinutes || "", plan].join(":");
+    }).join("|");
+  }
+  function prepUnsaved() {
+    var list = T().upcoming || [];
+    if (!list.length) return 0;
+    return prepSignature(list) === (T().lastExportPrep || "") ? 0 : list.length;
+  }
+
   function noticeHtml() {
     var out = installNoticeHtml();
     if (!storageOk) {
@@ -2275,15 +2295,21 @@
              'Your matches only exist in this open app \u2014 export your data before closing it.</div>';
     }
     var n = unexportedCount();
-    if (storageOk && n >= 3) {
-      out += '<div class="notice notice-warn">' + n + ' matches recorded since your last backup. ' +
-             'Use <strong>Export team data</strong> to keep a copy.</div>';
+    var prep = prepUnsaved();
+    if (storageOk && (n >= 3 || prep)) {
+      var what = [];
+      if (n >= 3) what.push(n + " matches recorded");
+      if (prep) what.push(prep + (prep === 1 ? " prepared match" : " prepared matches"));
+      out += '<div class="notice notice-warn">' + esc(what.join(" and ")) +
+             ' not in your last backup. Use <strong>Export team data</strong> to keep a copy \u2014 ' +
+             'it holds your prepared matches and line-up plans too.</div>';
     }
     return out;
   }
 
   function markExported() {
     T().lastExportCount = T().history.length;
+    T().lastExportPrep = prepSignature(T().upcoming);
     persist();
     render();
   }
@@ -2438,8 +2464,8 @@
       ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
       ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match for its <strong>Card</strong> or its written report."],
       ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>Fix</strong> on a match in History to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
-      ["Keep a backup", "Everything lives on this device only. After a few matches the app reminds you to use <strong>Export team data</strong> — keep that file somewhere safe, because clearing your browser data would otherwise take the season with it."],
-      ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file of the team you're currently on. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."]
+      ["Keep a backup", "Everything lives on this device only. <strong>Export team data</strong> writes one file with the lot: your players, your settings, every match you have played, and every match you have <em>prepared</em> — their line-ups, period lengths and who couldn't make it. Clearing your browser data would otherwise take all of that with it, so keep the file somewhere safe. The app reminds you when matches have been played, or preparation has been done, since your last backup. <strong>Import team data</strong> puts it all back."],
+      ["Share your team", "In Team or History, use <strong>Export team data</strong> to save a file of the team you're currently on, prepared matches and all. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."]
     ];
     var body = sections.map(function (s) {
       return '<div class="help-section"><h3>' + esc(s[0]) + "</h3><p>" + s[1] + "</p></div>";
@@ -3388,6 +3414,8 @@
       lastPeriodMinutes: cleanPeriodMinutes(data.lastPeriodMinutes),
       upcoming: Array.isArray(data.upcoming)
         ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
+      lastExportPrep: prepSignature(Array.isArray(data.upcoming)
+        ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : []),
       lastExportCount: Array.isArray(data.history) ? data.history.length : 0
     };
   }
@@ -3908,7 +3936,7 @@
         toggleRow("planLineups", "Line-up plan", "Set who plays each quarter or half before kick-off. The app proposes it at every break, so a change of line-up is one tap instead of six.") +
       "</div>" +
       '<h2 class="section-title">Share this team</h2>' +
-      '<p class="hint">Export your roster and settings so another parent or coach can import them instead of typing everything in again.</p>' +
+      '<p class="hint">One file with everything: players, settings, matches played and matches prepared. Keep it as a backup, or send it to another parent or coach so they don’t have to type it all in again.</p>' +
       '<div class="btn-row">' +
         '<button class="btn btn-primary" id="exportBtn">Export team data</button>' +
         '<button class="btn btn-ghost" id="importBtn">Import team data</button>' +
