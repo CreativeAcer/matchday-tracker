@@ -2,7 +2,7 @@
 
 > *Keep the game moving. Keep the details.*
 
-A lightweight, offline-friendly match tracker built for youth soccer coaches, parents, and team managers. Track goals, assists, cards, playing time, match events, and season stats — without needing an account, backend, or complicated setup.
+ - A lightweight, offline-friendly match tracker built for youth soccer coaches, parents, and team managers. Track goals, assists, cards, playing time, match events, and season stats — without needing an account, backend, or complicated setup.
 ---
 <p align="center">
 <img src="screenshots/Hero.png" alt="Live match screen with player tiles">
