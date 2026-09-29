@@ -304,6 +304,7 @@
   }
   .roster-name { flex: 1; font-size: 0.9375rem; }
   .roster-remove { background: none; border: none; color: var(--red-text); font-size: 0.8125rem; padding: 8px 10px; min-height: 44px; }
+  .roster-remove:disabled { color: var(--ink-soft); opacity: 0.55; }
 
   .add-player-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
   .add-player-row .num-input { width: 68px; }
@@ -864,7 +865,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "29";
+  var APP_VERSION = "30";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -888,6 +889,7 @@
       lastPeriodMinutes: null,
       upcoming: [],
       lastExportPrep: "",
+      lastExportHistory: "",
       lastExportCount: 0
     };
   }
@@ -929,6 +931,7 @@
         upcoming: Array.isArray(t.upcoming)
           ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
         lastExportPrep: typeof t.lastExportPrep === "string" ? t.lastExportPrep : "",
+        lastExportHistory: typeof t.lastExportHistory === "string" ? t.lastExportHistory : "",
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
     });
@@ -1194,7 +1197,7 @@
 
   var CARD_W = 1080;
   var CARD_PAD = 76;
-  var CARD_MAX_TIMELINE = 12;
+  var CARD_MAX_TIMELINE = 100;   // a canvas guard, not an editorial choice
 
   function cardFonts() {
     // Google Fonts may never have loaded (first run with no signal). The card
@@ -1242,8 +1245,14 @@
     var data = matchCardData(record);
     var scorers = data.scorers;
     var timeline = data.timeline;
+    // Every goal gets its minute, as the card promises. Youth scorelines run
+    // away sometimes, so past fourteen the rows tighten up rather than the list
+    // being cut short. CARD_MAX_TIMELINE stays only as a guard against a canvas
+    // no browser would draw; a real match never reaches it.
     var shown = Math.min(timeline.length, CARD_MAX_TIMELINE);
     var hiddenGoals = timeline.length - shown;
+    var compact = shown > 14;
+    var ROW = compact ? 46 : 60;
     var ogLine = "";
     if (record.ownGoalsFor) ogLine = record.ownGoalsFor + " own goal" + (record.ownGoalsFor === 1 ? "" : "s") + " in our favour";
     if (record.ownGoalsAgainst) ogLine = (ogLine ? ogLine + " · " : "") +
@@ -1252,7 +1261,7 @@
     var H = CARD_PAD + 52 + 46 + 52 + 132 * 2 + 40;
     if (scorers.length) H += 46 + 20 + scorers.length * 84 + 34;
     if (ogLine) H += 42;
-    if (shown) H += 46 + 20 + shown * 60 + (hiddenGoals ? 46 : 0) + 34;
+    if (shown) H += 46 + 20 + shown * ROW + (hiddenGoals ? 46 : 0) + 34;
     H += 38 + 14 + 56;
 
     var cv = document.createElement("canvas");
@@ -1404,17 +1413,17 @@
     if (shown) {
       sectionLabel("GOALS");
       timeline.slice(0, shown).forEach(function (t) {
-        var mid = y + 22;
-        ctx.font = "600 30px " + f.display;
+        var mid = y + (compact ? 17 : 22);
+        ctx.font = "600 " + (compact ? 25 : 30) + "px " + f.display;
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         ctx.fillStyle = t.forUs ? GOLD : soft(0.42);
         ctx.fillText(t.minute + "'", L, mid);
-        ctx.font = (t.forUs ? "500 31px " : "400 31px ") + f.body;
+        ctx.font = (t.forUs ? "500 " : "400 ") + (compact ? 26 : 31) + "px " + f.body;
         ctx.fillStyle = t.forUs ? ON : soft(0.55);
         var label = t.name + (t.ownGoal ? " (own goal)" : "") +
           (t.assistName ? "  ·  assist " + t.assistName : "");
         ctx.fillText(fitText(ctx, label, INNER - 96), L + 96, mid);
-        y += 60;
+        y += ROW;
       });
       if (hiddenGoals) {
         ctx.font = "400 27px " + f.body;
@@ -1503,7 +1512,14 @@
   var pendingPlan = null;      // the plan being built there
   var pendingFormatSet = false; // true once the coach picks a format by hand
   var pendingPeriodMinutes = null;
-  var pendingTeamId = null;     // which team the three above belong to
+  // Typed into the kick-off form. They live out here because the screen is
+  // redrawn by things the coach never asked for — returning to the app after
+  // locking the phone, a toast, a chosen format — and a half-filled form that
+  // silently resets to "Home" against "Opponent" is how a match gets recorded
+  // wrongly for good.
+  var pendingOpponentName = "";
+  var pendingIsHome = true;
+  var pendingTeamId = null;     // which team the ones above belong to
 
   // Follow last week's format unless the coach has overridden it, so a saved
   // plan is never quietly dropped for being the wrong shape.
@@ -1517,6 +1533,8 @@
       pendingPlan = null;
       pendingFormatSet = false;
       pendingPeriodMinutes = null;
+      pendingOpponentName = "";
+      pendingIsHome = true;
     }
     if (pendingPeriodMinutes == null) pendingPeriodMinutes = T().lastPeriodMinutes;
     if (pendingFormatSet) return;
@@ -2346,22 +2364,61 @@
     return Math.max(0, T().history.length - (T().lastExportCount || 0));
   }
 
+  // Squeezes a fingerprint down to a short token, so a whole season's worth of
+  // detail can be compared and stored without keeping a copy of it.
+  function fingerprint(str) {
+    var h1 = 0x811c9dc5, h2 = 0x01000193;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      h1 = (h1 ^ c) >>> 0; h1 = (h1 * 16777619) >>> 0;
+      h2 = (h2 + c * (i + 1)) >>> 0;
+    }
+    return h1.toString(36) + "-" + h2.toString(36) + "-" + str.length;
+  }
+
   // A fingerprint of the prepared matches, so the backup reminder notices work
   // that was PLANNED and not yet played. Counting matches alone missed it: a
   // coach who has set up five matches and played none was never nudged.
+  // It records WHICH players, not how many: swapping the whole of Q1 for seven
+  // other names used to leave the fingerprint untouched.
   function prepSignature(list) {
     return (list || []).map(function (u) {
       var plan = u.plan ? u.plan.periods + "x" + u.plan.lineups.map(function (r) {
-        return r.length;
+        return (r || []).slice().sort().join(".");
       }).join(",") : "-";
       return [u.id, u.opponentName || "", u.kickoffAt || "", u.isHome !== false ? "H" : "A",
-              (u.unavailable || []).length, u.periodMinutes || "", plan].join(":");
+              (u.unavailable || []).slice().sort().join("."), u.periodMinutes || "", plan].join(":");
     }).join("|");
   }
   function prepUnsaved() {
     var list = T().upcoming || [];
-    if (!list.length) return 0;
+    // No early exit on an empty list: deleting every prepared match after a
+    // backup is itself a change the coach's file no longer matches.
     return prepSignature(list) === (T().lastExportPrep || "") ? 0 : list.length;
+  }
+
+  // The same idea for matches already played. The count alone could not see a
+  // corrected scorer or a deleted match, both of which leave the backup wrong
+  // while the app insisted it was current.
+  function historySignature(list) {
+    return fingerprint((list || []).map(function (r) {
+      var ev = (r.events || []).map(function (e) {
+        return [e.id || "", e.type || "", e.playerId || "", e.assistId || "",
+                e.cardType || "", e.by || "", e.own ? 1 : 0,
+                e.minuteAtEvent == null ? "" : e.minuteAtEvent].join(",");
+      }).join(";");
+      return [r.id, r.opponentName || "", r.isHome !== false ? "H" : "A",
+              r.date || "", r.scoreUs, r.scoreThem, ev].join(":");
+    }).join("|"));
+  }
+
+  // Only ever true when we have something to compare against. A team upgrading
+  // from an older version has no stored fingerprint yet, and must not be told
+  // its backup is stale on the strength of a comparison we cannot make.
+  function historyEdited() {
+    var known = T().lastExportHistory;
+    if (!known) return false;
+    return historySignature(T().history) !== known;
   }
 
   function noticeHtml() {
@@ -2372,9 +2429,14 @@
     }
     var n = unexportedCount();
     var prep = prepUnsaved();
-    if (storageOk && (n >= 3 || prep)) {
+    // A correction to a match already backed up changes nothing about the
+    // counts, so it gets its own signal. New matches still wait until three, so
+    // the coach isn't nudged after every single game.
+    var edited = n === 0 && historyEdited();
+    if (storageOk && (n >= 3 || prep || edited)) {
       var what = [];
       if (n >= 3) what.push(n + " matches recorded");
+      if (edited) what.push("a match you changed");
       if (prep) what.push(prep + (prep === 1 ? " prepared match" : " prepared matches"));
       out += '<div class="notice notice-warn">' + esc(what.join(" and ")) +
              ' not in your last backup. Use <strong>Export team data</strong> to keep a copy \u2014 ' +
@@ -2385,7 +2447,10 @@
 
   function markExported(parts) {
     parts = parts || defaultExportParts();
-    if (parts.history) T().lastExportCount = T().history.length;
+    if (parts.history) {
+      T().lastExportCount = T().history.length;
+      T().lastExportHistory = historySignature(T().history);
+    }
     if (parts.prep) T().lastExportPrep = prepSignature(T().upcoming);
     persist();
     render();
@@ -2852,20 +2917,35 @@
     var nodes = document.querySelectorAll("[data-mins]");
     if (!match || !nodes.length) return;
     var mins = playingTimeMinutes(match);
+    // The gold outline exists to tell the coach who to bring on next, so it may
+    // only ever land on someone who CAN come on. A player who isn't at the
+    // pitch today, or who has been sent off, sits on nought minutes forever and
+    // would otherwise hold the marker for the whole match.
+    var absent = {};
+    (match.unavailable || []).forEach(function (pid) { absent[pid] = true; });
+    var eligible = T().roster.filter(function (p) {
+      var pt = match.playingTime && match.playingTime[p.id];
+      return !absent[p.id] && !(pt && pt.sentOff);
+    });
     var lowest = Infinity;
-    T().roster.forEach(function (p) {
+    eligible.forEach(function (p) {
       var m = mins[p.id] || 0;
       if (m < lowest) lowest = m;
     });
+    var canBeLeast = {};
+    eligible.forEach(function (p) { canBeLeast[p.id] = true; });
     // Before the match has really got going everyone is level, so flagging the
     // "least played" player would just be noise.
-    var meaningful = clockElapsedMs(match) >= 5 * 60000;
+    var meaningful = clockElapsedMs(match) >= 5 * 60000 && eligible.length > 1;
     nodes.forEach(function (el) {
       var pid = el.getAttribute("data-mins");
       var m = mins[pid] || 0;
       el.textContent = m + " min";
       var tile = document.querySelector('.tile[data-tile="' + pid + '"]');
-      if (tile) tile.classList.toggle("least-played", meaningful && m === lowest);
+      // The !! matters: classList.toggle ignores an undefined second argument
+      // and flips the class instead of setting it, which made every tile blink
+      // gold once an ineligible player was in the lookup.
+      if (tile) tile.classList.toggle("least-played", !!(meaningful && canBeLeast[pid] && m === lowest));
     });
   }
 
@@ -2992,11 +3072,18 @@
       // substitution the coach made by hand.
       var pt = match.playingTime && match.playingTime[pid];
       if (counts.reds > 0) {
+        // Remember where they were before the card, once. A player can already
+        // be on the bench when the red comes, and undoing the card should put
+        // them back on the bench, not hand them a substitution they never got.
+        if (pt && !pt.sentOff) pt.wasOnFieldBeforeSendOff = !!pt.onField;
         setOnField(match, pid, false);
         if (pt) pt.sentOff = true;
       } else if (pt && pt.sentOff) {
         pt.sentOff = false;
-        setOnField(match, pid, true);
+        // Matches that were already in progress before this was tracked have no
+        // note, and for those the old behaviour — back onto the pitch — stands.
+        setOnField(match, pid, pt.wasOnFieldBeforeSendOff !== false);
+        delete pt.wasOnFieldBeforeSendOff;
       }
     });
   }
@@ -3279,13 +3366,32 @@
       return;
     }
     var clash = number && T().roster.filter(function (p) { return p.number === number; })[0];
-    T().roster.push({ id: uid(), name: name, number: number });
+    var player = { id: uid(), name: name, number: number };
+    T().roster.push(player);
+    // A latecomer added mid-match needs a playing-time record straight away.
+    // Without one isOnField() falls back to "on the pitch", so they would show
+    // as playing, be tappable for goals, and still build up no minutes. They
+    // start on the bench, because they were not in the line-up that kicked off.
+    var live = T().activeMatch;
+    if (live) {
+      live.playingTime = live.playingTime || {};
+      live.playingTime[player.id] = { onField: false, accumMs: 0, onSince: null };
+    }
     persist();
     render();
     if (clash) showToast("Heads up: number " + number + " is also " + clash.name + ".", "warning");
+    else if (live) showToast(name + " is on the bench — tap Bench to bring them on.");
   }
 
   function removePlayer(id) {
+    // Goals and cards already logged point at this player. Removing them now
+    // would leave the match referring to somebody who no longer exists, and the
+    // summary would credit the goal to "Unknown". Benching is the right move
+    // mid-match; removing can wait until the final whistle.
+    if (T().activeMatch) {
+      showToast("Not while a match is on. Put them on the bench instead, and remove them after the match.", "warning");
+      return;
+    }
     T().roster = T().roster.filter(function (p) { return p.id !== id; });
     persist();
     render();
@@ -3442,11 +3548,24 @@
       payload.settings = T().settings;
       payload.lastPlan = T().lastPlan;
       payload.lastPeriodMinutes = T().lastPeriodMinutes;
+      // The bench the coach set last time. Without it a restored team looks
+      // complete but quietly starts the next match with everyone on the pitch,
+      // which is exactly what "the lineup is reused next match" promises not to
+      // do. It travels with the players, so the ids still mean something.
+      payload.lastLineup = T().lastLineup;
     }
     if (parts.history) {
       payload.history = T().history;
       payload.seasonStats = buildSeasonStats();
       payload.matchStats = buildMatchStats();
+      // A match in progress is the one thing a coach cannot afford to lose, so
+      // it travels too. Its clock is frozen at the moment of export: restoring
+      // it hours later must not pretend the ball kept rolling in between.
+      if (T().activeMatch) {
+        payload.activeMatch = Object.assign({}, T().activeMatch, {
+          clock: { running: false, elapsedMs: clockElapsedMs(T().activeMatch), runningSince: null }
+        });
+      }
     }
     if (parts.prep) {
       payload.upcoming = T().upcoming;
@@ -3492,6 +3611,7 @@
       var bits = [];
       if (parts.players) bits.push(T().roster.length + (T().roster.length === 1 ? " player" : " players"));
       if (parts.history) bits.push(T().history.length + (T().history.length === 1 ? " match played" : " matches played"));
+      if (parts.history && T().activeMatch) bits.push("the match in progress");
       if (parts.prep) bits.push((T().upcoming || []).length + " prepared");
       var full = parts.players && parts.history && parts.prep;
 
@@ -3502,7 +3622,8 @@
             row("players", "Players &amp; settings",
                 "The squad, the match options and the line-up you last used.") +
             row("history", "Matches played",
-                "Every finished match, with its scorers and season totals.") +
+                "Every finished match, with its scorers and season totals." +
+                (T().activeMatch ? " The match you're playing now is in here too, with its clock stopped." : "")) +
             row("prep", "Prepared matches",
                 "Matches set up for later, with their line-ups and who can\u2019t make it." +
                 (parts.prep && !parts.players
@@ -3660,6 +3781,26 @@
     showToast(msg, lost.length ? "warning" : "success");
   }
 
+  // A match in progress only comes back if the file actually carries one and it
+  // still refers to real players. It always arrives stopped, whatever the file
+  // says, so the coach restarts the clock themselves rather than inheriting one
+  // that has been "running" since yesterday afternoon.
+  function restoredActiveMatch(data) {
+    var m = data && data.activeMatch;
+    if (!m || typeof m !== "object" || !Array.isArray(m.events)) return null;
+    var known = {};
+    (data.roster || []).forEach(function (p) { if (p && p.id) known[p.id] = true; });
+    var referenced = Object.keys(m.playingTime || {});
+    if (referenced.length && !referenced.some(function (pid) { return known[pid]; })) return null;
+    var copy = Object.assign({}, m);
+    copy.clock = {
+      running: false,
+      elapsedMs: (m.clock && typeof m.clock.elapsedMs === "number") ? Math.max(0, m.clock.elapsedMs) : 0,
+      runningSince: null
+    };
+    return copy;
+  }
+
   function teamFromImport(data, id) {
     return {
       id: id || uid(),
@@ -3668,15 +3809,22 @@
         return { id: p.id || uid(), name: p.name || "", number: p.number || "" };
       }),
       settings: Object.assign(defaultSettings(), data.settings || {}),
-      activeMatch: null,
+      activeMatch: restoredActiveMatch(data),
       history: Array.isArray(data.history) ? data.history : [],
-      lastLineup: null,
+      // Only ids that exist in the restored roster: an older file, or one from
+      // another coach, can name players this team doesn't have.
+      lastLineup: Array.isArray(data.lastLineup)
+        ? data.lastLineup.filter(function (pid) {
+            return (data.roster || []).some(function (p) { return p.id === pid; });
+          })
+        : null,
       lastPlan: normalisePlan(data.lastPlan),
       lastPeriodMinutes: cleanPeriodMinutes(data.lastPeriodMinutes),
       upcoming: Array.isArray(data.upcoming)
         ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
       lastExportPrep: prepSignature(Array.isArray(data.upcoming)
         ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : []),
+      lastExportHistory: historySignature(Array.isArray(data.history) ? data.history : []),
       lastExportCount: Array.isArray(data.history) ? data.history.length : 0
     };
   }
@@ -3727,6 +3875,9 @@
           ? "Replacing it deletes its " + existing.history.length +
             (existing.history.length === 1 ? " recorded match." : " recorded matches.")
           : "It has no recorded matches yet.";
+        // Losing a game that is being played right now is worse than losing any
+        // record of one already finished, so it is said first and plainly.
+        if (existing.activeMatch) lost = "It has a match in progress that replacing would end. " + lost;
         showChoice(
           '"' + name + '" already exists on this device. ' + lost,
           [
@@ -3804,11 +3955,12 @@
             '<button class="btn btn-primary" id="goToTeamBtn">Go to Team &amp; settings</button>'
           : '<div class="card">' +
               '<label class="field-label" for="opponentInput">Opponent (optional)</label>' +
-              '<input class="text-input" id="opponentInput" placeholder="e.g. FC Riverside">' +
+              '<input class="text-input" id="opponentInput" placeholder="e.g. FC Riverside" value="' +
+                esc(pendingOpponentName || "") + '">' +
               '<label class="field-label">Home or away?</label>' +
               '<div class="btn-row" style="margin-bottom:14px;">' +
-                '<button class="btn toggle-seg on" id="homeBtn">Home</button>' +
-                '<button class="btn toggle-seg" id="awayBtn">Away</button>' +
+                '<button class="btn toggle-seg' + (pendingIsHome ? " on" : "") + '" id="homeBtn">Home</button>' +
+                '<button class="btn toggle-seg' + (pendingIsHome ? "" : " on") + '" id="awayBtn">Away</button>' +
               '</div>' +
               '<label class="field-label" for="periodMinsInput">Length of each half or quarter, in minutes (optional)</label>' +
               '<input class="text-input" id="periodMinsInput" inputmode="numeric" maxlength="2" placeholder="e.g. 15" value="' +
@@ -3835,25 +3987,36 @@
       if (T().roster.length === 0) {
         document.getElementById("goToTeamBtn").onclick = function () { view = "team"; render(); };
       } else {
-        var selectedIsHome = true;
+        // Every field is mirrored into the pending state the moment it changes,
+        // not at the known redraw points. Some redraws arrive unannounced —
+        // visibilitychange fires when the coach unlocks the phone — and only
+        // what has already been stored survives those.
+        var readKickoffFields = function () {
+          var el2 = document.getElementById("periodMinsInput");
+          if (el2) pendingPeriodMinutes = cleanPeriodMinutes(el2.value);
+          var el3 = document.getElementById("opponentInput");
+          if (el3) pendingOpponentName = el3.value;
+        };
+        document.getElementById("opponentInput").oninput = function (e) {
+          pendingOpponentName = e.target.value;
+        };
+        var minsEl = document.getElementById("periodMinsInput");
+        if (minsEl) minsEl.oninput = function (e) {
+          pendingPeriodMinutes = cleanPeriodMinutes(e.target.value);
+        };
         document.getElementById("homeBtn").onclick = function () {
-          selectedIsHome = true;
+          readKickoffFields();
+          pendingIsHome = true;
           document.getElementById("homeBtn").classList.add("on");
           document.getElementById("awayBtn").classList.remove("on");
         };
         document.getElementById("awayBtn").onclick = function () {
-          selectedIsHome = false;
+          readKickoffFields();
+          pendingIsHome = false;
           document.getElementById("awayBtn").classList.add("on");
           document.getElementById("homeBtn").classList.remove("on");
         };
         if (T().settings.planLineups) {
-          // Anything typed here is lost the moment the screen redraws, so it
-          // has to be taken off the field first — choosing a format or saving
-          // a line-up plan both redraw.
-          var readKickoffFields = function () {
-            var el2 = document.getElementById("periodMinsInput");
-            if (el2) pendingPeriodMinutes = cleanPeriodMinutes(el2.value);
-          };
           var setFormat = function (nPeriods) {
             readKickoffFields();
             pendingPeriods = nPeriods;
@@ -3873,13 +4036,16 @@
           };
         }
         document.getElementById("kickoffBtn").onclick = function () {
+          readKickoffFields();
           var pm = document.getElementById("periodMinsInput");
-          startNewMatch(document.getElementById("opponentInput").value, selectedIsHome,
+          startNewMatch(pendingOpponentName, pendingIsHome,
             pendingPlan || T().lastPlan, null, pm ? pm.value : null,
             T().settings.planLineups ? pendingPeriods : null);
           pendingPlan = null;
           pendingFormatSet = false;
           pendingPeriodMinutes = null;
+          pendingOpponentName = "";
+          pendingIsHome = true;
         };
       }
       return;
@@ -4145,12 +4311,17 @@
 
   function renderTeamScreen() {
     var el = document.getElementById("teamScreen");
+    // Removing a player mid-match would orphan their goals and cards, so the
+    // button says so plainly instead of leading the coach into a dialog that
+    // then refuses.
+    var matchOn = !!T().activeMatch;
     var rosterHtml = sortedRoster().map(function (p) {
       return (
         '<div class="roster-item">' +
           '<div class="roster-num">' + esc(p.number || "–") + "</div>" +
           '<div class="roster-name">' + esc(p.name) + "</div>" +
-          '<button class="roster-remove" data-remove="' + p.id + '">Remove</button>' +
+          '<button class="roster-remove" data-remove="' + p.id + '"' +
+            (matchOn ? ' disabled title="Not while a match is on"' : "") + ">Remove</button>" +
         "</div>"
       );
     }).join("");
