@@ -97,7 +97,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 10px;
+    padding: calc(10px + env(safe-area-inset-top, 0px))
+             calc(10px + env(safe-area-inset-right, 0px)) 10px
+             calc(10px + env(safe-area-inset-left, 0px));
     gap: 8px;
   }
   /* Both header icons read as buttons: a filled pill with a bright glyph, so
@@ -151,7 +153,8 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    padding: 8px 14px 16px;
+    padding: 8px calc(14px + env(safe-area-inset-right, 0px)) 16px
+                 calc(14px + env(safe-area-inset-left, 0px));
     position: sticky;
     top: calc(env(safe-area-inset-top, 0px) + 62px);
     z-index: 19;
@@ -182,7 +185,10 @@
   .score-label-btn .pen { flex-shrink: 0; font-size: 11px; opacity: 0.8; }
   .score-sep { font-family: var(--font-display); font-size: 22px; opacity: 0.5; margin-top: -6px; }
 
-  main.screen { flex: 1; padding: 16px 14px calc(100px + env(safe-area-inset-bottom, 0px)); max-width: 640px; width: 100%; margin: 0 auto; }
+  main.screen { flex: 1;
+    padding: 16px calc(14px + env(safe-area-inset-right, 0px))
+             calc(100px + env(safe-area-inset-bottom, 0px))
+             calc(14px + env(safe-area-inset-left, 0px)); max-width: 640px; width: 100%; margin: 0 auto; }
   .hidden { display: none !important; }
 
   h1.screen-title {
@@ -489,11 +495,15 @@
   }
   .sheet {
     background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
-    padding: 10px 8px calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 10px calc(8px + env(safe-area-inset-right, 0px))
+                  calc(14px + env(safe-area-inset-bottom, 0px))
+                  calc(8px + env(safe-area-inset-left, 0px));
   }
   .card-sheet {
     background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
-    padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 12px calc(14px + env(safe-area-inset-right, 0px))
+                  calc(16px + env(safe-area-inset-bottom, 0px))
+                  calc(14px + env(safe-area-inset-left, 0px));
     max-height: 94vh; display: flex; flex-direction: column; gap: 10px;
   }
   .card-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
@@ -704,7 +714,8 @@
     display: flex;
     background: var(--panel);
     border-top: 1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+               env(safe-area-inset-left, 0px);
   }
   .tab-btn {
     flex: 1;
@@ -750,6 +761,42 @@
   .toast-error { background: var(--red); color: #fff; }
 
   ::-webkit-scrollbar { display: none; }
+
+  /* ---- short screens ---------------------------------------------------
+     The clock, scoreboard and tab bar are a flat 212px whatever the phone, so
+     on a small screen they eat a third of it and push Half time out of reach.
+     Measured: at this breakpoint an iPhone SE and a 640px Android both get
+     Half time on screen without scrolling, while bigger phones keep the
+     roomier chrome untouched. Any phone held sideways lands here too, since
+     iOS ignores the manifest's portrait lock.
+     Only text sizes and padding shrink. The icon buttons and the bottom tabs
+     keep their full tap size: a smaller target on a windy touchline is worse
+     than a smaller scoreboard. */
+  @media (max-height: 700px) {
+    header.topbar {
+      padding: calc(6px + env(safe-area-inset-top, 0px))
+               calc(10px + env(safe-area-inset-right, 0px)) 6px
+               calc(10px + env(safe-area-inset-left, 0px));
+    }
+    .clock-btn { padding: 2px 12px; }
+    .clock-time { font-size: 19px; }
+    .clock-state { font-size: 10px; }
+    .clock-total { font-size: 9px; }
+    .scoreboard {
+      gap: 10px;
+      padding: 2px calc(14px + env(safe-area-inset-right, 0px)) 6px
+                   calc(14px + env(safe-area-inset-left, 0px));
+      top: calc(env(safe-area-inset-top, 0px) + 54px);
+    }
+    .score-num { font-size: 26px; }
+    .score-label { font-size: 12px; }
+    .assist-bar { top: calc(env(safe-area-inset-top, 0px) + 54px + 56px); }
+    main.screen { padding-top: 10px; }
+    .player-grid { gap: 8px; margin-bottom: 10px; }
+    .tile { padding: 6px 6px 5px; }
+    .screen-title { font-size: 22px; margin: 2px 0 10px; }
+    .section-title { margin-top: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -816,7 +863,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "24";
+  var APP_VERSION = "25";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
