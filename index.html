@@ -305,6 +305,12 @@
   .roster-name { flex: 1; font-size: 0.9375rem; }
   .roster-remove { background: none; border: none; color: var(--red-text); font-size: 0.8125rem; padding: 8px 10px; min-height: 44px; }
   .roster-remove:disabled { color: var(--ink-soft); opacity: 0.55; }
+  /* Club names are typed by hand and are sometimes one long unbroken word.
+     Anywhere a name is shown, it breaks rather than widening the page. */
+  .score-label, .tile-name, .roster-name, .playing-as, .tc-name, .screen-title,
+  .opp-goal-btn, .btn, .notice, .log-line, .plan-summary {
+    overflow-wrap: anywhere;
+  }
 
   .add-player-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
   .add-player-row .num-input { width: 68px; }
@@ -399,14 +405,22 @@
   .own-goal-btn { flex: 0 0 34%; }
 
   .assist-bar {
-    position: sticky;
-    top: calc(env(safe-area-inset-top, 0px) + 62px + 78px);
-    z-index: 18;
+    /* Fixed, not sticky: when it appeared in the flow it pushed the whole
+       player grid down by exactly one tile row, so a tap aimed at a player
+       landed on the row above for the six seconds the bar was up. It now
+       floats above the grid and moves nothing. */
+    position: fixed;
+    left: calc(14px + env(safe-area-inset-left, 0px));
+    right: calc(14px + env(safe-area-inset-right, 0px));
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    max-width: 420px;
+    margin: 0 auto;
+    z-index: 30;
     background: var(--gold);
     color: var(--pitch-dark);
     border-radius: 12px;
     padding: 10px 12px;
-    margin-bottom: 14px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.35);
   }
   .assist-bar .a-title { font-weight: 700; font-size: 0.8438rem; margin-bottom: 8px; }
   .assist-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -752,6 +766,10 @@
     z-index: 50;
     box-shadow: 0 12px 32px rgba(0,0,0,0.4);
     animation: toast-in 0.22s ease-out;
+    /* A toast tells you something; it must never swallow the tap meant for the
+       button underneath it. Without this, every message creates a 3-second
+       dead zone across the screen at exactly the moment a coach taps fastest. */
+    pointer-events: none;
   }
   @keyframes toast-in {
     0% { opacity: 0; transform: translateY(14px) scale(0.97); }
@@ -792,7 +810,6 @@
     }
     .score-num { font-size: 1.625rem; }
     .score-label { font-size: 0.75rem; }
-    .assist-bar { top: calc(env(safe-area-inset-top, 0px) + 54px + 56px); }
     main.screen { padding-top: 10px; }
     .player-grid { gap: 8px; margin-bottom: 10px; }
     .tile { padding: 6px 6px 5px; }
@@ -850,6 +867,16 @@
 
   var STORAGE_KEY = "matchdayTrackerData_v1";
 
+  // Same rule as the formats below, and it is not a style preference: load()
+  // runs near the top of this file and reaches carryPrepSignature(), which
+  // reads this. Assigned further down it would still be undefined at that
+  // moment, load() would throw, the catch would hand back an empty state and
+  // persist() would write that over the coach's season. A previous release
+  // shipped exactly that bug.
+  // The tag itself marks the signature format: earlier versions counted
+  // players where this one names them, and the two must be told apart.
+  var PREP_SIG_TAG = "2|";
+
   // 2 halves, 4 quarters, or 8 short periods — youth football uses all three.
   // Declared here, not beside the planner: load() normalises saved plans on
   // startup, so this must already hold its value by then.
@@ -865,7 +892,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "30";
+  var APP_VERSION = "31";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -917,7 +944,15 @@
       teams = [t];
     }
 
+    // One bad entry must not cost the coach every other team on the device.
+    teams = teams.filter(function (t) { return t && typeof t === "object"; });
+
     teams = teams.map(function (t) {
+      // Normalised once and reused: normaliseUpcoming mints a fresh id for an
+      // entry that has none, so running it twice produced two different
+      // fingerprints and a backup reminder that fired straight after a backup.
+      var up = Array.isArray(t.upcoming)
+        ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [];
       return {
         id: t.id || uid(),
         teamName: t.teamName || "My Team",
@@ -928,9 +963,8 @@
         lastLineup: Array.isArray(t.lastLineup) ? t.lastLineup : null,
         lastPlan: normalisePlan(t.lastPlan),
         lastPeriodMinutes: cleanPeriodMinutes(t.lastPeriodMinutes),
-        upcoming: Array.isArray(t.upcoming)
-          ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
-        lastExportPrep: typeof t.lastExportPrep === "string" ? t.lastExportPrep : "",
+        upcoming: up,
+        lastExportPrep: carryPrepSignature(t.lastExportPrep, up),
         lastExportHistory: typeof t.lastExportHistory === "string" ? t.lastExportHistory : "",
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
@@ -941,13 +975,27 @@
     return { version: 2, teams: teams, activeTeamId: activeId };
   }
 
+  // Set when saved data could not be read. The app carries on with an empty
+  // season rather than refusing to open at the pitch, but it says so, and the
+  // unreadable text is kept instead of being written over.
+  var loadRescued = false;
+
   function load() {
+    var raw = null;
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
       return migrate(JSON.parse(raw));
     } catch (e) {
       console.error("Load failed", e);
+      // persist() runs moments later and would otherwise overwrite the only
+      // copy of a season that might still be recoverable by hand.
+      try {
+        if (raw) {
+          localStorage.setItem(STORAGE_KEY + "_rescue_" + Date.now(), raw);
+          loadRescued = true;
+        }
+      } catch (err) { /* no room to keep it; nothing more we can do */ }
       return defaultState();
     }
   }
@@ -1138,7 +1186,9 @@
       var pt = match.playingTime[pid];
       var total = pt.accumMs;
       if (pt.onField && pt.onSince != null) total += (endMs - pt.onSince);
-      out[pid] = Math.round(total / 60000);
+      // Belt and braces: a clock that has been wound back must never turn into
+      // a player who has played minus forty minutes.
+      out[pid] = Math.max(0, Math.round(total / 60000));
     });
     return out;
   }
@@ -2382,7 +2432,7 @@
   // It records WHICH players, not how many: swapping the whole of Q1 for seven
   // other names used to leave the fingerprint untouched.
   function prepSignature(list) {
-    return (list || []).map(function (u) {
+    return PREP_SIG_TAG + (list || []).map(function (u) {
       var plan = u.plan ? u.plan.periods + "x" + u.plan.lineups.map(function (r) {
         return (r || []).slice().sort().join(".");
       }).join(",") : "-";
@@ -2390,11 +2440,45 @@
               (u.unavailable || []).slice().sort().join("."), u.periodMinutes || "", plan].join(":");
     }).join("|");
   }
-  function prepUnsaved() {
+
+  // The pre-2 shape, kept only so migrate() can recognise a stored value from
+  // the previous release and decide whether anything has changed since.
+  function prepSignatureLegacy(list) {
+    return (list || []).map(function (u) {
+      var plan = u.plan ? u.plan.periods + "x" + u.plan.lineups.map(function (r) {
+        return (r || []).length;
+      }).join(",") : "-";
+      return [u.id, u.opponentName || "", u.kickoffAt || "", u.isHome !== false ? "H" : "A",
+              (u.unavailable || []).length, u.periodMinutes || "", plan].join(":");
+    }).join("|");
+  }
+
+  // Did the prepared matches change since the last backup? Separate from the
+  // count below, because deleting every prepared match is a change that leaves
+  // nothing to count.
+  // Bringing a stored signature from the previous release across. If it still
+  // matches what those prepared matches look like in the OLD shape, nothing has
+  // changed since that backup and the new-shape signature can safely be adopted.
+  // If it doesn't match, something did change, and leaving it alone lets the
+  // reminder fire — correctly — as it would have before.
+  function carryPrepSignature(stored, upcoming) {
+    if (typeof stored !== "string" || !stored) return "";
+    if (stored.slice(0, PREP_SIG_TAG.length) === PREP_SIG_TAG) return stored;
+    return stored === prepSignatureLegacy(upcoming) ? prepSignature(upcoming) : stored;
+  }
+
+  function prepChanged() {
+    var stored = T().lastExportPrep || "";
     var list = T().upcoming || [];
-    // No early exit on an empty list: deleting every prepared match after a
-    // backup is itself a change the coach's file no longer matches.
-    return prepSignature(list) === (T().lastExportPrep || "") ? 0 : list.length;
+    // An empty stored value means nothing has ever been exported, not that the
+    // last export contained nothing. So it only counts as a change if there is
+    // something there now — otherwise a brand-new team, which has nothing to
+    // lose, would be nagged to back up from the very first screen.
+    if (!stored) return list.length > 0;
+    return prepSignature(list) !== stored;
+  }
+  function prepUnsaved() {
+    return prepChanged() ? (T().upcoming || []).length : 0;
   }
 
   // The same idea for matches already played. The count alone could not see a
@@ -2418,11 +2502,23 @@
   function historyEdited() {
     var known = T().lastExportHistory;
     if (!known) return false;
-    return historySignature(T().history) !== known;
+    // Compare only the matches that were in the backup. New ones are added at
+    // the front, so the backed-up set is the tail. Without this the comparison
+    // was drowned by every new match, and a corrected scorer followed by one
+    // more game produced no warning at all.
+    var h = T().history || [];
+    var backedUp = T().lastExportCount || 0;
+    var tail = h.length > backedUp ? h.slice(h.length - backedUp) : h;
+    return historySignature(tail) !== known;
   }
 
   function noticeHtml() {
     var out = installNoticeHtml();
+    if (loadRescued) {
+      out += '<div class="notice notice-error"><strong>Your saved data couldn\u2019t be read.</strong> ' +
+             'The app has started empty, but nothing was deleted \u2014 the unreadable copy is still on this ' +
+             'device. Import your last backup file to carry on, and don\u2019t clear this browser\u2019s storage.</div>';
+    }
     if (!storageOk) {
       out += '<div class="notice notice-error">This device isn\u2019t saving right now. ' +
              'Your matches only exist in this open app \u2014 export your data before closing it.</div>';
@@ -2432,12 +2528,17 @@
     // A correction to a match already backed up changes nothing about the
     // counts, so it gets its own signal. New matches still wait until three, so
     // the coach isn't nudged after every single game.
-    var edited = n === 0 && historyEdited();
-    if (storageOk && (n >= 3 || prep || edited)) {
+    var edited = historyEdited();
+    var prepMoved = prepChanged();
+    if (storageOk && (n >= 3 || prepMoved || edited)) {
       var what = [];
       if (n >= 3) what.push(n + " matches recorded");
       if (edited) what.push("a match you changed");
-      if (prep) what.push(prep + (prep === 1 ? " prepared match" : " prepared matches"));
+      if (prepMoved) {
+        what.push(prep
+          ? prep + (prep === 1 ? " prepared match" : " prepared matches")
+          : "prepared matches you deleted");
+      }
       out += '<div class="notice notice-warn">' + esc(what.join(" and ")) +
              ' not in your last backup. Use <strong>Export team data</strong> to keep a copy \u2014 ' +
              'it holds your prepared matches and line-up plans too.</div>';
@@ -3573,11 +3674,15 @@
       // device that typed the roster. Without these, a prep-only file lands on
       // another coach's phone referring to nobody, so the names travel with it
       // and the import can match on name and number instead.
-      if (!parts.players) {
-        payload.playerRefs = (T().roster || []).map(function (pl) {
-          return { id: pl.id, name: pl.name, number: pl.number };
-        });
-      }
+    }
+    // Whenever the squad itself is left out, the names still travel, so a file
+    // holding matches or prepared matches can be read back instead of being a
+    // list of ids referring to nobody. Without this, a history-only export was
+    // rejected by this very app with "that file doesn't look like an export".
+    if (!parts.players && (parts.prep || parts.history)) {
+      payload.playerRefs = (T().roster || []).map(function (pl) {
+        return { id: pl.id, name: pl.name, number: pl.number };
+      });
     }
     return payload;
   }
@@ -3587,7 +3692,13 @@
     if (parts.players && parts.history && parts.prep) return base + "-backup.json";
     if (parts.prep && !parts.players && !parts.history) return base + "-prepared-matches.json";
     if (parts.players && !parts.history && !parts.prep) return base + "-team.json";
-    return base + "-export.json";
+    // Every remaining combination gets its own name, so two different partial
+    // files can't quietly overwrite each other in a downloads folder.
+    var bits = [];
+    if (parts.players) bits.push("team");
+    if (parts.history) bits.push("matches");
+    if (parts.prep) bits.push("prepared");
+    return base + "-" + (bits.join("-") || "export") + ".json";
   }
 
   function showExportSheet() {
@@ -3672,8 +3783,15 @@
         var downloads = await window.claude.use("downloads");
         if (downloads) {
           var result = await downloads.save({ filename: filename, data: json });
-          showToast(result.status === "saved" ? "Saved " + filename : "Sent");
-          markExported(parts);
+          // Only a file that really landed counts as a backup. Marking a
+          // cancelled save as done removed the only warning that the season
+          // was not backed up anywhere.
+          if (result.status === "saved") {
+            showToast("Saved " + filename);
+            markExported(parts);
+          } else {
+            showToast("Not saved — your data still isn't backed up.", "warning");
+          }
           return;
         }
       } catch (err) {
@@ -3785,19 +3903,53 @@
   // still refers to real players. It always arrives stopped, whatever the file
   // says, so the coach restarts the clock themselves rather than inheriting one
   // that has been "running" since yesterday afternoon.
+  var importDroppedMatch = false;
+
   function restoredActiveMatch(data) {
+    importDroppedMatch = false;
     var m = data && data.activeMatch;
-    if (!m || typeof m !== "object" || !Array.isArray(m.events)) return null;
+    if (!m || typeof m !== "object") return null;
+    if (!Array.isArray(m.events) || !m.playingTime || typeof m.playingTime !== "object") {
+      importDroppedMatch = true;
+      return null;
+    }
     var known = {};
     (data.roster || []).forEach(function (p) { if (p && p.id) known[p.id] = true; });
-    var referenced = Object.keys(m.playingTime || {});
-    if (referenced.length && !referenced.some(function (pid) { return known[pid]; })) return null;
+
+    // Every id the match leans on has to be a player this team actually has.
+    // One stray id used to be enough to let the whole match through, and the
+    // result was a scoreboard showing a goal scored by nobody.
+    var ids = Object.keys(m.playingTime).concat(
+      m.events.map(function (e) { return e && e.playerId; }),
+      m.events.map(function (e) { return e && e.assistId; })
+    ).filter(Boolean);
+    for (var i = 0; i < ids.length; i++) {
+      if (!known[ids[i]]) { importDroppedMatch = true; return null; }
+    }
+
     var copy = Object.assign({}, m);
+    // Give every player a record. isOnField() treats a missing one as "on the
+    // pitch", so a gap here would put benched players back on and, worse, a
+    // missing playingTime object blanked the match screen on every open.
+    var pt = {};
+    (data.roster || []).forEach(function (p) {
+      var was = m.playingTime[p.id];
+      pt[p.id] = (was && typeof was === "object")
+        ? { onField: !!was.onField, accumMs: Math.max(0, was.accumMs || 0),
+            onSince: typeof was.onSince === "number" ? was.onSince : null,
+            sentOff: !!was.sentOff, wasOnFieldBeforeSendOff: was.wasOnFieldBeforeSendOff }
+        : { onField: false, accumMs: 0, onSince: null };
+    });
+    copy.playingTime = pt;
     copy.clock = {
       running: false,
       elapsedMs: (m.clock && typeof m.clock.elapsedMs === "number") ? Math.max(0, m.clock.elapsedMs) : 0,
       runningSince: null
     };
+    // A period mark beyond the frozen clock would block the next break.
+    if (typeof copy.periodStartMs === "number" && copy.periodStartMs > copy.clock.elapsedMs) {
+      delete copy.periodStartMs;
+    }
     return copy;
   }
 
@@ -3841,7 +3993,13 @@
     persist();
     view = "team";
     render();
-    showToast("Imported " + team.teamName + " — " + team.roster.length + " players.");
+    if (importDroppedMatch) {
+      showToast("Imported " + team.teamName + " — " + team.roster.length +
+        " players. The match in progress in that file couldn't be restored.", "warning");
+    } else {
+      showToast("Imported " + team.teamName + " — " + team.roster.length + " players.");
+    }
+    importDroppedMatch = false;
   }
 
   function importDataFromFile(file) {
@@ -3849,11 +4007,21 @@
     reader.onload = function () {
       try {
         var data = JSON.parse(reader.result);
-        // A file with prepared matches but no squad is a share between coaches,
-        // not a team: fold it into the team already open.
-        if (data && !Array.isArray(data.roster) && Array.isArray(data.upcoming)) {
+        // A file with prepared matches and nothing else is a share between
+        // coaches, not a team: fold it into the team already open.
+        if (data && !Array.isArray(data.roster) && !Array.isArray(data.history) &&
+            Array.isArray(data.upcoming)) {
           importPreparedOnly(data);
           return;
+        }
+        // A file that carries matches but no squad still names its players, so
+        // the squad is rebuilt from those names rather than the whole file
+        // being turned away.
+        if (data && !Array.isArray(data.roster) && Array.isArray(data.history) &&
+            Array.isArray(data.playerRefs)) {
+          data.roster = data.playerRefs.map(function (r) {
+            return { id: r.id, name: r.name || "", number: r.number || "" };
+          });
         }
         if (!data || !Array.isArray(data.roster)) throw new Error("bad shape");
         var name = data.teamName || "My Team";
@@ -4603,6 +4771,13 @@
     if (typeof match.periodStartMs === "number" && match.periodStartMs > recovered) {
       delete match.periodStartMs;
     }
+    // Anyone brought on after the last logged event was marked on the pitch at
+    // a time that now lies AFTER the rewound clock, and their minutes would be
+    // worked out as a negative number and saved that way for the season.
+    Object.keys(match.playingTime || {}).forEach(function (pid) {
+      var pt = match.playingTime[pid];
+      if (pt && pt.onSince != null && pt.onSince > recovered) pt.onSince = recovered;
+    });
     match.clock.running = false;
     match.clock.runningSince = null;
     persist();
@@ -4642,6 +4817,21 @@
   // appinstalled event, and it also upgrades the older plain "1" that earlier
   // versions wrote on install, which could never be cleared again.
   if (isStandalone()) markInstalled();
+
+  // Two copies of the app can easily be open at once — the installed one on the
+  // home screen and the link opened again from a message. Both write the whole
+  // state, so without this the second copy's save wiped the goals the first had
+  // just logged. Picking up the other copy's save means the next write builds
+  // on it instead of erasing it.
+  window.addEventListener("storage", function (e) {
+    if (e.key !== STORAGE_KEY || !e.newValue) return;
+    var incoming;
+    try { incoming = migrate(JSON.parse(e.newValue)); } catch (err) { return; }
+    state = incoming;
+    pendingAssistEventId = null;
+    render();
+    showToast("Updated — this match is also open somewhere else.", "warning");
+  });
 
   document.addEventListener("visibilitychange", function () {
     // Timers are throttled while hidden, so redraw on return to snap the clock
