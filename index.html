@@ -864,7 +864,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "28";
+  var APP_VERSION = "29";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -2274,13 +2274,36 @@
            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   }
 
+  // The key holds one of two things, and the difference matters. "1" is a
+  // deliberate "Not now" from the coach and stays forever. "installed" is our
+  // own note that the app sits on the home screen, and that note is dropped the
+  // moment the phone tells us otherwise, so a coach who removes the app and
+  // comes back to the site is offered the install once more.
   function installHidden() {
-    try { return localStorage.getItem(INSTALL_KEY) === "1"; } catch (e) { return false; }
+    try {
+      var v = localStorage.getItem(INSTALL_KEY);
+      return v === "1" || v === "installed";
+    } catch (e) { return false; }
   }
 
   function hideInstallHint() {
     try { localStorage.setItem(INSTALL_KEY, "1"); } catch (e) {}
     render();
+  }
+
+  // Only noted where it can be taken back: beforeinstallprompt is what later
+  // proves the app is gone, and iOS has no such event. So on iOS nothing is
+  // stored and the hint keeps behaving exactly as it did before.
+  function markInstalled() {
+    if (isIOS()) return;
+    try { localStorage.setItem(INSTALL_KEY, "installed"); } catch (e) {}
+  }
+
+  // A deliberate "Not now" is left alone; only our own note is cleared.
+  function clearInstalledMark() {
+    try {
+      if (localStorage.getItem(INSTALL_KEY) === "installed") localStorage.removeItem(INSTALL_KEY);
+    } catch (e) {}
   }
 
   function installNoticeHtml() {
@@ -4433,13 +4456,21 @@
   window.addEventListener("beforeinstallprompt", function (e) {
     e.preventDefault();
     deferredInstall = e;
+    // The browser only offers this when the app is NOT on the home screen. So
+    // if we had noted it as installed, it has since been removed.
+    clearInstalledMark();
     render();
   });
   window.addEventListener("appinstalled", function () {
     deferredInstall = null;
-    try { localStorage.setItem(INSTALL_KEY, "1"); } catch (err) {}
+    markInstalled();
     render();
   });
+
+  // Running from the home screen is the more reliable signal than catching the
+  // appinstalled event, and it also upgrades the older plain "1" that earlier
+  // versions wrote on install, which could never be cleared again.
+  if (isStandalone()) markInstalled();
 
   document.addEventListener("visibilitychange", function () {
     // Timers are throttled while hidden, so redraw on return to snap the clock
