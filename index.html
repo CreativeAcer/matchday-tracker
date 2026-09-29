@@ -108,7 +108,7 @@
     background: rgba(255,255,255,0.14);
     border: 1px solid rgba(255,255,255,0.30);
     color: var(--on-dark);
-    font-size: 19px;
+    font-size: 1.1875rem;
     line-height: 1;
     width: 42px;
     height: 42px;
@@ -137,13 +137,13 @@
   .clock-btn:active { background: rgba(255,255,255,0.14); }
   .clock-time {
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: 0.5px;
   }
-  .clock-total { font-size: 10px; color: rgba(250,248,242,0.55); letter-spacing: 0.3px; }
+  .clock-total { font-size: 0.625rem; color: rgba(250,248,242,0.55); letter-spacing: 0.3px; }
   .clock-time.over { color: var(--gold); }
-  .clock-state { font-size: 11px; color: var(--gold); }
+  .clock-state { font-size: 0.6875rem; color: var(--gold); }
   .clock-state.running { color: #8FD9AE; }
 
   .scoreboard {
@@ -162,7 +162,7 @@
   .score-side { text-align: center; min-width: 0; flex: 1; }
   .score-num {
     font-family: var(--font-display);
-    font-size: 40px;
+    font-size: 2.5rem;
     font-weight: 700;
     display: block;
     line-height: 1;
@@ -170,7 +170,7 @@
   .score-side.them .score-num { color: var(--gold); }
   .score-label {
     display: block;
-    font-size: 12px;
+    font-size: 0.75rem;
     margin-top: 3px;
     white-space: nowrap;
     overflow: hidden;
@@ -182,8 +182,8 @@
     display: flex; align-items: center; justify-content: center; gap: 5px;
   }
   .score-label-btn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-  .score-label-btn .pen { flex-shrink: 0; font-size: 11px; opacity: 0.8; }
-  .score-sep { font-family: var(--font-display); font-size: 22px; opacity: 0.5; margin-top: -6px; }
+  .score-label-btn .pen { flex-shrink: 0; font-size: 0.6875rem; opacity: 0.8; }
+  .score-sep { font-family: var(--font-display); font-size: 1.375rem; opacity: 0.5; margin-top: -6px; }
 
   main.screen { flex: 1;
     padding: 16px calc(14px + env(safe-area-inset-right, 0px))
@@ -194,17 +194,17 @@
   h1.screen-title {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 22px;
+    font-size: 1.375rem;
     margin: 4px 0 14px;
   }
   h2.section-title {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 17px;
+    font-size: 1.0625rem;
     margin: 22px 0 10px;
     color: var(--ink);
   }
-  p.hint { color: var(--ink-soft); font-size: 13.5px; line-height: 1.5; margin: 4px 0 14px; }
+  p.hint { color: var(--ink-soft); font-size: 0.8438rem; line-height: 1.5; margin: 4px 0 14px; }
 
   .card {
     background: var(--panel);
@@ -217,7 +217,7 @@
   .btn {
     font-family: var(--font-body);
     font-weight: 600;
-    font-size: 15px;
+    font-size: 0.9375rem;
     border-radius: 12px;
     padding: 13px 16px;
     border: 1px solid var(--line);
@@ -237,7 +237,7 @@
   .toggle-seg { background: var(--chalk-dim); border-color: var(--line); color: var(--ink-soft); }
   .toggle-seg.on { background: var(--pitch); color: var(--on-dark); border-color: var(--pitch); }
 
-  label.field-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+  label.field-label { display: block; font-size: 0.7812rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
   input.text-input {
     width: 100%;
     padding: 11px 12px;
@@ -245,9 +245,10 @@
     border: 1px solid var(--line);
     background: var(--chalk-dim);
     color: var(--ink);
-    /* 16px minimum: below this iOS Safari zooms the page in on focus and never
-       zooms back out, which leaves the whole layout cut off on the right. */
-    font-size: 16px;
+    /* Never below 16px: iOS Safari zooms the page in on focus under that and
+       never zooms back out. max() keeps the reader's larger setting while
+       holding the floor if theirs is smaller. */
+    font-size: max(1rem, 16px);
     margin-bottom: 12px;
   }
   input.text-input:focus, .btn:focus-visible, .icon-btn:focus-visible, .clock-btn:focus-visible, .tile:focus-visible {
@@ -273,8 +274,8 @@
   .toggle-row:last-of-type { border-bottom: none; }
   .toggle-row:active { background: var(--chalk-dim); }
   .toggle-row .toggle-copy { flex: 1; min-width: 0; display: block; }
-  .toggle-row .toggle-copy .t-title { display: block; font-weight: 600; font-size: 14.5px; }
-  .toggle-row .toggle-copy .t-desc { display: block; font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
+  .toggle-row .toggle-copy .t-title { display: block; font-weight: 600; font-size: 0.9062rem; }
+  .toggle-row .toggle-copy .t-desc { display: block; font-size: 0.7812rem; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
   .switch {
     display: block;
     width: 46px; height: 27px; border-radius: 20px;
@@ -296,13 +297,13 @@
   }
   .roster-item:last-child { border-bottom: none; }
   .roster-num {
-    font-family: var(--font-display); font-weight: 600; font-size: 16px;
+    font-family: var(--font-display); font-weight: 600; font-size: 1rem;
     background: var(--pitch); color: var(--on-dark);
     width: 34px; height: 34px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .roster-name { flex: 1; font-size: 15px; }
-  .roster-remove { background: none; border: none; color: var(--red-text); font-size: 13px; padding: 8px 10px; min-height: 44px; }
+  .roster-name { flex: 1; font-size: 0.9375rem; }
+  .roster-remove { background: none; border: none; color: var(--red-text); font-size: 0.8125rem; padding: 8px 10px; min-height: 44px; }
 
   .add-player-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
   .add-player-row .num-input { width: 68px; }
@@ -336,7 +337,7 @@
     padding: 13px 0;
     border: none;
     font-family: var(--font-body);
-    font-size: 11.5px;
+    font-size: 0.7188rem;
     font-weight: 700;
     background: var(--turf);
     color: #fff;
@@ -352,15 +353,15 @@
     100% { box-shadow: 0 0 0 10px rgba(226,163,61,0); }
   }
   .tile-num {
-    font-family: var(--font-display); font-weight: 700; font-size: 26px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.625rem;
     color: var(--brand-text); line-height: 1;
   }
   .tile-name {
-    font-size: 12.5px; font-weight: 600; margin-top: 3px;
+    font-size: 0.7812rem; font-weight: 600; margin-top: 3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .tile-goals { font-size: 11px; color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
-  .tile-mins { font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+  .tile-goals { font-size: 0.6875rem; color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
+  .tile-mins { font-size: 0.6875rem; color: var(--ink-soft); margin-top: 1px; }
   .tile.least-played { box-shadow: inset 0 0 0 2px var(--gold-deep); }
   .tile.least-played .tile-mins { color: var(--gold-text); font-weight: 700; }
   .tile-controls { display: flex; justify-content: center; gap: 2px; margin-top: 2px; }
@@ -379,7 +380,7 @@
   .mini-card.red-btn.card-red { background: var(--red); border-color: #7a2620; }
   .tile.sent-off { opacity: 0.6; }
   .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red-text); }
-  .confirm-msg { font-size: 15px; line-height: 1.5; padding: 8px 4px 0; }
+  .confirm-msg { font-size: 0.9375rem; line-height: 1.5; padding: 8px 4px 0; }
 
   .goal-btn-row { display: flex; gap: 10px; margin-bottom: 18px; }
   .opp-goal-btn {
@@ -390,7 +391,7 @@
     border-radius: 14px;
     padding: 16px 12px;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 0.9375rem;
     color: var(--ink);
   }
   .opp-goal-btn:active { background: var(--line); }
@@ -406,11 +407,11 @@
     padding: 10px 12px;
     margin-bottom: 14px;
   }
-  .assist-bar .a-title { font-weight: 700; font-size: 13.5px; margin-bottom: 8px; }
+  .assist-bar .a-title { font-weight: 700; font-size: 0.8438rem; margin-bottom: 8px; }
   .assist-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
   .assist-chip {
     background: rgba(22,33,26,0.12);
-    border: none; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-weight: 600;
+    border: none; border-radius: 8px; padding: 7px 10px; font-size: 0.8125rem; font-weight: 600;
     color: var(--pitch-dark);
   }
   .assist-chip:active { background: rgba(22,33,26,0.22); }
@@ -419,7 +420,7 @@
   .event-log { margin-top: 4px; }
   .event-row {
     display: flex; align-items: center; gap: 8px;
-    padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px;
+    padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 0.8438rem;
   }
   .event-row:last-child { border-bottom: none; }
   .event-minute { font-family: var(--font-display); color: var(--ink-soft); width: 32px; flex-shrink: 0; }
@@ -427,16 +428,16 @@
   .event-actions { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
   .event-edit, .event-delete {
     background: none; border: none; color: var(--ink-soft);
-    font-size: 15px; padding: 0; flex-shrink: 0;
+    font-size: 0.9375rem; padding: 0; flex-shrink: 0;
     min-width: 44px; min-height: 44px;
   }
   .event-edit:active { color: var(--brand-text); }
   .event-delete:active { color: var(--red-text); }
   .period-head {
-    font-family: var(--font-display); font-weight: 600; font-size: 13px;
+    font-family: var(--font-display); font-weight: 600; font-size: 0.8125rem;
     color: var(--ink-soft); margin: 12px 0 4px;
   }
-  .empty-state { color: var(--ink-soft); font-size: 13.5px; padding: 10px 2px; }
+  .empty-state { color: var(--ink-soft); font-size: 0.8438rem; padding: 10px 2px; }
 
   .end-match-btn { margin-top: 22px; }
   /* Sits above the match log, so it keeps a fixed distance from the top
@@ -446,7 +447,7 @@
   .log-scroll { max-height: 64vh; }
   .export-scroll { max-height: 60vh; }
   .export-sum {
-    font-size: 13px; color: var(--ink-soft); padding: 12px 2px 2px; text-align: center;
+    font-size: 0.8125rem; color: var(--ink-soft); padding: 12px 2px 2px; text-align: center;
   }
   .export-warn { margin-top: 10px; }
   .log-scroll .event-row:first-child { padding-top: 2px; }
@@ -455,14 +456,14 @@
     text-align: center; padding: 18px 0 6px;
   }
   .summary-score .ss-num {
-    font-family: var(--font-display); font-weight: 700; font-size: 46px;
+    font-family: var(--font-display); font-weight: 700; font-size: 2.875rem;
   }
-  .summary-score .ss-teams { font-size: 13.5px; color: var(--ink-soft); margin-top: 4px; }
+  .summary-score .ss-teams { font-size: 0.8438rem; color: var(--ink-soft); margin-top: 4px; }
 
   .stat-list { margin-top: 4px; }
   .stat-row {
     display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid var(--line);
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .stat-row:last-child { border-bottom: none; }
   .stat-row .sr-name { font-weight: 600; }
@@ -471,22 +472,22 @@
   .history-item { padding: 12px 2px; border-bottom: 1px solid var(--line); }
   .history-item:last-child { border-bottom: none; }
   .hi-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .hi-score { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
-  .hi-meta { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
-  .hi-scorers { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
-  .result-pill { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+  .hi-score { font-family: var(--font-display); font-weight: 700; font-size: 1.0625rem; }
+  .hi-meta { font-size: 0.75rem; color: var(--ink-soft); margin-top: 2px; }
+  .hi-scorers { font-size: 0.7812rem; color: var(--ink-soft); margin-top: 4px; }
+  .result-pill { font-size: 0.6875rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
   .result-pill.win { background: rgba(46,125,82,0.16); color: var(--brand-text); }
   .result-pill.loss { background: rgba(193,68,59,0.14); color: var(--red-text); }
   .result-pill.draw { background: var(--chalk-dim); color: var(--ink-soft); }
-  .hi-remove { background: none; border: none; color: var(--ink-soft); font-size: 12px; padding: 8px 10px; min-height: 44px; }
-  .hi-copy { background: none; border: none; color: var(--brand-text); font-size: 12px; font-weight: 700; padding: 8px 10px; min-height: 44px; }
-  .hi-edit { background: none; border: none; color: var(--brand-text); font-size: 12px; font-weight: 700; padding: 8px 10px; min-height: 44px; }
+  .hi-remove { background: none; border: none; color: var(--ink-soft); font-size: 0.75rem; padding: 8px 10px; min-height: 44px; }
+  .hi-copy { background: none; border: none; color: var(--brand-text); font-size: 0.75rem; font-weight: 700; padding: 8px 10px; min-height: 44px; }
+  .hi-edit { background: none; border: none; color: var(--brand-text); font-size: 0.75rem; font-weight: 700; padding: 8px 10px; min-height: 44px; }
   .hi-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
   .share-textarea {
     width: 100%; min-height: 150px; margin-top: 10px;
     padding: 10px; border-radius: 10px; border: 1px solid var(--line);
     background: var(--chalk-dim); color: var(--ink); font-family: var(--font-body);
-    font-size: 16px; line-height: 1.5; resize: vertical;
+    font-size: max(1rem, 16px); line-height: 1.5; resize: vertical;
   }
 
   .overlay {
@@ -512,25 +513,25 @@
     box-shadow: 0 8px 26px rgba(16,26,20,0.30);
   }
   .card-hint {
-    margin: 0; text-align: center; font-size: 14px;
+    margin: 0; text-align: center; font-size: 0.875rem;
     line-height: 1.45; color: var(--ink-soft);
   }
   .plan-title {
-    font-family: var(--font-display); font-weight: 600; font-size: 19px;
+    font-family: var(--font-display); font-weight: 600; font-size: 1.1875rem;
     color: var(--ink); padding: 2px 2px 0;
   }
-  .plan-summary { font-size: 13px; color: var(--ink-soft); margin: 8px 2px 14px; }
+  .plan-summary { font-size: 0.8125rem; color: var(--ink-soft); margin: 8px 2px 14px; }
   .plan-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .plan-step { display: flex; align-items: center; gap: 8px; }
-  .plan-step-lbl { font-size: 14px; color: var(--ink-soft); }
+  .plan-step-lbl { font-size: 0.875rem; color: var(--ink-soft); }
   .plan-pm {
     width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line);
-    background: var(--chalk-dim); color: var(--ink); font-size: 20px; line-height: 1;
+    background: var(--chalk-dim); color: var(--ink); font-size: 1.25rem; line-height: 1;
   }
-  .plan-count { font-family: var(--font-display); font-size: 20px; min-width: 24px; text-align: center; }
+  .plan-count { font-family: var(--font-display); font-size: 1.25rem; min-width: 24px; text-align: center; }
   .plan-even { width: auto; padding: 0 14px; height: 44px; }
   .plan-scroll { max-height: 52vh; }
-  .plan-hint { font-size: 12px; color: var(--ink-soft); padding: 0 2px; }
+  .plan-hint { font-size: 0.75rem; color: var(--ink-soft); padding: 0 2px; }
   /* With 8 periods the columns cannot fit beside a readable name at phone
      width, so the name column is pinned and the periods scroll. Cells keep
      their full 44px target rather than being squeezed. */
@@ -543,30 +544,30 @@
        tall as its text and the scrolling cells show through above and below. */
     align-self: stretch;
   }
-  .plan-wide .plan-share { font-size: 11px; }
+  .plan-wide .plan-share { font-size: 0.6875rem; }
   .plan-r { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
   .plan-r:last-child { border-bottom: none; }
   .plan-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 5px 0; }
   .plan-num {
     width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px;
     background: var(--pitch); color: var(--on-dark); font-family: var(--font-display);
-    font-size: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.875rem; display: flex; align-items: center; justify-content: center;
   }
-  .plan-nm { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .plan-share { font-size: 12px; color: var(--ink-soft); flex-shrink: 0; margin-left: auto; padding-right: 4px; }
+  .plan-nm { font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-share { font-size: 0.75rem; color: var(--ink-soft); flex-shrink: 0; margin-left: auto; padding-right: 4px; }
   .plan-cell {
     width: 44px; height: 44px; flex-shrink: 0; border-radius: 11px;
     border: 1px solid var(--line); background: transparent;
-    color: var(--on-dark); font-size: 17px; line-height: 1;
+    color: var(--on-dark); font-size: 1.0625rem; line-height: 1;
   }
   .plan-cell.on { background: var(--pitch); border-color: var(--pitch); }
   .plan-head { border-bottom: none; }
   .plan-h, .plan-tot {
-    width: 44px; flex-shrink: 0; text-align: center; font-size: 12px;
+    width: 44px; flex-shrink: 0; text-align: center; font-size: 0.75rem;
     font-weight: 600; color: var(--ink-soft);
   }
   .plan-foot { border-bottom: none; padding-top: 4px; }
-  .plan-foot .plan-name { font-size: 12px; color: var(--ink-soft); }
+  .plan-foot .plan-name { font-size: 0.75rem; color: var(--ink-soft); }
   /* iOS does not render ::-webkit-calendar-picker-indicator at all, so styling
      it can never put a glyph on the screen there — the field just looked empty.
      The icon is drawn as the input's own background instead, which every engine
@@ -595,15 +596,15 @@
   .prep-item:last-child { border-bottom: none; }
   .prep-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .prep-when-lbl {
-    font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink);
+    font-family: var(--font-display); font-weight: 600; font-size: 1rem; color: var(--ink);
   }
   .prep-late {
-    font-family: var(--font-body); font-size: 11px; font-weight: 700; color: var(--gold-text);
+    font-family: var(--font-body); font-size: 0.6875rem; font-weight: 700; color: var(--gold-text);
     border: 1px solid var(--gold-text); border-radius: 6px; padding: 1px 5px; margin-left: 4px;
   }
   .prep-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  .prep-opp { font-size: 14px; color: var(--ink-soft); margin-top: 3px; }
-  .prep-sum { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .prep-opp { font-size: 0.875rem; color: var(--ink-soft); margin-top: 3px; }
+  .prep-sum { font-size: 0.8125rem; color: var(--ink-soft); margin-top: 2px; }
   .prep-start { margin-top: 10px; }
   .prep-when { display: flex; gap: 8px; margin-bottom: 14px; }
   .prep-when .text-input { flex: 1; min-width: 0; margin-bottom: 0; }
@@ -614,18 +615,18 @@
     padding: 7px 2px; text-align: left; color: var(--ink); min-height: 46px;
   }
   .prep-av:last-child { border-bottom: none; }
-  .prep-av-nm { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prep-av-nm { flex: 1; min-width: 0; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .prep-av-tag {
-    font-size: 12px; font-weight: 700; color: var(--brand-text);
+    font-size: 0.75rem; font-weight: 700; color: var(--brand-text);
     border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; flex-shrink: 0;
   }
   .prep-av.away .prep-av-nm { color: var(--ink-soft); text-decoration: line-through; }
   .prep-av.away .plan-num { background: var(--chalk-dim); color: var(--ink-soft); }
   .prep-av.away .prep-av-tag { color: var(--red-text); border-color: var(--red-text); }
   .plan-changes { padding: 2px 2px 0; }
-  .plan-line { font-size: 15px; color: var(--ink); margin-top: 6px; line-height: 1.4; }
+  .plan-line { font-size: 0.9375rem; color: var(--ink); margin-top: 6px; line-height: 1.4; }
   .pl-on, .pl-off {
-    display: inline-block; min-width: 34px; font-size: 12px; font-weight: 700;
+    display: inline-block; min-width: 34px; font-size: 0.75rem; font-weight: 700;
     letter-spacing: 0.5px; margin-right: 6px;
   }
   .pl-on { color: var(--brand-text); }
@@ -655,24 +656,24 @@
   .help-section { margin-bottom: 18px; }
   .help-section:last-child { margin-bottom: 0; }
   .help-section h3 {
-    font-family: var(--font-display); font-weight: 600; font-size: 15px;
+    font-family: var(--font-display); font-weight: 600; font-size: 0.9375rem;
     margin: 0 0 6px; color: var(--brand-text);
   }
-  .help-section p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
+  .help-section p { margin: 0 0 6px; font-size: 0.8438rem; line-height: 1.55; color: var(--ink); }
   .help-section p:last-child { margin-bottom: 0; }
   .notice {
     border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
-    font-size: 13.5px; line-height: 1.5;
+    font-size: 0.8438rem; line-height: 1.5;
   }
   .notice-warn { background: rgba(226,163,61,0.16); border: 1px solid var(--gold-deep); color: var(--ink); }
   .notice-install { background: var(--chalk-dim); border: 1px solid var(--line); color: var(--ink); }
-  .notice-install .btn { padding: 11px 14px; font-size: 14px; }
+  .notice-install .btn { padding: 11px 14px; font-size: 0.875rem; }
   .notice-error { background: rgba(193,68,59,0.14); border: 1px solid var(--red-text); color: var(--ink); }
 
   .app-version {
     margin-top: 18px; padding-top: 14px;
     border-top: 1px solid var(--line);
-    font-size: 12px; color: var(--ink-soft); text-align: center;
+    font-size: 0.75rem; color: var(--ink-soft); text-align: center;
   }
 
   .team-sheet { max-height: 82vh; display: flex; flex-direction: column; padding-left: 0; padding-right: 0; }
@@ -687,21 +688,21 @@
     flex: 1; min-width: 0; text-align: left; background: none; border: none;
     padding: 13px 10px; display: flex; flex-direction: column; gap: 2px; color: var(--ink);
   }
-  .team-pick-name { font-weight: 700; font-size: 15px; }
-  .team-pick-meta { font-size: 12px; color: var(--ink-soft); }
-  .team-del { background: none; border: none; color: var(--ink-soft); font-size: 15px; padding: 0; flex-shrink: 0; min-width: 44px; min-height: 44px; }
+  .team-pick-name { font-weight: 700; font-size: 0.9375rem; }
+  .team-pick-meta { font-size: 0.75rem; color: var(--ink-soft); }
+  .team-del { background: none; border: none; color: var(--ink-soft); font-size: 0.9375rem; padding: 0; flex-shrink: 0; min-width: 44px; min-height: 44px; }
   .team-del:active { color: var(--red-text); }
 
   .team-card {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .team-card .tc-name { font-family: var(--font-display); font-weight: 600; font-size: 19px; }
-  .team-card .tc-meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
-  .team-card .btn { width: auto; flex-shrink: 0; padding: 12px 16px; font-size: 14px; min-height: 44px; }
-  .playing-as { font-size: 13px; color: var(--ink-soft); margin: -6px 0 12px; }
+  .team-card .tc-name { font-family: var(--font-display); font-weight: 600; font-size: 1.1875rem; }
+  .team-card .tc-meta { font-size: 0.7812rem; color: var(--ink-soft); margin-top: 2px; }
+  .team-card .btn { width: auto; flex-shrink: 0; padding: 12px 16px; font-size: 0.875rem; min-height: 44px; }
+  .playing-as { font-size: 0.8125rem; color: var(--ink-soft); margin: -6px 0 12px; }
   .playing-as strong { color: var(--ink); }
   .link-btn {
-    background: none; border: none; padding: 0; font-size: 13px;
+    background: none; border: none; padding: 0; font-size: 0.8125rem;
     color: var(--brand-text); font-weight: 700; text-decoration: underline;
   }
 
@@ -728,8 +729,8 @@
     gap: 2px;
     color: var(--ink-soft);
   }
-  .tab-btn .tab-icon { font-size: 20px; line-height: 1; }
-  .tab-btn .tab-label { font-size: 11px; font-weight: 600; }
+  .tab-btn .tab-icon { font-size: 1.25rem; line-height: 1; }
+  .tab-btn .tab-label { font-size: 0.6875rem; font-weight: 600; }
   .tab-btn.active { color: var(--brand-text); }
   .tab-btn:active { background: var(--chalk-dim); }
 
@@ -744,7 +745,7 @@
     text-align: center;
     padding: 16px 20px;
     border-radius: 16px;
-    font-size: 15.5px;
+    font-size: 0.9688rem;
     font-weight: 700;
     line-height: 1.4;
     z-index: 50;
@@ -779,22 +780,22 @@
                calc(10px + env(safe-area-inset-left, 0px));
     }
     .clock-btn { padding: 2px 12px; }
-    .clock-time { font-size: 19px; }
-    .clock-state { font-size: 10px; }
-    .clock-total { font-size: 9px; }
+    .clock-time { font-size: 1.1875rem; }
+    .clock-state { font-size: 0.625rem; }
+    .clock-total { font-size: 0.5625rem; }
     .scoreboard {
       gap: 10px;
       padding: 2px calc(14px + env(safe-area-inset-right, 0px)) 6px
                    calc(14px + env(safe-area-inset-left, 0px));
       top: calc(env(safe-area-inset-top, 0px) + 54px);
     }
-    .score-num { font-size: 26px; }
-    .score-label { font-size: 12px; }
+    .score-num { font-size: 1.625rem; }
+    .score-label { font-size: 0.75rem; }
     .assist-bar { top: calc(env(safe-area-inset-top, 0px) + 54px + 56px); }
     main.screen { padding-top: 10px; }
     .player-grid { gap: 8px; margin-bottom: 10px; }
     .tile { padding: 6px 6px 5px; }
-    .screen-title { font-size: 22px; margin: 2px 0 10px; }
+    .screen-title { font-size: 1.375rem; margin: 2px 0 10px; }
     .section-title { margin-top: 14px; }
   }
 </style>
@@ -863,7 +864,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "25";
+  var APP_VERSION = "26";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
