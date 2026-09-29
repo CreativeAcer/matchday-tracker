@@ -433,6 +433,12 @@
   .empty-state { color: var(--ink-soft); font-size: 13.5px; padding: 10px 2px; }
 
   .end-match-btn { margin-top: 22px; }
+  /* Sits above the match log, so it keeps a fixed distance from the top
+     however many goals are logged. */
+  .match-actions { margin-top: 18px; margin-bottom: 10px; }
+  .match-actions-2 { margin-bottom: 4px; }
+  .log-scroll { max-height: 64vh; }
+  .log-scroll .event-row:first-child { padding-top: 2px; }
 
   .summary-score {
     text-align: center; padding: 18px 0 6px;
@@ -805,7 +811,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "21";
+  var APP_VERSION = "22";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -2425,10 +2431,10 @@
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
       ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
-      ["Half time and breaks", "Tap <strong>Half time</strong> to pause the clock and start a new period. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
+      ["Half time and breaks", "Tap <strong>Half time</strong>, next to End match under the tiles, to pause the clock and start a new period. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
-      ["Fix a mistake", "Every entry in the Match log has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry."],
-      ["End the match", "Tap <strong>End match</strong> at the bottom of the Match screen. You'll get a summary with a minute-by-minute report."],
+      ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry without opening the log at all. Deleting from inside the log keeps it open, so you can correct two things in a row."],
+      ["End the match", "Tap <strong>End match</strong>, just under the player tiles. You'll get a summary with a minute-by-minute report."],
       ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
       ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match for its <strong>Card</strong> or its written report."],
       ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>Fix</strong> on a match in History to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
@@ -3636,31 +3642,6 @@
       );
     }).join("");
 
-    var eventsHtml = match.events.slice().reverse().map(function (ev) {
-      var desc = "";
-      if (ev.type === "goal") {
-        var scorer = rosterById(ev.playerId);
-        desc = "⚽ " + esc(scorer ? scorer.name : "Goal");
-        if (ev.assistId) {
-          var assister = rosterById(ev.assistId);
-          if (assister) desc += " (assist: " + esc(assister.name) + ")";
-        }
-      } else if (ev.type === "opponent_goal") {
-        desc = "⚽ " + esc(match.opponentName);
-      } else if (ev.type === "own_goal") {
-        // Shown under the team it counts for, same convention as the timeline.
-        desc = "⚽ " + esc(ev.by === "us" ? match.opponentName : T().teamName) + " (own goal)";
-      } else if (ev.type === "card") {
-        var cp = rosterById(ev.playerId);
-        desc = (ev.cardType === "red" ? "🟥 " : "🟨 ") + esc(cp ? cp.name : "");
-      }
-      var editable = ev.type === "goal" || ev.type === "card" || ev.type === "own_goal";
-      var actions = editable
-        ? '<button class="event-edit" data-edit-event="' + ev.id + '" aria-label="Edit this entry">✎</button><button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>'
-        : '<button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>';
-      return '<div class="event-row"><span class="event-minute">' + ev.minuteAtEvent + "'</span><span class=\"event-desc\">" + desc + '</span><div class="event-actions">' + actions + "</div></div>";
-    }).join("");
-
     el.innerHTML =
       (T().settings.trackAssists ? assistBarHtml : "") +
       '<div class="player-grid">' + tilesHtml + "</div>" +
@@ -3668,14 +3649,22 @@
         '<button class="opp-goal-btn" id="oppGoalBtn">+ ' + esc(match.opponentName) + " scored</button>" +
         '<button class="opp-goal-btn own-goal-btn" id="ownGoalBtn">Own goal</button>' +
       "</div>" +
-      '<h2 class="section-title">Match log</h2>' +
-      '<div class="event-log">' + (eventsHtml || '<div class="empty-state">No events logged yet — tap a player to add a goal.</div>') + "</div>" +
-      '<div class="btn-row end-match-btn">' +
+      // Nothing below this point grows during the match, so Half time and End
+      // match stay exactly where they were at kick-off however many goals are
+      // logged. The log itself is a record, not a control, so it lives behind
+      // a button like the other reference screens.
+      '<div class="btn-row match-actions">' +
         '<button class="btn btn-ghost" id="halfTimeBtn">Half time</button>' +
+        '<button class="btn btn-danger" id="endMatchBtn">End match</button>' +
+      "</div>" +
+      '<div class="btn-row match-actions-2">' +
         (T().settings.planLineups && match.plan
           ? '<button class="btn btn-ghost" id="matchPlanBtn">Line-up plan</button>' : "") +
-        '<button class="btn btn-danger" id="endMatchBtn">End match</button>' +
+        '<button class="btn btn-ghost" id="matchLogBtn">Match log' +
+          (match.events.length ? " (" + match.events.length + ")" : "") + "</button>" +
       "</div>";
+
+    document.getElementById("matchLogBtn").onclick = showMatchLogSheet;
 
     document.getElementById("oppGoalBtn").onclick = logOpponentGoal;
     document.getElementById("halfTimeBtn").onclick = startNextPeriod;
@@ -3721,6 +3710,83 @@
     el.querySelectorAll("[data-edit-event]").forEach(function (btn) {
       btn.onclick = function () { editMatchId = null; showEditEvent(btn.getAttribute("data-edit-event")); };
     });
+  }
+
+  // The live match log, shown in its own sheet. Built here so the match
+  // screen stays a fixed height however long the match gets.
+  function liveLogHtml(match) {
+    return match.events.slice().reverse().map(function (ev) {
+      var desc = "";
+      if (ev.type === "goal") {
+        var scorer = rosterById(ev.playerId);
+        desc = "⚽ " + esc(scorer ? scorer.name : "Goal");
+        if (ev.assistId) {
+          var assister = rosterById(ev.assistId);
+          if (assister) desc += " (assist: " + esc(assister.name) + ")";
+        }
+      } else if (ev.type === "opponent_goal") {
+        desc = "⚽ " + esc(match.opponentName);
+      } else if (ev.type === "own_goal") {
+        // Shown under the team it counts for, same convention as the timeline.
+        desc = "⚽ " + esc(ev.by === "us" ? match.opponentName : T().teamName) + " (own goal)";
+      } else if (ev.type === "card") {
+        var cp = rosterById(ev.playerId);
+        desc = (ev.cardType === "red" ? "🟥 " : "🟨 ") + esc(cp ? cp.name : "");
+      }
+      var editable = ev.type === "goal" || ev.type === "card" || ev.type === "own_goal";
+      var actions = editable
+        ? '<button class="event-edit" data-edit-event="' + ev.id + '" aria-label="Edit this entry">✎</button><button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>'
+        : '<button class="event-delete" data-del-event="' + ev.id + '" aria-label="Delete this entry">✕</button>';
+      return '<div class="event-row"><span class="event-minute">' + ev.minuteAtEvent + "'</span><span class=\"event-desc\">" + desc + '</span><div class="event-actions">' + actions + "</div></div>";
+    }).join("");
+  }
+
+  function showMatchLogSheet() {
+    var match = T().activeMatch;
+    if (!match) return;
+    var old = document.getElementById("logOverlay");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "logOverlay";
+    document.body.appendChild(overlay);
+
+    function draw() {
+      var m = T().activeMatch;
+      if (!m) { overlay.remove(); return; }
+      var rows = liveLogHtml(m);
+      overlay.innerHTML =
+        '<div class="card-sheet">' +
+          '<div class="plan-title">Match log' +
+            (m.events.length ? " \u00b7 " + m.events.length : "") + "</div>" +
+          '<div class="card-scroll log-scroll">' +
+            (rows || '<div class="empty-state">No events logged yet \u2014 tap a player to add a goal.</div>') +
+          "</div>" +
+          '<button class="btn btn-ghost" id="logCloseBtn">Close</button>' +
+        "</div>";
+
+      overlay.querySelectorAll("[data-del-event]").forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute("data-del-event");
+          editMatchId = null;
+          showConfirm("Delete this entry from the log?", "Delete", function () {
+            deleteEvent(id);
+            draw();   // stay in the log so a second correction needs no reopening
+          }, true);
+        };
+      });
+      overlay.querySelectorAll("[data-edit-event]").forEach(function (btn) {
+        btn.onclick = function () {
+          editMatchId = null;
+          overlay.remove();   // the editor is a sheet of its own
+          showEditEvent(btn.getAttribute("data-edit-event"));
+        };
+      });
+      document.getElementById("logCloseBtn").onclick = function () { overlay.remove(); };
+    }
+
+    overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+    draw();
   }
 
   function renderSummaryScreen() {
