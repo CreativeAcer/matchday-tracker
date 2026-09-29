@@ -75,18 +75,24 @@ Matchday Tracker turns your phone into a simple match-day companion:
  
 ## Features
 
+**Before the match**
+- Prepare a match days ahead — opponent, home or away, kick-off date and time, who can't make it
+- Saved matches wait under **Ready to play**, earliest first, and start with one tap
+- **Line-up plan** — set who plays each period (2 halves, 4 quarters or 8 short periods); **Spread evenly** shares the minutes out
+
 **During the match**
 - Tap a player's tile to log a goal — the score updates instantly
 - Optional assists, yellow/red cards and playing time, all off by default
-- **Line-up plan** — set who plays each quarter or half before kick-off; the app applies the first period
-  at kick-off and proposes the next at every break, listing who comes on and who goes off
+- The planned line-up is applied at kick-off and proposed at every break, listing who comes on and off
 - On pitch / bench per player, so a benched player can't be tapped by mistake
 - Live minutes on every tile, with the least-played player outlined
 - The lineup you started with is reused next match, so the bench is set once
 - Own goals for either team, never credited to a player
 - Running clock that keeps counting while the phone is locked
+- A match clock across the whole game, with the current period shown separately (**Q2 · 01:20**)
+- Optional period length — the clock turns gold once the referee plays past it
 - Half-time button that pauses the clock and starts a new period
-- Undo, plus edit and delete on every entry in the match log
+- Undo, plus edit and delete on every entry in the match log, which opens in its own screen so the match screen never grows
 - Correct the opponent's name mid-match if you mistyped it
 
 **Rules it enforces so you don't have to**
@@ -104,7 +110,9 @@ Matchday Tracker turns your phone into a simple match-day companion:
 
 **Teams and sharing**
 - Several teams on one device, each with its own roster, settings, history and match in progress
-- Export a team to a JSON file; another parent or coach imports it without retyping the roster
+- Export a team to a JSON file — players, settings, matches played **and matches prepared**,
+  with their line-ups, period lengths and absentees. One file restores the lot after a wipe.
+- The app reminds you when matches have been played, or preparation done, since your last backup
 - Importing adds a team — it never overwrites the teams already on the device
 
 **On the phone**
