@@ -805,7 +805,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "20";
+  var APP_VERSION = "21";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -985,14 +985,23 @@
   // stamped 52' rather than 7' — that is what makes the report readable, since
   // it carries no period number. periodStartMs marks where the current period
   // began on that same clock, which is all the period display needs.
+  // A match that was already being played when the app updated carries no
+  // periodStartMs. There is no way to know when its current period began, so
+  // the app falls back to the plain match clock and says nothing about the
+  // period rather than claiming the whole match belongs to it. The next break
+  // sets the mark and normal behaviour resumes.
+  function periodStartKnown(match) {
+    return !!match && typeof match.periodStartMs === "number";
+  }
   function periodElapsedMs(match) {
-    return Math.max(0, clockElapsedMs(match) - (match.periodStartMs || 0));
+    if (!periodStartKnown(match)) return clockElapsedMs(match);
+    return Math.max(0, clockElapsedMs(match) - match.periodStartMs);
   }
   function periodHasRun(match) {
     return periodElapsedMs(match) > 0;
   }
   function periodOverrunMs(match) {
-    if (!match || !match.periodMinutes) return 0;
+    if (!match || !match.periodMinutes || !periodStartKnown(match)) return 0;
     return Math.max(0, periodElapsedMs(match) - match.periodMinutes * 60000);
   }
   function periodTag(match) {
@@ -1015,7 +1024,7 @@
       totalEl.textContent = "";
       return;
     }
-    var inPeriod = (match.period || 1) > 1;
+    var inPeriod = (match.period || 1) > 1 && periodStartKnown(match);
     timeEl.textContent = inPeriod
       ? periodTag(match) + " \u00b7 " + formatClock(periodElapsedMs(match))
       : formatClock(clockElapsedMs(match));
@@ -1433,10 +1442,21 @@
   var pendingPlan = null;      // the plan being built there
   var pendingFormatSet = false; // true once the coach picks a format by hand
   var pendingPeriodMinutes = null;
+  var pendingTeamId = null;     // which team the three above belong to
 
   // Follow last week's format unless the coach has overridden it, so a saved
   // plan is never quietly dropped for being the wrong shape.
   function syncPendingFormat() {
+    // Anything half-entered on the kick-off screen belongs to the team it was
+    // entered for. Tying it to the team id resets it on every route that can
+    // change the active team — switching, importing, deleting — instead of
+    // relying on each of those remembering to.
+    if (pendingTeamId !== state.activeTeamId) {
+      pendingTeamId = state.activeTeamId;
+      pendingPlan = null;
+      pendingFormatSet = false;
+      pendingPeriodMinutes = null;
+    }
     if (pendingPeriodMinutes == null) pendingPeriodMinutes = T().lastPeriodMinutes;
     if (pendingFormatSet) return;
     var lp = normalisePlan(T().lastPlan);
@@ -1672,11 +1692,12 @@
   }
 
   // Shown when a new period starts. Never applies anything on its own.
-  function proposePlanAtBreak(match) {
+  function proposePlanAtBreak(match, overNote) {
+    var note = overNote || "";
     var ch = planChanges(match, match.period);
     if (!ch) return false;
     if (!ch.on.length && !ch.off.length) {
-      showToast("Break — " + periodName(match.plan.periods, match.period - 1) +
+      showToast(note + "Break — " + periodName(match.plan.periods, match.period - 1) +
         " uses the same line-up.", "warning");
       return true;
     }
@@ -1692,6 +1713,7 @@
       esc(ch.off.map(planNameOf).join(", ")) + "</div>";
     overlay.innerHTML =
       '<div class="sheet">' +
+        (note ? '<div class="plan-line">' + esc(note.trim()) + "</div>" : "") +
         '<div class="confirm-msg">' + esc(periodName(match.plan.periods, match.period - 1)) +
           " — apply the planned line-up?</div>" +
         '<div class="plan-changes">' + lines + "</div>" +
@@ -1711,7 +1733,7 @@
       overlay.remove();
       showLineupPlanner(match.plan, match.plan.periods, function (p) {
         match.plan = p; persist(); render();
-        proposePlanAtBreak(match);
+        proposePlanAtBreak(match, note);
       });
     };
     return true;
@@ -2769,11 +2791,10 @@
     match.periodStartMs = clockElapsedMs(match);
     persist();
     render();
-    if (over > 1000) {
-      showToast("That period ran " + formatClock(over) + " over.", "warning");
-    }
-    if (T().settings.planLineups && match.plan && proposePlanAtBreak(match)) return;
-    showToast("Break — period " + match.period + " starts when you start the clock.", "warning");
+    var overNote = over > 1000 ? "That period ran " + formatClock(over) + " over. " : "";
+    if (T().settings.planLineups && match.plan && proposePlanAtBreak(match, overNote)) return;
+    showToast(overNote + "Break — period " + match.period +
+      " starts when you start the clock.", "warning");
   }
 
   function describeEvent(ev) {
@@ -3525,7 +3546,15 @@
           document.getElementById("homeBtn").classList.remove("on");
         };
         if (T().settings.planLineups) {
+          // Anything typed here is lost the moment the screen redraws, so it
+          // has to be taken off the field first — choosing a format or saving
+          // a line-up plan both redraw.
+          var readKickoffFields = function () {
+            var el2 = document.getElementById("periodMinsInput");
+            if (el2) pendingPeriodMinutes = cleanPeriodMinutes(el2.value);
+          };
           var setFormat = function (nPeriods) {
+            readKickoffFields();
             pendingPeriods = nPeriods;
             pendingFormatSet = true;
             pendingPlan = null; // a different format needs a fresh plan
@@ -3535,6 +3564,7 @@
             btn.onclick = function () { setFormat(parseInt(btn.getAttribute("data-kick-fmt"), 10)); };
           });
           document.getElementById("planBtn").onclick = function () {
+            readKickoffFields();
             showLineupPlanner(pendingPlan || T().lastPlan, pendingPeriods, function (plan) {
               pendingPlan = plan;
               render();
@@ -4034,6 +4064,13 @@
     // it exists to timestamp events, not to be authoritative.
     var recovered = match.events.length ? lastEventElapsedMs(match) + 60000 : 0;
     match.clock.elapsedMs = recovered;
+    // Rewinding can leave the period mark after the clock — which would block
+    // the next break until the lost time had been played again. When that
+    // happens the period timing is simply unknown, so drop the mark and let
+    // the clock fall back to plain match time until the next break.
+    if (typeof match.periodStartMs === "number" && match.periodStartMs > recovered) {
+      delete match.periodStartMs;
+    }
     match.clock.running = false;
     match.clock.runningSince = null;
     persist();
