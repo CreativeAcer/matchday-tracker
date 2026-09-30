@@ -557,6 +557,7 @@
     display: block; width: 100%; height: auto; border-radius: 14px;
     box-shadow: 0 8px 26px rgba(16,26,20,0.30);
   }
+  .card-sheet .card-toggle { border-bottom: none; padding: 6px 4px; flex-shrink: 0; }
   .card-hint {
     margin: 0; text-align: center; font-size: 0.875rem;
     line-height: 1.45; color: var(--ink-soft);
@@ -805,6 +806,22 @@
     0% { opacity: 0; transform: translateY(14px) scale(0.97); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
   }
+  /* Tap feedback: a wash of colour over the pressed button that drains away.
+     Click-through, above sheets and toast, and drawn by script because the
+     button itself is usually rebuilt the moment it is tapped. */
+  .press-flash {
+    position: fixed; z-index: 60; pointer-events: none;
+    background: var(--gold); box-shadow: 0 0 0 2px var(--gold);
+    opacity: 0;
+    animation: press-drain 2s ease-out forwards;
+    -webkit-user-select: none; user-select: none;
+  }
+  .press-flash-deep { background: var(--pitch-dark); box-shadow: 0 0 0 2px var(--pitch-dark); }
+  @keyframes press-drain {
+    0%   { opacity: var(--flash-peak, 0.72); }
+    20%  { opacity: calc(var(--flash-peak, 0.72) * 0.8); }
+    100% { opacity: 0; }
+  }
   @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
   .toast-success { background: var(--turf); color: #fff; }
   .toast-warning { background: var(--gold); color: var(--pitch-dark); box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 3px var(--gold-deep) inset; }
@@ -897,6 +914,11 @@
 
   var STORAGE_KEY = "matchdayTrackerData_v1";
 
+  // The match card's "Goal times" switch. A preference of this device, not team
+  // data, so it stays out of the saved state: it never travels in an export and
+  // a failed write costs nothing. Only read when a card is opened.
+  var CARD_TIMELINE_KEY = "matchdayTrackerCardTimeline_v1";
+
   // Same rule as the formats below, and it is not a style preference: load()
   // runs near the top of this file and reaches carryPrepSignature(), which
   // reads this. Assigned further down it would still be undefined at that
@@ -922,8 +944,8 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "35";
-  var APP_BUILT = "2026-09-26";
+  var APP_VERSION = "37";
+  var APP_BUILT = "2026-09-30";
 
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -1322,17 +1344,21 @@
     return { scorers: scorers, timeline: goalTimeline(record.events, record.opponentName, record) };
   }
 
-  function drawMatchCard(record) {
+  // opts.timeline === false leaves the minute-by-minute list off: the score, the
+  // scorers and their tallies stay. A 27–11 match otherwise makes a picture
+  // nobody can send, so the coach gets to choose.
+  function drawMatchCard(record, opts) {
+    var withTimeline = !(opts && opts.timeline === false);
     var f = cardFonts();
     var data = matchCardData(record);
     var scorers = data.scorers;
     var timeline = data.timeline;
-    // Every goal gets its minute, as the card promises. Youth scorelines run
-    // away sometimes, so past fourteen the rows tighten up rather than the list
-    // being cut short. CARD_MAX_TIMELINE stays only as a guard against a canvas
-    // no browser would draw; a real match never reaches it.
-    var shown = Math.min(timeline.length, CARD_MAX_TIMELINE);
-    var hiddenGoals = timeline.length - shown;
+    // With the list on, every goal gets its minute, as the card promises. Youth
+    // scorelines run away sometimes, so past fourteen the rows tighten up rather
+    // than the list being cut short. CARD_MAX_TIMELINE stays only as a guard
+    // against a canvas no browser would draw; a real match never reaches it.
+    var shown = withTimeline ? Math.min(timeline.length, CARD_MAX_TIMELINE) : 0;
+    var hiddenGoals = withTimeline ? timeline.length - shown : 0;
     var compact = shown > 14;
     var ROW = compact ? 46 : 60;
     var ogLine = "";
@@ -1530,11 +1556,23 @@
     return cv;
   }
 
+  // On unless the coach switched it off. Storage that cannot be read or written
+  // (a private window, blocked site data) just means "on" and "not remembered".
+  function cardTimelinePref() {
+    try { return localStorage.getItem(CARD_TIMELINE_KEY) !== "0"; } catch (e) { return true; }
+  }
+  function saveCardTimelinePref(on) {
+    try { localStorage.setItem(CARD_TIMELINE_KEY, on ? "1" : "0"); } catch (e) {}
+  }
+
   async function showMatchCard(record) {
     // Wait for the webfonts so the card never silently comes out in Arial.
     try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    // The switch only means something when there is a goal to list.
+    var hasGoals = goalTimeline(record.events, record.opponentName, record).length > 0;
+    var withTimeline = cardTimelinePref();
     var cv, url;
-    try { cv = drawMatchCard(record); url = cv.toDataURL("image/png"); }
+    try { cv = drawMatchCard(record, { timeline: withTimeline }); url = cv.toDataURL("image/png"); }
     catch (e) { showToast("Couldn\u2019t build the match card."); return; }
 
     var old = document.getElementById("cardOverlay");
@@ -1552,6 +1590,13 @@
     overlay.innerHTML =
       '<div class="card-sheet">' +
         '<div class="card-scroll"><img class="card-img" id="cardImg" alt="Match card"></div>' +
+        (hasGoals
+          ? '<button class="toggle-row card-toggle" id="cardTimelineBtn" aria-pressed="' + withTimeline + '">' +
+              '<span class="toggle-copy"><span class="t-title">Goal times</span>' +
+              '<span class="t-desc">Each goal with its minute. Off gives a shorter card.</span></span>' +
+              '<span class="switch' + (withTimeline ? " on" : "") + '"></span>' +
+            "</button>"
+          : "") +
         '<p class="card-hint">Press and hold the picture to save it or send it to a chat.</p>' +
         (canShareFile ? '<button class="btn btn-gold" id="cardShareBtn">Share picture</button>' : "") +
         '<button class="btn btn-ghost" id="cardCloseBtn">Close</button>' +
@@ -1562,6 +1607,22 @@
     overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.remove(); });
     var sb = document.getElementById("cardShareBtn");
     if (sb) sb.onclick = function () { shareCardImage(cv, record); };
+    var tb = document.getElementById("cardTimelineBtn");
+    if (tb) tb.onclick = function () {
+      var next = !withTimeline, nextCv, nextUrl;
+      // Draw first, change state after: a card that cannot be built leaves the
+      // picture, the switch and the share button exactly as they were.
+      try { nextCv = drawMatchCard(record, { timeline: next }); nextUrl = nextCv.toDataURL("image/png"); }
+      catch (e) { showToast("Couldn\u2019t build the match card."); return; }
+      withTimeline = next;
+      cv = nextCv;                      // "Share picture" reads this when tapped
+      document.getElementById("cardImg").src = nextUrl;
+      var sc = overlay.querySelector(".card-scroll");
+      if (sc) sc.scrollTop = 0;
+      tb.setAttribute("aria-pressed", String(withTimeline));
+      tb.querySelector(".switch").classList.toggle("on", withTimeline);
+      saveCardTimelinePref(withTimeline);
+    };
   }
 
   // Best effort only. The picture is already on screen, so if this fails the
@@ -2936,10 +2997,11 @@
   }
 
   var lastEventTapAt = {};
+  var lastIgnoredTapAt = 0;   // when the guard last swallowed a tap (read by the tap feedback)
 
   function guardDoubleTap(key) {
     var now = Date.now();
-    if (lastEventTapAt[key] && (now - lastEventTapAt[key]) < 800) return false;
+    if (lastEventTapAt[key] && (now - lastEventTapAt[key]) < 800) { lastIgnoredTapAt = now; return false; }
     lastEventTapAt[key] = now;
     return true;
   }
@@ -5589,6 +5651,158 @@
     // Timers are throttled while hidden, so redraw on return to snap the clock
     // and the live minutes back to the real elapsed time.
     if (document.visibilityState === "visible") render();
+  });
+
+  /* ---------- Tap feedback -------------------------------------------------
+     Most taps redraw the screen in the same instant, so on the sideline there
+     was no telling "it registered" from "it missed". Every tap on a button now
+     leaves a wash of colour over exactly that button that drains away over two
+     seconds (a phone web app cannot do haptics, so the eyes have to do it).
+     It is a separate, click-through layer on purpose: the redraw that follows a
+     tap would take any class on the button with it. It never touches the tap
+     itself or the saved data, and any failure in here is swallowed. */
+  var FLASH_MS = 2000;         // how long the colour takes to drain out of the button
+  var FLASH_SHORT_MS = 450;    // ...once the button is gone or covered: the screen moved on
+  var FLASH_MAX = 8;
+  var flashes = [];
+
+  function pressTargetOf(node) {
+    var el = node && node.closest ? node.closest("button, [data-goal]") : null;
+    if (!el || el.disabled || el.getAttribute("aria-disabled") === "true") return null;
+    return el;
+  }
+
+  // The colour the button actually sits on: its own background, or the first
+  // solid one above it (outlined and text-only buttons are transparent).
+  function surfaceColour(el) {
+    for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
+      var m = /rgba?\(([^)]+)\)/.exec(window.getComputedStyle(n).backgroundColor || "");
+      if (!m) continue;
+      var p = m[1].split(",").map(parseFloat);
+      if (p.length < 4 || p[3] >= 0.6) return p;
+    }
+    return [255, 255, 255];
+  }
+
+  // A gold wash would vanish on a gold or yellow button, so those get the dark green.
+  function isGoldish(c) {
+    return Math.abs(c[0] - 226) < 50 && Math.abs(c[1] - 163) < 50 && c[2] < 130;
+  }
+
+  function sameSpot(a, b) {
+    return Math.abs(a.left - b.left) < 10 && Math.abs(a.top - b.top) < 10 &&
+           Math.abs(a.width - b.width) < 10 && Math.abs(a.height - b.height) < 10;
+  }
+
+  // What makes a rebuilt button "the same button": its id, else its first
+  // data-attribute. Plain buttons have neither, so they are never merged.
+  function pressKey(el) {
+    if (el.id) return el.tagName + "#" + el.id;
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i];
+      if (a.name.indexOf("data-") === 0) return el.tagName + "|" + a.name + "=" + a.value;
+    }
+    return "";
+  }
+
+  // The redraw replaces a pressed button with an identical new one. Find it.
+  function twinOf(el) {
+    if (el.id) { var byId = document.getElementById(el.id); if (byId) return byId; }
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i];
+      if (a.name.indexOf("data-") !== 0) continue;
+      var all = document.querySelectorAll("[" + a.name + "]");
+      for (var j = 0; j < all.length; j++) {
+        if (all[j].tagName === el.tagName && all[j].getAttribute(a.name) === a.value) return all[j];
+      }
+    }
+    return null;
+  }
+
+  function dropFlash(f) {
+    clearInterval(f._timer);
+    if (f.parentNode) f.parentNode.removeChild(f);
+    var i = flashes.indexOf(f);
+    if (i !== -1) flashes.splice(i, 1);
+  }
+
+  // A sheet that opened over the button, a screen that replaced it, a list that
+  // scrolled: the wash would be hanging over something it does not belong to.
+  function checkFlash(f, instant) {
+    if (!f.parentNode || (f._short && !instant)) return;
+    var el = f._for, now = el.isConnected ? el : twinOf(el);
+    var gone = !now || !sameSpot(f._rect, now.getBoundingClientRect());
+    if (!gone) {
+      var top = document.elementFromPoint(f._rect.left + f._rect.width / 2, f._rect.top + f._rect.height / 2);
+      gone = !!top && !now.contains(top);
+    }
+    if (!gone) return;
+    if (instant) { dropFlash(f); return; }
+    f._short = true;
+    f.style.animationDuration = FLASH_SHORT_MS + "ms";
+  }
+
+  function makeFlash(info) {
+    var r = info.rect;
+    var f = document.createElement("div");
+    f.className = "press-flash" + (info.deep ? " press-flash-deep" : "");
+    f.setAttribute("aria-hidden", "true");
+    f.style.left = r.left + "px"; f.style.top = r.top + "px";
+    f.style.width = r.width + "px"; f.style.height = r.height + "px";
+    f.style.borderRadius = info.radius;
+    f.style.animationDuration = FLASH_MS + "ms";
+    // Whole player tiles are big: a quieter wash keeps the names readable.
+    f.style.setProperty("--flash-peak", r.width * r.height > 9000 ? "0.5" : "0.72");
+    f._for = info.el; f._rect = r; f._short = false; f._at = Date.now(); f._key = info.key;
+    f.addEventListener("animationend", function () { dropFlash(f); });
+    flashes.push(f);
+    while (flashes.length > FLASH_MAX) dropFlash(flashes[0]);
+    document.body.appendChild(f);
+    setTimeout(function () { checkFlash(f); }, 50);        // after the tap's own redraw
+    f._timer = setInterval(function () { checkFlash(f); }, 250);  // sheets that open a moment later
+    setTimeout(function () { dropFlash(f); }, FLASH_MS + 300);   // in case no animation event comes
+  }
+
+  function showPressFlash(el) {
+    var r = el.getBoundingClientRect();
+    if (r.width < 6 || r.height < 6) return;
+    var tappedAt = Date.now(), key = pressKey(el);
+    var info = {
+      el: el, rect: r, key: key,
+      deep: isGoldish(surfaceColour(el)),
+      radius: window.getComputedStyle(el).borderRadius
+    };
+    // One wash per button, never two stacked. The button is usually a rebuilt
+    // twin, so "the same button" is the same id / data-attribute in the same
+    // place; a different button that merely sits where the last one was (a
+    // "Next" after a "Next") is a new tap.
+    var same = null;
+    flashes.forEach(function (o) {
+      if (o._for === el || (key && o._key === key && sameSpot(o._rect, r))) same = o;
+    });
+    if (!same) { makeFlash(info); return; }
+    if (tappedAt - same._at >= 800) { dropFlash(same); makeFlash(info); return; }
+    // A second tap soon after the first. If the app itself ignores it (the
+    // double-tap guard on goals and cards) the wash must not restart, or it
+    // would suggest a second goal was counted. Whether it was ignored is only
+    // known once the button's own handler has run, so decide just after it.
+    setTimeout(function () {
+      if (lastIgnoredTapAt >= tappedAt) return;
+      if (same.parentNode) dropFlash(same);
+      makeFlash(info);
+    }, 0);
+  }
+
+  // Capture phase: runs before the button's own handler, so the button is still
+  // the one that was pressed when it is measured.
+  document.addEventListener("click", function (e) {
+    try { var el = pressTargetOf(e.target); if (el) showPressFlash(el); } catch (err) {}
+  }, true);
+  window.addEventListener("scroll", function () {
+    flashes.slice().forEach(function (f) { try { checkFlash(f, true); } catch (err) { dropFlash(f); } });
+  }, true);
+  window.addEventListener("resize", function () {
+    flashes.slice().forEach(function (f) { dropFlash(f); });
   });
 
   render();
