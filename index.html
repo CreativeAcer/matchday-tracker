@@ -507,8 +507,13 @@
 
   .overlay {
     position: fixed; inset: 0; background: rgba(16,26,20,0.5); z-index: 30;
-    display: flex; align-items: flex-end;
+    display: flex; align-items: flex-end; justify-content: center;
   }
+  /* The screens are already capped at 640px. The sheets were not, so on a
+     laptop the line-up planner stretched the full width: player names against
+     the left edge and their quarter boxes a thousand pixels away on the right,
+     which is how a coach ticks the wrong row. Below 640px nothing changes. */
+  .sheet, .card-sheet { max-width: 640px; }
   .sheet {
     background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
     padding: 10px calc(8px + env(safe-area-inset-right, 0px))
@@ -892,7 +897,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "32";
+  var APP_VERSION = "33";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -3883,13 +3888,12 @@
       return null;
     }
 
-    var have = {};
-    (T().upcoming || []).forEach(function (u) { have[u.id] = true; });
+    T().upcoming = T().upcoming || [];
 
-    var added = 0;
+    var added = 0, updated = 0, planArrived = false;
     incoming.forEach(function (u) {
       var mapped = {
-        id: have[u.id] ? uid() : u.id,
+        id: u.id,
         opponentName: u.opponentName,
         isHome: u.isHome,
         kickoffAt: u.kickoffAt,
@@ -3900,22 +3904,52 @@
           lineups: u.plan.lineups.map(function (row) { return row.map(mapId).filter(Boolean); })
         } : null
       };
-      T().upcoming = T().upcoming || [];
-      T().upcoming.push(mapped);
-      added++;
+      if (mapped.plan && mapped.plan.lineups.some(function (r) { return r.length; })) planArrived = true;
+      // The same prepared match arriving again is the coach re-sending it after
+      // a change, not a second fixture. It replaces the one already here —
+      // importing twice used to leave two identical matches side by side.
+      var at = -1;
+      for (var i = 0; i < T().upcoming.length; i++) {
+        if (T().upcoming[i].id === mapped.id) { at = i; break; }
+      }
+      if (at === -1) { T().upcoming.push(mapped); added++; }
+      else { T().upcoming[at] = mapped; updated++; }
     });
+
+    // A line-up plan arriving on a device where the option is off would be kept
+    // in storage and then silently ignored at kick-off, quietly putting the
+    // whole squad on the pitch. Receiving a plan is a clear enough signal that
+    // the coach wants it, so the option is turned on and the toast says so.
+    var turnedOn = false;
+    if (planArrived && !T().settings.planLineups) {
+      T().settings.planLineups = true;
+      turnedOn = true;
+    }
     persist();
     view = "match";
     render();
 
     var lost = Object.keys(unmatched);
-    var msg = "Added " + added + (added === 1 ? " prepared match" : " prepared matches") +
-      " to " + T().teamName + ".";
+    var bits = [];
+    if (added) bits.push("Added " + added + (added === 1 ? " prepared match" : " prepared matches"));
+    if (updated) bits.push((added ? "updated " : "Updated ") + updated +
+      (updated === 1 ? " you already had" : " you already had"));
+    var msg = bits.join(" and ") + " in " + T().teamName + ".";
+    if (turnedOn) msg += " Line-up plan is now switched on, so the plan in that file will be used.";
     if (lost.length) {
-      msg += " " + lost.length + (lost.length === 1 ? " player" : " players") +
-        " couldn\u2019t be matched to your squad (" +
-        lost.map(function (k) { return unmatched[k]; }).slice(0, 3).join(", ") +
-        (lost.length > 3 ? "\u2026" : "") + ") and were left out of the line-ups.";
+      var namesKnown = lost.some(function (k) { return unmatched[k] !== "a player"; });
+      if (!namesKnown) {
+        // The file carries ids but no names, which only happens with one made
+        // by an older version. Saying "a player, a player, a player" told the
+        // coach nothing they could act on.
+        msg += " The line-ups couldn\u2019t be filled in: that file was made by an older " +
+               "version and doesn\u2019t carry the player names. Ask for a fresh export.";
+      } else {
+        msg += " " + lost.length + (lost.length === 1 ? " player" : " players") +
+          " couldn\u2019t be matched to your squad (" +
+          lost.map(function (k) { return unmatched[k]; }).slice(0, 3).join(", ") +
+          (lost.length > 3 ? "\u2026" : "") + ") and were left out of the line-ups.";
+      }
     }
     showToast(msg, lost.length ? "warning" : "success");
   }
