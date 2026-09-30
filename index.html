@@ -892,7 +892,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "31";
+  var APP_VERSION = "32";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -917,6 +917,7 @@
       upcoming: [],
       lastExportPrep: "",
       lastExportHistory: "",
+      backupNudgeSeen: "",
       lastExportCount: 0
     };
   }
@@ -966,6 +967,7 @@
         upcoming: up,
         lastExportPrep: carryPrepSignature(t.lastExportPrep, up),
         lastExportHistory: typeof t.lastExportHistory === "string" ? t.lastExportHistory : "",
+        backupNudgeSeen: typeof t.backupNudgeSeen === "string" ? t.backupNudgeSeen : "",
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
     });
@@ -2406,6 +2408,8 @@
         else render();
       };
     }
+    var backupDismiss = document.getElementById("backupDismissBtn");
+    if (backupDismiss) backupDismiss.onclick = dismissBackupNudge;
     var dismiss = document.getElementById("installDismissBtn");
     if (dismiss) dismiss.onclick = hideInstallHint;
   }
@@ -2530,7 +2534,7 @@
     // the coach isn't nudged after every single game.
     var edited = historyEdited();
     var prepMoved = prepChanged();
-    if (storageOk && (n >= 3 || prepMoved || edited)) {
+    if (storageOk && (n >= 3 || prepMoved || edited) && backupNudgeState() !== T().backupNudgeSeen) {
       var what = [];
       if (n >= 3) what.push(n + " matches recorded");
       if (edited) what.push("a match you changed");
@@ -2539,11 +2543,28 @@
           ? prep + (prep === 1 ? " prepared match" : " prepared matches")
           : "prepared matches you deleted");
       }
-      out += '<div class="notice notice-warn">' + esc(what.join(" and ")) +
+      out += '<div class="notice notice-warn">' +
+             '<div>' + esc(what.join(" and ")) +
              ' not in your last backup. Use <strong>Export team data</strong> to keep a copy \u2014 ' +
-             'it holds your prepared matches and line-up plans too.</div>';
+             'it holds your prepared matches and line-up plans too.</div>' +
+             '<button class="btn btn-ghost" id="backupDismissBtn" style="margin-top:10px;">Got it</button>' +
+             "</div>";
     }
     return out;
+  }
+
+  // What the reminder is currently about. Dismissing stores this, and the
+  // reminder stays away until the answer changes — so "got it" means gone for
+  // what you have now, not gone forever while the season piles up unsaved.
+  function backupNudgeState() {
+    return unexportedCount() + "|" + (historyEdited() ? "1" : "0") + "|" +
+           prepSignature(T().upcoming || []);
+  }
+
+  function dismissBackupNudge() {
+    T().backupNudgeSeen = backupNudgeState();
+    persist();
+    render();
   }
 
   function markExported(parts) {
@@ -3977,6 +3998,7 @@
       lastExportPrep: prepSignature(Array.isArray(data.upcoming)
         ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : []),
       lastExportHistory: historySignature(Array.isArray(data.history) ? data.history : []),
+      backupNudgeSeen: "",
       lastExportCount: Array.isArray(data.history) ? data.history.length : 0
     };
   }
@@ -4039,10 +4061,21 @@
           return;
         }
 
-        var lost = existing.history.length
-          ? "Replacing it deletes its " + existing.history.length +
-            (existing.history.length === 1 ? " recorded match." : " recorded matches.")
-          : "It has no recorded matches yet.";
+        // Import never merges — the team becomes exactly what the file holds — so
+        // the warning has to name everything that goes, not just the matches.
+        // Prepared matches used to disappear without ever being mentioned.
+        var goes = [];
+        if (existing.history.length) {
+          goes.push(existing.history.length +
+            (existing.history.length === 1 ? " recorded match" : " recorded matches"));
+        }
+        if ((existing.upcoming || []).length) {
+          goes.push(existing.upcoming.length +
+            (existing.upcoming.length === 1 ? " prepared match" : " prepared matches"));
+        }
+        var lost = goes.length
+          ? "Replacing it deletes its " + goes.join(" and ") + ", and puts the file's own in their place."
+          : "It has nothing recorded or prepared yet.";
         // Losing a game that is being played right now is worse than losing any
         // record of one already finished, so it is said first and plainly.
         if (existing.activeMatch) lost = "It has a match in progress that replacing would end. " + lost;
