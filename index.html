@@ -933,9 +933,14 @@
   // Declared here, not beside the planner: load() normalises saved plans on
   // startup, so this must already hold its value by then.
   // A period length is optional; it only drives the "running over" cue.
+  // Half minutes are real (8 periods in a 60-minute match is 7.5 each), and a
+  // Belgian keyboard types a comma, so "7,5" and "7.5" both mean seven and a
+  // half. Anything after the number is ignored ("15 min" is 15), as before.
   function cleanPeriodMinutes(v) {
-    var m = parseInt(v, 10);
-    return (m > 0 && m <= 60) ? m : null;   // parseInt gives NaN, and NaN > 0 is false
+    var hit = /^\s*(\d+(?:[.,]\d+)?)/.exec(String(v == null ? "" : v));
+    if (!hit) return null;
+    var m = Math.round(parseFloat(hit[1].replace(",", ".")) * 100) / 100;
+    return (m >= 1 && m <= 60) ? m : null;
   }
 
   var PLAN_FORMATS = [2, 4, 8];
@@ -944,7 +949,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "37";
+  var APP_VERSION = "38";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -2148,8 +2153,8 @@
               '<input class="text-input" type="date" id="prepDate" value="' + esc(dt[0]) + '">' +
               '<input class="text-input" type="time" id="prepTime" value="' + esc(dt[1]) + '">' +
             "</div>" +
-            '<label class="field-label" for="prepMins">Length of each half or quarter, in minutes (optional)</label>' +
-            '<input class="text-input" id="prepMins" inputmode="numeric" maxlength="2" placeholder="e.g. 15" value="' +
+            '<label class="field-label" for="prepMins">Length of each half, quarter or period, in minutes (optional)</label>' +
+            '<input class="text-input" id="prepMins" inputmode="decimal" maxlength="5" placeholder="e.g. 15 or 7,5" value="' +
               esc(entry.periodMinutes || "") + '">' +
             (roster.length
               ? '<label class="field-label">Who can’t make it?</label>' +
@@ -2825,7 +2830,7 @@
       ["Several teams", "Tap <strong>Switch</strong> at the top of the Team screen to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
-      ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on."],
+      ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
       ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed button below the grid for the opponent's goals."],
       ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
@@ -4919,8 +4924,8 @@
                 '<button class="btn toggle-seg' + (pendingIsHome ? " on" : "") + '" id="homeBtn">Home</button>' +
                 '<button class="btn toggle-seg' + (pendingIsHome ? "" : " on") + '" id="awayBtn">Away</button>' +
               '</div>' +
-              '<label class="field-label" for="periodMinsInput">Length of each half or quarter, in minutes (optional)</label>' +
-              '<input class="text-input" id="periodMinsInput" inputmode="numeric" maxlength="2" placeholder="e.g. 15" value="' +
+              '<label class="field-label" for="periodMinsInput">Length of each half, quarter or period, in minutes (optional)</label>' +
+              '<input class="text-input" id="periodMinsInput" inputmode="decimal" maxlength="5" placeholder="e.g. 15 or 7,5" value="' +
                 esc(pendingPeriodMinutes || "") + '">' +
               (T().settings.planLineups
                 ? '<label class="field-label">Match format</label>' +
