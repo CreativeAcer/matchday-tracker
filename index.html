@@ -922,7 +922,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "34";
+  var APP_VERSION = "35";
   var APP_BUILT = "2026-09-26";
 
   function uid() {
@@ -1671,7 +1671,8 @@
     return "Quarter " + (index + 1);
   }
   function periodShort(periods, index) {
-    if (periods === 2) return index === 0 ? "1st" : "2nd";
+    if (periods === 2 && index <= 1) return index === 0 ? "1st" : "2nd";
+    if (periods === 2) return "P" + (index + 1);   // past the second half
     return (periods === 8 ? "P" : "Q") + (index + 1);
   }
 
@@ -1696,6 +1697,18 @@
   }
 
   // What applying this period would change, so it can be shown before it happens.
+  // Marked as not coming, and not on the pitch at any point since. A child
+  // who turns up late and is brought on is simply present from then on —
+  // for the plan, for the break proposals and for the least-played marker.
+  function isAbsent(match, pid) {
+    if (!match || (match.unavailable || []).indexOf(pid) === -1) return false;
+    var pt = match.playingTime && match.playingTime[pid];
+    return !(pt && (pt.onField || pt.accumMs > 0));
+  }
+  function absentIds(match) {
+    return (match && match.unavailable || []).filter(function (pid) { return isAbsent(match, pid); });
+  }
+
   function planChanges(match, period) {
     var row = planLineup(match && match.plan, period);
     if (!row) return null;
@@ -1705,6 +1718,7 @@
     (T().roster || []).forEach(function (p) {
       var pt = match.playingTime && match.playingTime[p.id];
       if (pt && pt.sentOff) return; // a red card outranks any plan
+      if (isAbsent(match, p.id)) return; // not at the pitch today
       var now = isOnField(match, p.id);
       if (want[p.id] && !now) on.push(p.id);
       if (!want[p.id] && now) off.push(p.id);
@@ -1895,7 +1909,7 @@
       showLineupPlanner(match.plan, match.plan.periods, function (p) {
         match.plan = p; persist(); render();
         proposePlanAtBreak(match, note);
-      });
+      }, absentIds(match));
     };
     return true;
   }
@@ -1916,7 +1930,10 @@
       unavailable: Array.isArray(u.unavailable)
         ? u.unavailable.filter(function (x) { return typeof x === "string"; }) : [],
       periodMinutes: cleanPeriodMinutes(u.periodMinutes),
-      plan: normalisePlan(u.plan)
+      plan: normalisePlan(u.plan),
+      // When it was last edited, so a merge can tell an old backup from a
+      // newer change instead of letting whichever arrives last win.
+      updatedAt: typeof u.updatedAt === "number" ? u.updatedAt : 0
     };
   }
 
@@ -1961,6 +1978,7 @@
   }
 
   function saveUpcoming(entry) {
+    entry.updatedAt = Date.now();
     var list = T().upcoming || (T().upcoming = []);
     var i = -1;
     list.forEach(function (u, k) { if (u.id === entry.id) i = k; });
@@ -2426,9 +2444,13 @@
     return "";
   }
 
+  // The notices are drawn into every screen, and a screen that isn't showing
+  // keeps its old copy. Looking a button up by id found the hidden Match
+  // screen's copy first, so on Team and History "Got it", "Install" and
+  // "Not now" did nothing. Every copy is wired instead.
   function wireNotices() {
-    var install = document.getElementById("installBtn");
-    if (install) {
+    var all = function (id) { return document.querySelectorAll('[id="' + id + '"]'); };
+    all("installBtn").forEach(function (install) {
       install.onclick = function () {
         if (!deferredInstall) return;
         deferredInstall.prompt();
@@ -2437,11 +2459,9 @@
         if (choice && choice.then) choice.then(function () { render(); });
         else render();
       };
-    }
-    var backupDismiss = document.getElementById("backupDismissBtn");
-    if (backupDismiss) backupDismiss.onclick = dismissBackupNudge;
-    var dismiss = document.getElementById("installDismissBtn");
-    if (dismiss) dismiss.onclick = hideInstallHint;
+    });
+    all("backupDismissBtn").forEach(function (b) { b.onclick = dismissBackupNudge; });
+    all("installDismissBtn").forEach(function (b) { b.onclick = hideInstallHint; });
   }
 
   function unexportedCount() {
@@ -3073,11 +3093,9 @@
     // only ever land on someone who CAN come on. A player who isn't at the
     // pitch today, or who has been sent off, sits on nought minutes forever and
     // would otherwise hold the marker for the whole match.
-    var absent = {};
-    (match.unavailable || []).forEach(function (pid) { absent[pid] = true; });
     var eligible = T().roster.filter(function (p) {
       var pt = match.playingTime && match.playingTime[p.id];
-      return !absent[p.id] && !(pt && pt.sentOff);
+      return !isAbsent(match, p.id) && !(pt && pt.sentOff);
     });
     var lowest = Infinity;
     eligible.forEach(function (p) {
@@ -3128,6 +3146,14 @@
       match.clock.runningSince = null;
     }
     var over = periodOverrunMs(match);
+    // Remembered so that Undo, pressed before anything else is logged, takes
+    // the break back. Without it Undo reached past the break and deleted the
+    // last real goal, and the wrong period could never be left.
+    match.lastAdvance = {
+      fromPeriod: match.period || 1,
+      periodStartMs: typeof match.periodStartMs === "number" ? match.periodStartMs : null,
+      eventsLen: match.events.length
+    };
     match.period = (match.period || 1) + 1;
     match.periodStartMs = clockElapsedMs(match);
     persist();
@@ -3156,9 +3182,31 @@
     return "last action";
   }
 
+  function breakIsLast(match) {
+    var adv = match && match.lastAdvance;
+    return !!(adv && match.events.length === adv.eventsLen);
+  }
+
   function undoLast() {
     var match = T().activeMatch;
-    if (!match || match.events.length === 0) return;
+    if (!match) return;
+    if (breakIsLast(match)) {
+      var adv = match.lastAdvance;
+      match.period = adv.fromPeriod;
+      if (typeof adv.periodStartMs === "number") match.periodStartMs = adv.periodStartMs;
+      else delete match.periodStartMs;
+      delete match.lastAdvance;
+      pendingAssistEventId = null;
+      lastEventTapAt = {};
+      persist();
+      render();
+      // The clock is only paused if nothing restarted it since the break; when
+      // it is already running, telling the coach to start it would be wrong.
+      showToast("Break undone \u2014 back to " + periodTag(match) + "." +
+        (match.clock && match.clock.running ? "" : " Start the clock to carry on."));
+      return;
+    }
+    if (match.events.length === 0) return;
     var removed = match.events.pop();
     // An auto-red is a consequence, not an action: also remove the yellow that triggered it.
     if (removed.type === "card" && removed.cardType === "red" && removed.auto) {
@@ -3186,12 +3234,21 @@
       if (match.events[i].id === eventId) { idx = i; break; }
     }
     if (idx === -1) return;
+    // An automatic red follows from two yellows; removing it on its own just
+    // brings it straight back while the toast said "Removed".
+    if (autoRedRefused(match.events[idx])) return;
     var removed = match.events.splice(idx, 1)[0];
     if (pendingAssistEventId === eventId) pendingAssistEventId = null;
     lastEventTapAt = {};
     reconcileCardConsequences(match, [removed.playerId]);
     afterEdit(match);
     showToast("Removed: " + describeEvent(removed));
+  }
+
+  function autoRedRefused(ev) {
+    if (!(ev && ev.type === "card" && ev.cardType === "red" && ev.auto)) return false;
+    showToast("This red card comes from two yellows \u2014 change or remove one of the yellows instead.", "warning");
+    return true;
   }
 
   function reconcileCardConsequences(match, playerIds) {
@@ -3262,8 +3319,30 @@
     rec.ownGoalsAgainst = stats.ownGoalsAgainst;
   }
 
+  // A finished match keeps its own copy of the squad, so names survive later
+  // changes. A player picked during an edit who wasn't in that copy — someone
+  // added since — has to go into it, or removing them later turns their goal
+  // into "Unknown".
+  function keepNamesInRecord(rec) {
+    rec.rosterSnapshot = rec.rosterSnapshot || [];
+    var have = {};
+    rec.rosterSnapshot.forEach(function (p) { have[p.id] = true; });
+    (rec.events || []).forEach(function (e) {
+      [e.playerId, e.assistId].forEach(function (pid) {
+        if (!pid || have[pid]) return;
+        var p = rosterById(pid);
+        if (!p) return;
+        rec.rosterSnapshot.push({ id: p.id, name: p.name, number: p.number });
+        have[pid] = true;
+      });
+    });
+  }
+
   function afterEdit(container) {
-    if (editMatchId && container) recomputeRecord(container);
+    if (editMatchId && container) {
+      keepNamesInRecord(container);
+      recomputeRecord(container);
+    }
     persist();
     render();
     if (matchEditRedraw) matchEditRedraw();
@@ -3387,6 +3466,7 @@
     if (!match) return;
     var ev = findEvent(match, eventId);
     if (!ev || (ev.type !== "goal" && ev.type !== "card" && ev.type !== "own_goal")) return;
+    if (autoRedRefused(ev)) return;
 
     var old = document.getElementById("editOverlay");
     if (old) old.remove();
@@ -3879,11 +3959,155 @@
   // or a squad shared between coaches — the difference is the coach's intent,
   // which the sheet asks for instead of guessing from the file's shape.
 
+  // An import file can come from anyone. Names are escaped wherever they are
+  // shown, but ids and numbers are written into the page as they are — so a
+  // crafted file could put its own script into an attribute and have it run on
+  // this device, and run again on every open once saved. Everything that ends
+  // up in such a place is forced into a safe shape here, once, at the door.
+  // Replacement ids are consistent within the file, so references between its
+  // parts still line up. Entries that aren't objects at all (a null match, a
+  // null event) are dropped: they used to crash the import or blank the app.
+  function sanitiseImport(data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    var SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+    var swap = {};
+    function sid(v) {
+      if (v === null || v === undefined || v === "") return v;
+      var t = String(v);
+      if (SAFE_ID.test(t)) return t;
+      if (!swap[t]) swap[t] = uid();
+      return swap[t];
+    }
+    function num(v) { var n = Number(v); return Number.isFinite(n) ? n : 0; }
+    function str(v) { return typeof v === "string" ? v : (v == null ? "" : String(v)); }
+    function objs(a) {
+      return Array.isArray(a) ? a.filter(function (x) {
+        return x && typeof x === "object" && !Array.isArray(x);
+      }) : [];
+    }
+    function ids(a) { return Array.isArray(a) ? a.map(sid).filter(Boolean) : []; }
+    function player(p) { return { id: sid(p.id) || uid(), name: str(p.name), number: str(p.number) }; }
+    function tally(o, cards) {
+      var out = {};
+      if (!o || typeof o !== "object" || Array.isArray(o)) return out;
+      Object.keys(o).forEach(function (k) {
+        out[sid(k)] = cards
+          ? (Array.isArray(o[k]) ? o[k] : []).filter(function (c) { return c === "yellow" || c === "red"; })
+          : num(o[k]);
+      });
+      return out;
+    }
+    function event(e) {
+      var out = Object.assign({}, e);
+      out.id = sid(e.id) || uid();
+      out.type = str(e.type);
+      if ("playerId" in e) out.playerId = e.playerId == null ? null : sid(e.playerId);
+      if ("assistId" in e) out.assistId = e.assistId == null ? null : sid(e.assistId);
+      if (e.cardType != null) out.cardType = e.cardType === "red" ? "red" : "yellow";
+      if (e.by != null) out.by = e.by === "us" ? "us" : "them";
+      if (e.minuteAtEvent != null) out.minuteAtEvent = num(e.minuteAtEvent);
+      if (e.period != null) out.period = num(e.period) || 1;
+      if (e.ts != null) out.ts = num(e.ts);
+      return out;
+    }
+    function plan(p) {
+      if (!p || typeof p !== "object") return null;
+      return { periods: num(p.periods),
+               lineups: Array.isArray(p.lineups) ? p.lineups.map(ids) : [] };
+    }
+    function record(r) {
+      var out = Object.assign({}, r);
+      out.id = sid(r.id) || uid();
+      out.opponentName = str(r.opponentName);
+      if (r.teamName != null) out.teamName = str(r.teamName);
+      out.isHome = r.isHome !== false;
+      out.scoreUs = num(r.scoreUs);
+      out.scoreThem = num(r.scoreThem);
+      out.ownGoalsFor = num(r.ownGoalsFor);
+      out.ownGoalsAgainst = num(r.ownGoalsAgainst);
+      if (r.durationMinutes != null) out.durationMinutes = num(r.durationMinutes);
+      if (typeof r.date !== "string" && typeof r.date !== "number") out.date = "";
+      out.scorers = tally(r.scorers);
+      out.assists = tally(r.assists);
+      out.playingTimeMinutes = tally(r.playingTimeMinutes);
+      out.cards = tally(r.cards, true);
+      out.rosterSnapshot = objs(r.rosterSnapshot).map(player);
+      out.events = objs(r.events).map(event);
+      return out;
+    }
+    function upcoming(u) {
+      var out = Object.assign({}, u);
+      out.id = sid(u.id) || uid();
+      out.opponentName = str(u.opponentName);
+      out.kickoffAt = str(u.kickoffAt);
+      out.unavailable = ids(u.unavailable);
+      out.plan = plan(u.plan);
+      if (u.updatedAt != null) out.updatedAt = num(u.updatedAt);
+      return out;
+    }
+    function live(m) {
+      if (!m || typeof m !== "object" || Array.isArray(m)) return null;
+      var out = Object.assign({}, m);
+      out.id = sid(m.id) || uid();
+      out.opponentName = str(m.opponentName);
+      out.isHome = m.isHome !== false;
+      out.period = num(m.period) || 1;
+      if (m.periodFormat != null) out.periodFormat = num(m.periodFormat);
+      if (m.periodStartMs != null) out.periodStartMs = num(m.periodStartMs);
+      out.events = objs(m.events).map(event);
+      var pt = {};
+      if (m.playingTime && typeof m.playingTime === "object" && !Array.isArray(m.playingTime)) {
+        Object.keys(m.playingTime).forEach(function (k) {
+          var v = m.playingTime[k];
+          if (!v || typeof v !== "object") return;
+          pt[sid(k)] = { onField: !!v.onField, accumMs: Math.max(0, num(v.accumMs)),
+                         onSince: v.onSince == null ? null : num(v.onSince),
+                         sentOff: !!v.sentOff,
+                         wasOnFieldBeforeSendOff: v.wasOnFieldBeforeSendOff === false ? false
+                           : (v.wasOnFieldBeforeSendOff === true ? true : undefined) };
+        });
+        out.playingTime = pt;
+      } else {
+        out.playingTime = null;
+      }
+      out.unavailable = ids(m.unavailable);
+      if (m.startingLineup != null) out.startingLineup = ids(m.startingLineup);
+      out.plan = plan(m.plan);
+      out.clock = { running: false,
+                    elapsedMs: Math.max(0, num(m.clock && m.clock.elapsedMs)),
+                    runningSince: null };
+      // An undo-able break belongs to the device it happened on.
+      delete out.lastAdvance;
+      return out;
+    }
+    var set = null;
+    if (data.settings && typeof data.settings === "object") {
+      set = {};
+      Object.keys(defaultSettings()).forEach(function (k) {
+        if (k in data.settings) set[k] = !!data.settings[k];
+      });
+    }
+    return {
+      exportedFrom: str(data.exportedFrom),
+      teamName: str(data.teamName) || "My Team",
+      roster: Array.isArray(data.roster) ? objs(data.roster).map(player) : undefined,
+      playerRefs: Array.isArray(data.playerRefs) ? objs(data.playerRefs).map(player) : undefined,
+      settings: set,
+      history: Array.isArray(data.history) ? objs(data.history).map(record) : undefined,
+      upcoming: Array.isArray(data.upcoming) ? objs(data.upcoming).map(upcoming) : undefined,
+      activeMatch: live(data.activeMatch),
+      lastLineup: Array.isArray(data.lastLineup) ? ids(data.lastLineup) : undefined,
+      lastPlan: plan(data.lastPlan),
+      lastPeriodMinutes: data.lastPeriodMinutes
+    };
+  }
+
   // What a file actually holds, whatever shape it arrived in. A file with no
   // squad of its own still carries the names behind its matches and line-ups,
   // so those stand in as the roster.
   function readImportFile(data) {
-    if (!data || typeof data !== "object") return null;
+    data = sanitiseImport(data);
+    if (!data) return null;
     var rawRoster = Array.isArray(data.roster) ? data.roster
       : (Array.isArray(data.playerRefs) ? data.playerRefs : []);
     var file = {
@@ -3920,21 +4144,29 @@
       return String(nm || "").trim().toLowerCase() + "#" + String(num || "").trim();
     };
     var looseOf = function (nm) { return String(nm || "").trim().toLowerCase(); };
-    var exact = {}, byName = {}, nameCount = {};
+    var mine = {}, exact = {}, byName = {}, nameCount = {}, fileNameCount = {};
     (myRoster || []).forEach(function (p) {
+      mine[p.id] = true;
       exact[keyOf(p.name, p.number)] = p.id;
       var n = looseOf(p.name);
       nameCount[n] = (nameCount[n] || 0) + 1;
       if (!byName[n]) byName[n] = p.id;
     });
+    (fileRoster || []).forEach(function (p) {
+      var n = looseOf(p.name);
+      fileNameCount[n] = (fileNameCount[n] || 0) + 1;
+    });
     var map = {}, unmatched = [], matched = 0;
     (fileRoster || []).forEach(function (p) {
-      var hit = exact[keyOf(p.name, p.number)];
+      // The same id is the same child, however the name is spelt: a name
+      // corrected on one device must not come back as a second player.
+      var hit = mine[p.id] ? p.id : exact[keyOf(p.name, p.number)];
       if (!hit) {
-        // Only when the name points at exactly one player here. Two children
-        // called Romeo must never be guessed between.
+        // Only when the name points at exactly one child on BOTH sides. Two
+        // children called Romeo must never be guessed between — not here,
+        // and not in the file either.
         var n = looseOf(p.name);
-        if (nameCount[n] === 1) hit = byName[n];
+        if (nameCount[n] === 1 && fileNameCount[n] === 1) hit = byName[n];
       }
       if (hit) { map[p.id] = hit; matched++; }
       else unmatched.push(p);
@@ -3986,13 +4218,39 @@
     return copy;
   }
 
+  // A match in progress from another device points at that device's ids.
+  function remapLive(m, map) {
+    var f = function (id) { return (id && map[id]) || id; };
+    var copy = Object.assign({}, m);
+    copy.playingTime = remapTally(m.playingTime, map);
+    copy.events = (m.events || []).map(function (e) {
+      var ne = Object.assign({}, e);
+      if (ne.playerId) ne.playerId = f(ne.playerId);
+      if (ne.assistId) ne.assistId = f(ne.assistId);
+      return ne;
+    });
+    copy.unavailable = (m.unavailable || []).map(f);
+    if (m.startingLineup) copy.startingLineup = m.startingLineup.map(f);
+    if (m.plan) copy.plan = { periods: m.plan.periods,
+      lineups: (m.plan.lineups || []).map(function (r) { return r.map(f); }) };
+    return copy;
+  }
+
+  // Dates are stored as ISO strings, which cannot simply be subtracted.
+  function dateMs(v) {
+    if (typeof v === "number") return v;
+    var t = Date.parse(v);
+    return isNaN(t) ? 0 : t;
+  }
+
   // The one function that decides what a merge does. The preview on the sheet
   // and the button that commits it both call this, so the sentence the coach
   // reads cannot disagree with what actually happens.
   function mergeIntoTeam(target, file, parts) {
     var t = JSON.parse(JSON.stringify(target));
     var s = { playersAdded: 0, playersMatched: 0, matchesAdded: 0, matchesKept: 0,
-              prepAdded: 0, prepUpdated: 0, planTurnedOn: false, liveRestored: false,
+              prepAdded: 0, prepUpdated: 0, prepSame: 0, prepKeptNewer: 0,
+              planTurnedOn: false, liveRestored: false, liveSkipped: "",
               unmatchedNames: [],
               // A file with prepared matches but no names at all can only have
               // come from a version before the names travelled.
@@ -4016,6 +4274,19 @@
     }
 
     if (parts.history) {
+      // Someone removed from the other device's squad still appears in the
+      // matches they played. Matching them too keeps one child one row in the
+      // season totals; they are never added to the squad from here.
+      var inFile = {}, extra = [], seenExtra = {};
+      file.roster.forEach(function (p) { inFile[p.id] = true; });
+      file.history.forEach(function (r) {
+        (r.rosterSnapshot || []).forEach(function (p) {
+          if (!inFile[p.id] && !mp.map[p.id] && !seenExtra[p.id]) { seenExtra[p.id] = true; extra.push(p); }
+        });
+      });
+      var mpExtra = matchPlayers(extra, t.roster);
+      Object.keys(mpExtra.map).forEach(function (k) { mp.map[k] = mpExtra.map[k]; });
+
       var seen = {};
       t.history.forEach(function (r) { seen[r.id] = true; });
       file.history.forEach(function (r) {
@@ -4027,9 +4298,13 @@
         seen[r.id] = true;
         s.matchesAdded++;
       });
-      t.history.sort(function (a, b) { return (b.date || 0) - (a.date || 0); });
+      t.history.sort(function (a, b) { return dateMs(b.date) - dateMs(a.date); });
     }
 
+    var planArrived = false;
+    var hasPlan = function (u) {
+      return !!(u.plan && u.plan.lineups.some(function (r) { return r.length; }));
+    };
     if (parts.prep) {
       t.upcoming = t.upcoming || [];
       file.upcoming.forEach(function (u) {
@@ -4038,25 +4313,50 @@
         for (var i = 0; i < t.upcoming.length; i++) {
           if (t.upcoming[i].id === mapped.id) { at = i; break; }
         }
-        if (at === -1) { t.upcoming.push(mapped); s.prepAdded++; }
-        else { t.upcoming[at] = mapped; s.prepUpdated++; }
+        if (at === -1) {
+          t.upcoming.push(mapped); s.prepAdded++;
+          if (hasPlan(mapped)) planArrived = true;
+          return;
+        }
+        var here = t.upcoming[at];
+        // Identical is not an update — re-importing the same file changes
+        // nothing and should say so.
+        if (prepSignature([here]) === prepSignature([mapped])) { s.prepSame++; return; }
+        // Otherwise the most recent edit wins, the same rule as for matches:
+        // restoring an old backup must not undo a line-up changed since.
+        // With no timestamp on either side (made before they existed) the
+        // file wins, which is what re-sending an updated prep relies on.
+        var fileAt = mapped.updatedAt || 0, hereAt = here.updatedAt || 0;
+        if (fileAt > hereAt || (!fileAt && !hereAt)) {
+          t.upcoming[at] = mapped; s.prepUpdated++;
+          if (hasPlan(mapped)) planArrived = true;
+        } else {
+          s.prepKeptNewer++;
+        }
       });
     }
 
     // A line-up plan is useless on a device where the option is off: it would
     // be stored and then ignored at kick-off, quietly fielding the whole squad.
-    var planArrived = (t.upcoming || []).some(function (u) {
-      return u.plan && u.plan.lineups.some(function (r) { return r.length; });
-    });
+    // Only a plan that actually came in from the file counts; one already here
+    // is the coach's own business.
     if (parts.prep && planArrived && !t.settings.planLineups) {
       t.settings.planLineups = true;
       s.planTurnedOn = true;
     }
 
-    // A match being played here is never displaced by one from a file.
-    if (parts.history && !t.activeMatch) {
-      var live = restoredActiveMatch({ activeMatch: file.raw.activeMatch, roster: t.roster });
-      if (live) { t.activeMatch = live; s.liveRestored = true; }
+    // A match being played here is never displaced by one from a file. The
+    // file's match points at the other device's player ids, so it goes
+    // through the same mapping as everything else before it is checked.
+    if (parts.history && file.raw.activeMatch) {
+      if (t.activeMatch) {
+        s.liveSkipped = "busy";
+      } else {
+        var live = restoredActiveMatch({ activeMatch: remapLive(file.raw.activeMatch, mp.map),
+                                         roster: t.roster });
+        if (live) { t.activeMatch = live; s.liveRestored = true; }
+        else s.liveSkipped = "invalid";
+      }
     }
 
     return { team: t, summary: s };
@@ -4098,14 +4398,22 @@
       adds.push(summary.prepAdded + (summary.prepAdded === 1
         ? " prepared match" : " prepared matches"));
     }
-    if (parts.prep && summary.prepUpdated) {
-      adds.push("updates " + summary.prepUpdated +
-        (summary.prepUpdated === 1 ? " prepared match" : " prepared matches"));
-    }
+    // Updates are a different verb from adds; folding them into one list read
+    // as "Adds updates 1 prepared match".
+    var upd = (parts.prep && summary.prepUpdated)
+      ? summary.prepUpdated + (summary.prepUpdated === 1 ? " prepared match" : " prepared matches")
+      : "";
     var out;
-    if (!adds.length && summary.liveRestored) out = "Picks up the match in progress. Nothing is removed.";
-    else if (!adds.length) out = "Nothing new to add — everything selected is already here.";
-    else out = "Adds " + adds.join(", ") + ". Nothing is removed.";
+    if (adds.length && upd) out = "Adds " + adds.join(", ") + " and updates " + upd + ". Nothing is removed.";
+    else if (adds.length) out = "Adds " + adds.join(", ") + ". Nothing is removed.";
+    else if (upd) out = "Updates " + upd + ". Nothing is removed.";
+    else if (summary.liveRestored) out = "Picks up the match in progress. Nothing is removed.";
+    else out = "Nothing new to add — everything selected is already here.";
+    if (parts.prep && summary.prepKeptNewer) {
+      out += " " + summary.prepKeptNewer + (summary.prepKeptNewer === 1
+        ? " prepared match was changed more recently here and is left as it is."
+        : " prepared matches were changed more recently here and are left as they are.");
+    }
     if (parts.history && summary.matchesKept) {
       out += " " + summary.matchesKept + (summary.matchesKept === 1
         ? " match was already here and is left as it is."
@@ -4123,7 +4431,14 @@
              "and doesn’t carry the player names. Ask for a fresh export.";
     }
     if (summary.planTurnedOn) out += " Line-up plan gets switched on, so the plan in the file is used.";
-    if (summary.liveRestored) out += " The match in progress in the file is restored, with its clock stopped.";
+    if (summary.liveRestored && (adds.length || upd)) {
+      out += " The match in progress in the file is restored, with its clock stopped.";
+    }
+    if (summary.liveSkipped === "busy") {
+      out += " The match in progress in the file is left out: this team already has one running.";
+    } else if (summary.liveSkipped === "invalid") {
+      out += " The match in progress in the file couldn’t be matched to your players and is left out.";
+    }
     return out;
   }
 
@@ -4172,7 +4487,18 @@
         '<span class="radio' + (mode === key ? " on" : "") + '"></span></button>';
     }
 
+    // A file that is broken in a way nothing above caught must not leave a
+    // dimmed, empty layer over the app that neither a tap nor Escape removes.
     function draw() {
+      try { drawSheet(); }
+      catch (err) {
+        console.error(err);
+        overlay.remove();
+        showToast("That file couldn\u2019t be read \u2014 nothing was changed.", "error");
+      }
+    }
+
+    function drawSheet() {
       var summary = null, anyPart = parts.players || parts.history || parts.prep;
       if (mode === "merge") summary = mergeIntoTeam(target, file, parts).summary;
       var says = describeImport(mode, file, target, parts, summary);
@@ -4255,6 +4581,26 @@
   }
 
   function applyImport(file, target, mode, parts) {
+    try {
+      applyImportNow(file, target, mode, parts);
+    } catch (err) {
+      // Whatever goes wrong, the coach hears about it; a sheet that closes and
+      // does nothing reads as "it worked".
+      console.error(err);
+      showToast("That import couldn\u2019t be completed \u2014 nothing was changed.", "error");
+    }
+  }
+
+  function applyImportNow(file, target, mode, parts) {
+    // The sheet may have been open for a while, and another open copy of the
+    // app can have saved in the meantime. Work on the team as it is now, not
+    // as it was when the sheet opened, or that other copy's work is undone.
+    var current = teamById(target.id);
+    if (!current && mode !== "new") {
+      showToast("That team is no longer on this device \u2014 nothing was imported.", "warning");
+      return;
+    }
+    target = current || target;
     if (mode === "merge") {
       var res = mergeIntoTeam(target, file, parts);
       state.teams = state.teams.map(function (t) { return t.id === target.id ? res.team : t; });
@@ -4269,10 +4615,19 @@
       if (s.playersAdded) done.push(s.playersAdded + (s.playersAdded === 1 ? " player" : " players"));
       if (s.matchesAdded) done.push(s.matchesAdded + (s.matchesAdded === 1 ? " match" : " matches"));
       if (s.prepAdded) done.push(s.prepAdded + (s.prepAdded === 1 ? " prepared match" : " prepared matches"));
-      if (s.prepUpdated) done.push(s.prepUpdated + " updated");
       var msg = done.length
         ? "Added " + done.join(", ") + " to " + res.team.teamName + "."
-        : "Nothing new to add — " + res.team.teamName + " already had it all.";
+        : (s.prepUpdated ? "" : "Nothing new to add \u2014 " + res.team.teamName + " already had it all.");
+      if (s.prepUpdated) {
+        msg += (msg ? " " : "") + "Updated " + s.prepUpdated +
+          (s.prepUpdated === 1 ? " prepared match." : " prepared matches.");
+      }
+      if (s.prepKeptNewer) {
+        msg += " " + s.prepKeptNewer + (s.prepKeptNewer === 1
+          ? " prepared match was newer here and kept." : " prepared matches were newer here and kept.");
+      }
+      if (s.liveSkipped === "busy") msg += " The match in progress in the file was left out: one is already running here.";
+      if (s.liveSkipped === "invalid") msg += " The match in progress in the file couldn\u2019t be matched to your players.";
       // The sheet said this would happen, but the sheet is gone now, so it is
       // worth saying again: a setting changed without being asked for.
       if (s.planTurnedOn) msg += " Line-up plan is now switched on, so the plan in that file will be used.";
@@ -4281,7 +4636,7 @@
         msg += " The line-ups stayed empty: that file was made by an older version and doesn’t " +
                "carry the player names. Ask for a fresh export.";
       }
-      showToast(msg, (done.length || s.liveRestored) ? "success" : "warning");
+      showToast(msg, (done.length || s.prepUpdated || s.liveRestored) ? "success" : "warning");
       return;
     }
 
@@ -4295,11 +4650,25 @@
       // The names always travel, or the matches and line-ups mean nothing.
       payload.roster = file.roster.slice();
     }
+    // A file exported without its squad carries only the names behind its
+    // matches. Replace used to hand that on as-is and crash on the missing
+    // roster, closing the sheet with nothing done and nothing said.
+    if (!Array.isArray(payload.roster)) payload.roster = file.roster.slice();
     var built = teamFromImport(payload, mode === "replace" ? target.id : null);
     if (mode === "new" && built.teamName === target.teamName) {
       built.teamName = built.teamName + " (imported)";
     }
-    finishImport(built, mode === "replace" ? target.id : null);
+    // Same rule as a merge: a line-up plan that arrives on a team where the
+    // option is off would be silently ignored at kick-off.
+    var note = "";
+    var planIn = (built.upcoming || []).some(function (u) {
+      return u.plan && u.plan.lineups.some(function (r) { return r.length; });
+    });
+    if (planIn && !built.settings.planLineups) {
+      built.settings.planLineups = true;
+      note = " Line-up plan is now switched on, so the plan in that file will be used.";
+    }
+    finishImport(built, mode === "replace" ? target.id : null, note);
   }
 
   // A match in progress only comes back if the file actually carries one and it
@@ -4331,6 +4700,8 @@
     }
 
     var copy = Object.assign({}, m);
+    copy.events = m.events.filter(function (e) { return e && typeof e === "object"; });
+    delete copy.lastAdvance;
     // Give every player a record. isOnField() treats a missing one as "on the
     // pitch", so a gap here would put benched players back on and, worse, a
     // missing playingTime object blanked the match screen on every open.
@@ -4385,7 +4756,7 @@
     };
   }
 
-  function finishImport(team, replacedId) {
+  function finishImport(team, replacedId, note) {
     if (replacedId) {
       state.teams = state.teams.map(function (t) { return t.id === replacedId ? team : t; });
     } else {
@@ -4401,7 +4772,7 @@
       showToast("Imported " + team.teamName + " — " + team.roster.length +
         " players. The match in progress in that file couldn't be restored.", "warning");
     } else {
-      showToast("Imported " + team.teamName + " — " + team.roster.length + " players.");
+      showToast("Imported " + team.teamName + " \u2014 " + team.roster.length + " players." + (note || ""));
     }
     importDroppedMatch = false;
   }
@@ -4434,7 +4805,7 @@
 
     var match = T().activeMatch;
     document.getElementById("scoreboardBar").classList.toggle("hidden", !match && view !== "summary");
-    document.getElementById("undoBtn").disabled = !match || match.events.length === 0;
+    document.getElementById("undoBtn").disabled = !match || (match.events.length === 0 && !breakIsLast(match));
     document.getElementById("clockBtn").style.visibility = match ? "visible" : "hidden";
 
     if (match) {
@@ -4562,8 +4933,16 @@
         document.getElementById("kickoffBtn").onclick = function () {
           readKickoffFields();
           var pm = document.getElementById("periodMinsInput");
+          // The same rule the summary line above the button uses: a plan made
+          // for another format is no plan at all. Kicking off used to fall
+          // back to last week's four quarters after "8 periods" was chosen.
+          var chosenPlan = pendingPlan || T().lastPlan;
+          if (T().settings.planLineups) {
+            var np = normalisePlan(chosenPlan);
+            if (!np || np.periods !== pendingPeriods) chosenPlan = null;
+          }
           startNewMatch(pendingOpponentName, pendingIsHome,
-            pendingPlan || T().lastPlan, null, pm ? pm.value : null,
+            chosenPlan, null, pm ? pm.value : null,
             T().settings.planLineups ? pendingPeriods : null);
           pendingPlan = null;
           pendingFormatSet = false;
@@ -4657,8 +5036,8 @@
     if (mpb) mpb.onclick = function () {
       showLineupPlanner(match.plan, match.plan.periods, function (plan) {
         match.plan = plan; persist(); render();
-        showToast("Plan saved — it is proposed at the next break.");
-      });
+        showToast("Plan saved \u2014 it is proposed at the next break.");
+      }, absentIds(match));
     };
     document.getElementById("ownGoalBtn").onclick = showOwnGoalPicker;
     document.getElementById("endMatchBtn").onclick = function () {
@@ -5118,7 +5497,20 @@
     // The clock was clearly left running rather than played. The match itself is
     // never discarded — only the clock is rewound to something plausible, since
     // it exists to timestamp events, not to be authoritative.
-    var recovered = match.events.length ? lastEventElapsedMs(match) + 60000 : 0;
+    // Rewound to just after the last thing that really happened. That used to
+    // mean the last logged event only, which ignored substitutions and breaks:
+    // a player benched at 30' then showed more minutes than the whole match,
+    // and whoever came on at 30' ended with none. Banked minutes, the moment
+    // anyone came on, and the start of the period are all real activity.
+    var act = match.events.length ? lastEventElapsedMs(match) : 0;
+    Object.keys(match.playingTime || {}).forEach(function (pid) {
+      var pt = match.playingTime[pid];
+      if (!pt) return;
+      if (typeof pt.onSince === "number" && pt.onSince > act) act = pt.onSince;
+      if (typeof pt.accumMs === "number" && pt.accumMs > act) act = pt.accumMs;
+    });
+    if (typeof match.periodStartMs === "number" && match.periodStartMs > act) act = match.periodStartMs;
+    var recovered = act > 0 ? act + 60000 : 0;
     match.clock.elapsedMs = recovered;
     // Rewinding can leave the period mark after the clock — which would block
     // the next break until the lost time had been played again. When that
@@ -5185,8 +5577,12 @@
     try { incoming = migrate(JSON.parse(e.newValue)); } catch (err) { return; }
     state = incoming;
     pendingAssistEventId = null;
+    // An open sheet holds references into the state that was just replaced.
+    // Acting on it would write the old state back — a break sheet "applied"
+    // a line-up that was never saved. Closing it is the honest option.
+    document.querySelectorAll(".overlay").forEach(function (o) { o.remove(); });
     render();
-    showToast("Updated — this match is also open somewhere else.", "warning");
+    showToast("Updated \u2014 this match is also open somewhere else.", "warning");
   });
 
   document.addEventListener("visibilitychange", function () {
