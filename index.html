@@ -949,7 +949,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "39";
+  var APP_VERSION = "40";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1588,6 +1588,7 @@
       canShareFile = !!(navigator.canShare && navigator.share &&
         navigator.canShare({ files: [new File([""], "c.png", { type: "image/png" })] }));
     } catch (e) { canShareFile = false; }
+    if (nativeBridge()) canShareFile = true;
 
     var overlay = document.createElement("div");
     overlay.className = "overlay";
@@ -1633,9 +1634,19 @@
   // Best effort only. The picture is already on screen, so if this fails the
   // user has lost nothing — press and hold still works.
   function shareCardImage(cv, record) {
+    var name = String(record.teamName || "match").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase() + "-matchcard.png";
+    if (nativeBridge()) {
+      var dataUrl;
+      try { dataUrl = cv.toDataURL("image/png"); }
+      catch (e) { showToast("Press and hold the picture to save it."); return; }
+      nativeShareFile(name, dataUrl.slice(dataUrl.indexOf(",") + 1), false, "Match card").catch(function (e) {
+        if (nativeCancelled(e)) return;
+        showToast("Press and hold the picture to save it.");
+      });
+      return;
+    }
     cv.toBlob(function (blob) {
       if (!blob) { showToast("Press and hold the picture to save it."); return; }
-      var name = String(record.teamName || "match").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase() + "-matchcard.png";
       var file;
       try { file = new File([blob], name, { type: "image/png" }); }
       catch (e) { showToast("Press and hold the picture to save it."); return; }
@@ -2318,7 +2329,10 @@
   // The system share sheet lands straight in WhatsApp; copying is the fallback
   // where it isn't available or the user backs out.
   async function shareOrCopy(text) {
-    if (navigator.share) {
+    if (nativeBridge()) {
+      try { await nativeCall("Share", "share", { text: text, dialogTitle: "Share the result" }); return; }
+      catch (e) { if (nativeCancelled(e)) return; }
+    } else if (navigator.share) {
       try { await navigator.share({ text: text }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
     }
@@ -2449,6 +2463,7 @@
   var INSTALL_KEY = "matchdayInstallHidden";
 
   function isStandalone() {
+    if (nativeBridge()) return true;     // the Android app is the installed app
     return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
            navigator.standalone === true;
   }
@@ -3998,6 +4013,26 @@
       }
     }
 
+    // Inside the Android app a WebView cannot download a blob, so the file goes
+    // through the share sheet (Drive, Files, mail, WhatsApp). The sheet cannot
+    // tell us the file was kept, only that a place was chosen, so backing out
+    // counts as not saved, exactly like a cancelled save elsewhere.
+    if (nativeBridge()) {
+      try {
+        await nativeShareFile(filename, json, true, "Matchday Tracker backup");
+        showToast("Shared " + filename);
+        markExported(parts);
+      } catch (err) {
+        if (nativeCancelled(err)) {
+          showToast("Not saved — your data still isn't backed up.", "warning");
+        } else {
+          console.error(err);
+          showToast("Couldn't export right now.", "error");
+        }
+      }
+      return;
+    }
+
     // Standard browser download — works on any ordinary web server.
     try {
       var blob = new Blob([json], { type: "application/json" });
@@ -5267,7 +5302,7 @@
       (T().settings.trackPlayingTime && minuteRows.length ? '<h2 class="section-title">Playing time</h2><div class="stat-list">' + minutesHtml + "</div>" : "") +
       '<button class="btn btn-gold" id="matchCardBtn" style="margin-top:18px;">Share match card</button>' +
       '<button class="btn btn-ghost" id="copySummaryBtn" style="margin-top:10px;">' +
-        (navigator.share ? "Share as text" : "Copy as text") + "</button>" +
+        (canShareText() ? "Share as text" : "Copy as text") + "</button>" +
       '<div class="btn-row" style="margin-top:10px;">' +
         '<button class="btn btn-primary" id="newMatchBtn">Start next match</button>' +
         '<button class="btn btn-ghost" id="doneBtn">Done</button>' +
@@ -5439,7 +5474,7 @@
             '<div><span class="hi-score">' + m.scoreUs + " – " + m.scoreThem + "</span> <span class=\"result-pill " + result + "\">" + resultLabel + "</span></div>" +
             '<div class="hi-actions">' +
               '<button class="hi-copy" data-card="' + m.id + '">Card</button>' +
-              '<button class="hi-copy" data-copy="' + m.id + '">' + (navigator.share ? "Share" : "Copy") + "</button>" +
+              '<button class="hi-copy" data-copy="' + m.id + '">' + (canShareText() ? "Share" : "Copy") + "</button>" +
               '<button class="hi-edit" data-fix="' + m.id + '">Fix</button>' +
               '<button class="hi-remove" data-del="' + m.id + '">Delete</button>' +
             "</div>" +
@@ -5658,6 +5693,89 @@
     if (document.visibilityState === "visible") render();
   });
 
+  /* ---------- Android app shell ------------------------------------------
+     The same file also runs inside a thin native Android shell (Capacitor).
+     There a WebView cannot download a file or open the share sheet by itself,
+     the hardware back button would close the app in the middle of a match, and
+     the phone can buzz where a browser cannot. Everything below stays dormant
+     unless Capacitor reports a native platform, so the website and the
+     installed web app behave exactly as before. The plugins are called through
+     Capacitor's own low-level bridge, which needs no bundler. */
+  function nativeBridge() {
+    try {
+      var c = window.Capacitor;
+      if (c && typeof c.isNativePlatform === "function" && c.isNativePlatform() &&
+          typeof c.nativePromise === "function") return c;
+    } catch (e) {}
+    return null;
+  }
+
+  function nativeCall(plugin, method, options) {
+    var c = nativeBridge();
+    if (!c) return Promise.reject(new Error("Not running in the app."));
+    try { return Promise.resolve(c.nativePromise(plugin, method, options || {})); }
+    catch (e) { return Promise.reject(e); }
+  }
+
+  // Backing out of the share sheet comes back as a rejection, not as a result.
+  function nativeCancelled(e) {
+    return !!e && /cancel/i.test(String(e.message || e));
+  }
+
+  // The share sheet can only hand over a file that exists, so write it to the
+  // app's cache first. Text is stored as is; a picture arrives as base64.
+  function nativeShareFile(filename, data, isText, title) {
+    var opts = { path: filename, data: data, directory: "CACHE" };
+    if (isText) opts.encoding = "utf8";
+    return nativeCall("Filesystem", "writeFile", opts).then(function (w) {
+      if (!w || !w.uri) throw new Error("No file was written.");
+      return nativeCall("Share", "share", { title: title, url: w.uri, dialogTitle: title });
+    });
+  }
+
+  function canShareText() {
+    return !!navigator.share || !!nativeBridge();
+  }
+
+  // A short buzz that says "that tap registered". Failing to buzz is never an error.
+  function nativeTick() {
+    if (!nativeBridge()) return;
+    nativeCall("Haptics", "impact", { style: "LIGHT" }).catch(function () {});
+  }
+
+  // The back button closes what is open on top, then returns to the match
+  // screen. On the match screen of a running match it does nothing at all: one
+  // swipe from the screen edge while tapping a tile must not leave the match.
+  function closeTopOverlay() {
+    var all = document.querySelectorAll(".overlay");
+    if (!all.length) return false;
+    var top = all[all.length - 1];
+    var btns = top.querySelectorAll("button");
+    for (var i = 0; i < btns.length; i++) {
+      if (/(Close|Cancel|Dismiss)(Btn)?$|^breakKeep$/.test(btns[i].id || "")) {
+        btns[i].click();
+        return true;
+      }
+    }
+    top.click();    // a tap on the dimmed backdrop, which most sheets honour
+    return true;    // either way this press has been used up
+  }
+
+  function onNativeBack() {
+    try {
+      if (closeTopOverlay()) return;
+      if (view !== "match") { view = "match"; render(); return; }
+      if (T().activeMatch) return;
+      nativeCall("App", "minimizeApp").catch(function () {});
+    } catch (e) {}
+  }
+
+  function installNativeBridge() {
+    var c = nativeBridge();
+    if (!c || typeof c.addListener !== "function") return;
+    try { c.addListener("App", "backButton", onNativeBack); } catch (e) {}
+  }
+
   /* ---------- Tap feedback -------------------------------------------------
      Most taps redraw the screen in the same instant, so on the sideline there
      was no telling "it registered" from "it missed". During a live match every
@@ -5760,6 +5878,7 @@
   }
 
   function makeFlash(info) {
+    nativeTick();
     var r = info.rect;
     var f = document.createElement("div");
     f.className = "press-flash" + (info.deep ? " press-flash-deep" : "");
@@ -5822,12 +5941,14 @@
     flashes.slice().forEach(function (f) { dropFlash(f); });
   });
 
+  installNativeBridge();
   render();
   checkStaleClock();
 })();
 
 // Offline support. Guarded so opening the file directly (file://) still works.
-if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0 &&
+    !(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform())) {
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("./sw.js").catch(function (err) {
       console.log("Service worker not registered:", err);
