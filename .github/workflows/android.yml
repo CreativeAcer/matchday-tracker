@@ -1,0 +1,83 @@
+name: Android APK
+
+# Handmatig starten: tab "Actions" > "Android APK" > "Run workflow".
+# Resultaat: een APK onder "Releases" (tag android-latest) en als download bij de run zelf.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: android-shell
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android-shell/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Android SDK onderdelen
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null || true
+
+      - name: Afhankelijkheden
+        run: npm ci
+
+      - name: Web-bestanden klaarzetten (www)
+        run: node scripts/prepare-www.js
+
+      - name: Android-project aanmaken
+        run: npx cap add android
+
+      - name: Versie, iconen en splash instellen
+        run: node scripts/patch-android.js
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+
+      - name: Synchroniseren
+        run: npx cap sync android
+
+      - name: Vaste ondertekeningssleutel
+        run: |
+          mkdir -p "$HOME/.android"
+          cp debug.keystore "$HOME/.android/debug.keystore"
+
+      - name: APK bouwen
+        working-directory: android-shell/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: APK klaarzetten
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk matchday-tracker.apk
+          ls -la matchday-tracker.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matchday-tracker-apk
+          path: android-shell/matchday-tracker.apk
+          retention-days: 30
+
+      - name: Release "android-latest" bijwerken
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete android-latest --cleanup-tag --yes || true
+          gh release create android-latest matchday-tracker.apk \
+            --prerelease \
+            --title "Android app (build ${{ github.run_number }})" \
+            --notes "Debug-APK van Matchday Tracker, gebouwd uit commit ${GITHUB_SHA::7}. Installeren: open deze pagina op je telefoon en tik op matchday-tracker.apk."
