@@ -1,6 +1,6 @@
 // Draai NA "npx cap add android" en VOOR "npx cap sync android".
 //  - zet versionName (= APP_VERSION uit index.html) en versionCode (= env VERSION_CODE, anders 1) in build.gradle
-//  - kopieert onze iconen en splash (res/) over de standaardbestanden van het Android-project
+//  - maakt de iconen en splash uit icon-512.png / icon-maskable-512.png in de repo-root (scripts/make-icons.js)
 const fs = require("fs");
 const path = require("path");
 
@@ -25,15 +25,8 @@ var g2 = gradle.replace(/versionCode\s+\d+/, "versionCode " + versionCode).repla
 if (g2.indexOf("versionCode " + versionCode) === -1 || g2.indexOf('versionName "' + versionName + '"') === -1) fail("versionCode/versionName niet gevonden in build.gradle");
 fs.writeFileSync(gradlePath, g2);
 
-function copyDir(from, to) {
-  fs.mkdirSync(to, { recursive: true });
-  fs.readdirSync(from, { withFileTypes: true }).forEach(function (e) {
-    var a = path.join(from, e.name), b = path.join(to, e.name);
-    if (e.isDirectory()) copyDir(a, b); else fs.copyFileSync(a, b);
-  });
-}
-var resFrom = path.join(shell, "res"), resTo = path.join(androidApp, "src", "main", "res");
-if (!fs.existsSync(resFrom)) fail("res/ ontbreekt");
-copyDir(resFrom, resTo);
-
-console.log("patch-android: versionName " + versionName + ", versionCode " + versionCode + ", res/ gekopieerd");
+var makeIcons = require("./make-icons.js");
+var resTo = path.join(androidApp, "src", "main", "res");
+makeIcons(resTo).then(function (bg) {
+  console.log("patch-android: versionName " + versionName + ", versionCode " + versionCode + ", iconen en splash uit icon-512/icon-maskable-512 (achtergrond " + bg + ")");
+}).catch(function (e) { fail(e.message || String(e)); });
