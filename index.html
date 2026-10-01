@@ -949,7 +949,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "38";
+  var APP_VERSION = "39";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -5660,9 +5660,11 @@
 
   /* ---------- Tap feedback -------------------------------------------------
      Most taps redraw the screen in the same instant, so on the sideline there
-     was no telling "it registered" from "it missed". Every tap on a button now
-     leaves a wash of colour over exactly that button that drains away over two
-     seconds (a phone web app cannot do haptics, so the eyes have to do it).
+     was no telling "it registered" from "it missed". During a live match every
+     tap on a button now leaves a wash of colour over exactly that button that
+     drains away over two seconds (a phone web app cannot do haptics, so the
+     eyes have to do it). Other screens need none: there the screen itself
+     changes, which is feedback enough.
      It is a separate, click-through layer on purpose: the redraw that follows a
      tap would take any class on the button with it. It never touches the tap
      itself or the saved data, and any failure in here is swallowed. */
@@ -5671,9 +5673,19 @@
   var FLASH_MAX = 8;
   var flashes = [];
 
+  // Only while a match is being played: the match screen with its sheets and
+  // dialogs. The kick-off form, the summary, Team and History stay without, and
+  // so do the bottom tabs: they switch screens, and a wash left on a tab would
+  // hang over the screen it just opened. Read before the tap's own handler
+  // runs, so "the screen" is the one the button was on.
+  function inLiveMatch() {
+    return view === "match" && !!T().activeMatch;
+  }
+
   function pressTargetOf(node) {
     var el = node && node.closest ? node.closest("button, [data-goal]") : null;
     if (!el || el.disabled || el.getAttribute("aria-disabled") === "true") return null;
+    if (el.closest(".bottom-nav") || !inLiveMatch()) return null;
     return el;
   }
 

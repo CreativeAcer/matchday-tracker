@@ -2,7 +2,7 @@
    Goal: the app must open with no signal at the pitch, while still picking up
    new versions when there IS signal. Bump CACHE_VERSION on every deploy. */
 
-var CACHE_VERSION = "matchday-v38";
+var CACHE_VERSION = "matchday-v39";
 
 // Without this the app cannot open at the pitch at all, so a failure here has
 // to fail the whole install. A half-cached new version that replaces a working
