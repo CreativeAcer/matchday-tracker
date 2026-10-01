@@ -1,0 +1,11 @@
+{
+  "appId": "com.creativeacer.matchdaytracker",
+  "appName": "Matchday Tracker",
+  "webDir": "www",
+  "backgroundColor": "#16362A",
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK"
+    }
+  }
+}
