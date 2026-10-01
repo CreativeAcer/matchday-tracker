@@ -21,6 +21,13 @@ workflow neemt telkens de actuele `index.html` uit de repo-root en bouwt daar ee
 Een nieuwe build installeer je gewoon over de vorige heen; de gegevens blijven staan (zelfde
 ondertekeningssleutel, oplopend versienummer = het nummer van de run).
 
+## Logo
+
+Iconen en opstartscherm worden bij elke build automatisch gemaakt uit `icon-512.png` en
+`icon-maskable-512.png` in de repo-root (zelfde bestanden als de website). Vervang je die, dan zit het
+nieuwe logo bij de volgende build in de APK. Op Android 12 en nieuwer toont het systeem zelf het
+app-icoon bij het opstarten; de aparte splash-afbeelding geldt voor oudere versies.
+
 ## Je gegevens meenemen
 
 De app op je telefoon heeft een **eigen opslag**, los van de website in Chrome. Maak in de website
