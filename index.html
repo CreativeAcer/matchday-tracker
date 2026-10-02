@@ -428,6 +428,41 @@
   }
   .opp-goal-btn:active { background: var(--line); }
   .own-goal-btn { flex: 0 0 34%; }
+  .match-actions .own-goal-btn { flex: 1 1 0; padding: 12px; }
+
+  /* The two buttons a coach needs besides the tiles — the opponent's goal and
+     the next period — stay in view above the tab bar however long the squad
+     is. They used to sit under the last tile, which with eleven players is a
+     scroll away on most phones, seven times in an eight-period match.
+     --nav-h is measured from the real tab bar (see syncChrome), because its
+     height depends on the phone's safe area and the text size setting. */
+  .live-dock {
+    position: sticky;
+    bottom: calc(var(--nav-h, calc(56px + env(safe-area-inset-bottom, 0px))) + 6px);
+    z-index: 15;
+    display: flex; gap: 10px; align-items: stretch;
+    margin: 14px -14px 4px; padding: 8px 14px;
+    background: var(--chalk);
+    box-shadow: 0 -8px 14px -10px rgba(0,0,0,0.28);
+  }
+  .live-dock .opp-goal-btn {
+    flex: 1.5 1 0; min-width: 0; min-height: 52px; padding: 8px 10px;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; line-height: 1.2;
+  }
+  .live-dock .dock-period {
+    flex: 1 1 0; min-width: 0; min-height: 52px; padding: 6px 8px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    line-height: 1.15;
+  }
+  .dock-period-sub { font-size: 0.6875rem; font-weight: 600; color: var(--ink-soft); margin-top: 2px; }
+  /* Held sideways there is no room to pin anything: it scrolls with the page. */
+  @media (max-height: 520px) {
+    .live-dock { position: static; box-shadow: none; margin: 14px 0 4px; padding: 0; background: none; }
+  }
+  /* Messages that float above the tab bar move up to clear the pinned buttons. */
+  body.has-dock .assist-bar { bottom: calc(var(--nav-h, 56px) + var(--dock-h, 0px) + 24px); }
+  body.has-dock .toast { bottom: calc(var(--nav-h, 56px) + var(--dock-h, 0px) + 26px); }
 
   .assist-bar {
     /* Fixed, not sticky: when it appeared in the flow it pushed the whole
@@ -949,7 +984,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "40";
+  var APP_VERSION = "41";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1174,6 +1209,20 @@
   function periodOverrunMs(match) {
     if (!match || !match.periodMinutes || !periodStartKnown(match)) return 0;
     return Math.max(0, periodElapsedMs(match) - match.periodMinutes * 60000);
+  }
+  // The break button names what it does in the match's own words: a coach
+  // playing eight short periods is not at "Half time", and the small line under
+  // it says which period is running, which the clock only shows from the second.
+  function periodButtonLabel(match) {
+    var fmt = (match.plan && match.plan.periods) || match.periodFormat;
+    var p = match.period || 1;
+    if (fmt === 8 || fmt === 4) {
+      return {
+        main: fmt === 8 ? "Next period" : "Next quarter",
+        sub: periodShort(fmt, p - 1) + (p <= fmt ? " of " + fmt : "")
+      };
+    }
+    return { main: "Half time", sub: "" };
   }
   function periodTag(match) {
     var p = match.period || 1;
@@ -2146,6 +2195,9 @@
           "</div>" +
           '<button class="btn btn-ghost" id="prepPlanBtn">Line-up plan</button>' +
           '<div class="plan-summary">' + esc(planned) + "</div>";
+      } else {
+        planBlock = '<p class="hint kick-hint">Playing quarters or 8 short periods? ' +
+          '<button class="link-btn" id="prepEnablePlan">Turn on line-up planning</button></p>';
       }
 
       overlay.innerHTML =
@@ -2180,6 +2232,13 @@
       var back = overlay.querySelector(".prep-scroll");
       if (back) back.scrollTop = keepY;
 
+      var prepEnable = document.getElementById("prepEnablePlan");
+      if (prepEnable) prepEnable.onclick = function () {
+        readFields();
+        T().settings.planLineups = true;
+        persist();
+        draw();
+      };
       document.getElementById("prepHome").onclick = function () { readFields(); entry.isHome = true; draw(); };
       document.getElementById("prepAway").onclick = function () { readFields(); entry.isHome = false; draw(); };
       overlay.querySelectorAll("[data-away]").forEach(function (btn) {
@@ -2845,14 +2904,14 @@
       ["Several teams", "Tap <strong>Switch</strong> at the top of the Team screen to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
-      ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
-      ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed button below the grid for the opponent's goals."],
-      ["Own goals", "Tap <strong>Own goal</strong> next to the opponent button, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
+      ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on, and at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
+      ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
+      ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
       ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
-      ["Half time and breaks", "Tap <strong>Half time</strong>, next to End match under the tiles, to pause the clock and start a new period. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
+      ["Half time and breaks", "Tap <strong>Half time</strong> \u2014 it reads <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods \u2014 to pause the clock and start a new period. It stays in view at the bottom of the screen, next to the opponent button, however long the squad is. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry without opening the log at all. Deleting from inside the log keeps it open, so you can correct two things in a row."],
       ["End the match", "Tap <strong>End match</strong>, just under the player tiles. You'll get a summary with a minute-by-minute report."],
@@ -4933,6 +4992,25 @@
     if (view === "history") renderHistoryScreen();
     if (view === "match") updateLiveMinutes();
     wireNotices();
+    syncChrome();
+    syncScreenOn();
+  }
+
+  // The pinned match buttons sit just above the tab bar, whose height is only
+  // known once it is drawn. Messages that float above it read the same numbers.
+  function syncChrome() {
+    try {
+      var root = document.documentElement.style;
+      var nav = document.querySelector(".bottom-nav");
+      if (nav) root.setProperty("--nav-h", Math.round(nav.getBoundingClientRect().height) + "px");
+      var dock = document.getElementById("liveDock");
+      var h = 0;
+      if (dock && dock.offsetParent !== null && window.getComputedStyle(dock).position === "sticky") {
+        h = Math.round(dock.getBoundingClientRect().height) + 6;
+      }
+      root.setProperty("--dock-h", h + "px");
+      document.body.classList.toggle("has-dock", h > 0);
+    } catch (e) {}
   }
 
   function renderMatchScreen() {
@@ -4972,7 +5050,8 @@
                   "</div>" +
                   '<button class="btn btn-ghost" id="planBtn">Line-up plan</button>' +
                   '<div class="plan-summary" id="planSummary">' + planSummaryText() + "</div>"
-                : "") +
+                : '<p class="hint kick-hint">Playing quarters or 8 short periods? ' +
+                  '<button class="link-btn" id="enablePlanBtn">Turn on line-up planning</button></p>') +
               '<button class="btn btn-primary" id="kickoffBtn">Kick off</button>' +
             "</div>" +
             '<button class="btn btn-ghost" id="prepBtn" style="margin-top:12px;">Prepare a match for later</button>');
@@ -5012,6 +5091,14 @@
           pendingIsHome = false;
           document.getElementById("awayBtn").classList.add("on");
           document.getElementById("homeBtn").classList.remove("on");
+        };
+        var enablePlan = document.getElementById("enablePlanBtn");
+        if (enablePlan) enablePlan.onclick = function () {
+          readKickoffFields();
+          T().settings.planLineups = true;
+          persist();
+          render();
+          showToast("Line-up plan is on \u2014 pick 2 halves, 4 quarters or 8 periods.");
         };
         if (T().settings.planLineups) {
           var setFormat = function (nPeriods) {
@@ -5081,7 +5168,7 @@
       if (T().settings.trackAssists && assistCount) bits.push(assistCount + (assistCount === 1 ? " assist" : " assists"));
       var onField = isOnField(match, p.id);
       var sentOff = T().settings.trackCards && hasRedCard(match, p.id);
-      var fieldBadge = '<button class="field-badge ' + (sentOff ? "sent-off-badge" : (onField ? "on" : "off")) + '" data-field="' + p.id + '"' + (sentOff ? " disabled" : "") + '>' + (sentOff ? "Sent off" : (onField ? "On pitch" : "Bench")) + "</button>";
+      var fieldBadge = '<button class="field-badge ' + (sentOff ? "sent-off-badge" : (onField ? "on" : "off")) + '" data-field="' + p.id + '"' + (sentOff ? " disabled" : "") + '>' + (sentOff ? "Sent off" : (onField ? "On pitch" : (isAbsent(match, p.id) ? "Away" : "Bench"))) + "</button>";
       var controls = "";
       if (T().settings.trackCards) {
         var pcards = stats.cards[p.id] || [];
@@ -5111,16 +5198,19 @@
     el.innerHTML =
       (T().settings.trackAssists ? assistBarHtml : "") +
       '<div class="player-grid">' + tilesHtml + "</div>" +
-      '<div class="goal-btn-row">' +
+      // Pinned above the tab bar, see .live-dock. Nothing below the grid grows
+      // during the match, so these stay exactly where they were at kick-off
+      // however many goals are logged. The log itself is a record, not a
+      // control, so it lives behind a button like the other reference screens.
+      '<div class="live-dock" id="liveDock">' +
         '<button class="opp-goal-btn" id="oppGoalBtn">+ ' + esc(match.opponentName) + " scored</button>" +
-        '<button class="opp-goal-btn own-goal-btn" id="ownGoalBtn">Own goal</button>' +
+        '<button class="btn btn-ghost dock-period" id="halfTimeBtn"><span class="dock-period-main">' +
+          esc(periodButtonLabel(match).main) + "</span>" +
+          (periodButtonLabel(match).sub ? '<span class="dock-period-sub">' + esc(periodButtonLabel(match).sub) + "</span>" : "") +
+        "</button>" +
       "</div>" +
-      // Nothing below this point grows during the match, so Half time and End
-      // match stay exactly where they were at kick-off however many goals are
-      // logged. The log itself is a record, not a control, so it lives behind
-      // a button like the other reference screens.
       '<div class="btn-row match-actions">' +
-        '<button class="btn btn-ghost" id="halfTimeBtn">Half time</button>' +
+        '<button class="opp-goal-btn own-goal-btn" id="ownGoalBtn">Own goal</button>' +
         '<button class="btn btn-danger" id="endMatchBtn">End match</button>' +
       "</div>" +
       '<div class="btn-row match-actions-2">' +
@@ -5376,7 +5466,7 @@
         toggleRow("trackAssists", "Assists", "Ask who assisted after each goal") +
         toggleRow("trackPlayingTime", "Playing time", "Show total minutes played in match summaries. Who's on the pitch is always tracked, so benched players can't be tapped by mistake.") +
         toggleRow("trackCards", "Cards", "Log yellow and red cards") +
-        toggleRow("planLineups", "Line-up plan", "Set who plays each quarter or half before kick-off. The app proposes it at every break, so a change of line-up is one tap instead of six.") +
+        toggleRow("planLineups", "Line-up plan", "Choose 2 halves, 4 quarters or 8 periods, and set who plays each one before kick-off. The app proposes it at every break, so a change of line-up is one tap instead of six.") +
       "</div>" +
       '<h2 class="section-title">Share this team</h2>' +
       '<p class="hint">One file with everything: players, settings, matches played and matches prepared. Keep it as a backup, or send it to another parent or coach so they don’t have to type it all in again.</p>' +
@@ -5547,8 +5637,13 @@
 
   document.querySelectorAll("[data-nav]").forEach(function (btn) {
     btn.onclick = function () {
-      view = btn.getAttribute("data-nav");
+      var next = btn.getAttribute("data-nav");
+      var moved = view !== next;
+      view = next;
       render();
+      // A different screen starts at its top. Carrying the old scroll position
+      // over opened Team halfway down after a look at the bottom of the match.
+      if (moved) window.scrollTo(0, 0);
     };
   });
   document.getElementById("helpBtn").onclick = showHelp;
@@ -5642,6 +5737,7 @@
   setInterval(function () {
     if (T().activeMatch && T().activeMatch.clock.running) {
       checkStaleClock();
+      if (T().activeMatch && T().activeMatch.clock.running) checkPeriodEnd(T().activeMatch);
       if (view === "match" && T().activeMatch && T().activeMatch.clock.running) {
         paintClock(T().activeMatch);
         updateLiveMinutes();
@@ -5692,6 +5788,9 @@
     // and the live minutes back to the real elapsed time.
     if (document.visibilityState === "visible") render();
   });
+  window.addEventListener("resize", function () { syncChrome(); });
+  window.addEventListener("orientationchange", function () { setTimeout(syncChrome, 250); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { syncChrome(); });
 
   /* ---------- Android app shell ------------------------------------------
      The same file also runs inside a thin native Android shell (Capacitor).
@@ -5741,6 +5840,82 @@
   function nativeTick() {
     if (!nativeBridge()) return;
     nativeCall("Haptics", "impact", { style: "LIGHT" }).catch(function () {});
+  }
+
+  /* ---------- Screen on, and the end of a period -------------------------
+     A coach watches the children, not the phone. Two things follow from that:
+     the screen must not go dark while the clock runs (every wake-up means a
+     PIN), and the end of a period has to reach him without looking. The clock
+     already turns gold at the period's length; this adds a short buzz and a
+     message at that moment, once per period. */
+  var webWakeLock = null;        // the browser's hold on the screen, while it has one
+  var webWakeLockPending = false;
+  var screenOnAsked = false;     // what the native shell was last told
+
+  function wantScreenOn() {
+    var m = T().activeMatch;
+    return !!(m && m.clock && m.clock.running);
+  }
+  function holdWebWakeLock() {
+    try {
+      if (!navigator.wakeLock || typeof navigator.wakeLock.request !== "function") return;
+      if (webWakeLock || webWakeLockPending || document.visibilityState === "hidden") return;
+      webWakeLockPending = true;
+      navigator.wakeLock.request("screen").then(function (sentinel) {
+        webWakeLockPending = false;
+        webWakeLock = sentinel;
+        sentinel.addEventListener("release", function () { if (webWakeLock === sentinel) webWakeLock = null; });
+        if (!wantScreenOn()) releaseWebWakeLock();   // the clock stopped while we were asking
+      }).catch(function () { webWakeLockPending = false; });
+    } catch (e) { webWakeLockPending = false; }
+  }
+  function releaseWebWakeLock() {
+    var sentinel = webWakeLock;
+    webWakeLock = null;
+    try { if (sentinel) sentinel.release().catch(function () {}); } catch (e) {}
+  }
+  // Called after every redraw and when the page becomes visible again (a
+  // browser drops its hold whenever the page is hidden, so it is asked again).
+  function syncScreenOn() {
+    var want = wantScreenOn();
+    if (nativeBridge()) {
+      if (want !== screenOnAsked) {
+        screenOnAsked = want;
+        nativeCall("KeepAwake", want ? "keepAwake" : "allowSleep").catch(function () {
+          if (want) holdWebWakeLock();   // a shell built without the plugin falls back to the web API
+        });
+        if (!want) releaseWebWakeLock();
+      }
+      return;
+    }
+    if (want) holdWebWakeLock(); else releaseWebWakeLock();
+  }
+
+  function buzz() {
+    var viaWeb = function () { try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {} };
+    if (nativeBridge()) nativeCall("Haptics", "vibrate", { duration: 400 }).catch(viaWeb);
+    else viaWeb();
+  }
+
+  var periodAlert = { key: "", over: false };
+  function checkPeriodEnd(match) {
+    if (!match || !match.clock || !match.clock.running || !match.periodMinutes || !periodStartKnown(match)) return;
+    var key = match.id + ":" + (match.period || 1);
+    var over = periodElapsedMs(match) >= match.periodMinutes * 60000;
+    // The first look at a period only records where it stands: a match
+    // reopened after its period ended must not buzz as if it had just ended.
+    if (periodAlert.key !== key) { periodAlert.key = key; periodAlert.over = over; return; }
+    if (over && !periodAlert.over) {
+      periodAlert.over = true;
+      var p = match.period || 1;
+      var fmt = (match.plan && match.plan.periods) || match.periodFormat;
+      var name = fmt === 2 && p === 1 ? "First half" : fmt === 2 && p === 2 ? "Second half"
+        : fmt === 4 ? "Quarter " + p : "Period " + p;
+      showToast(name + " is up \u2014 " + formatClock(match.periodMinutes * 60000) + " played.", "warning");
+      buzz();
+    } else if (!over) {
+      periodAlert.over = false;
+    }
   }
 
   // The back button closes what is open on top, then returns to the match
