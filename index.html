@@ -349,6 +349,13 @@
     gap: 10px;
     margin-bottom: 16px;
   }
+  /* Before the clock has ever run: who is on the pitch, and how to change it. */
+  .pre-kick {
+    margin: 0 0 12px; padding: 9px 12px;
+    background: var(--panel); border: 1px dashed var(--line); border-radius: 12px;
+    font-size: 0.8125rem; line-height: 1.4; color: var(--ink-soft);
+  }
+  .pre-kick strong { color: var(--ink); }
   .tile {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -984,7 +991,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "41";
+  var APP_VERSION = "42";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1222,6 +1229,9 @@
         sub: periodShort(fmt, p - 1) + (p <= fmt ? " of " + fmt : "")
       };
     }
+    // Halves, or no format chosen. "Half time" is only right once: in the
+    // second half the same button would start a third period, so it says so.
+    if (p >= 2) return { main: "Next period", sub: "P" + p };
     return { main: "Half time", sub: "" };
   }
   function periodTag(match) {
@@ -2907,11 +2917,11 @@
       ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on, and at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
       ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
       ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
-      ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once."],
+      ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Before the clock has run, a line above the tiles says how many are on the pitch and how many on the bench. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once; a player you add later starts on the pitch."],
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
       ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
-      ["Half time and breaks", "Tap <strong>Half time</strong> \u2014 it reads <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods \u2014 to pause the clock and start a new period. It stays in view at the bottom of the screen, next to the opponent button, however long the squad is. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
+      ["Half time and breaks", "Tap <strong>Half time</strong> \u2014 it reads <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods, and <strong>Next period</strong> again in the second half \u2014 to pause the clock and start a new period. It stays in view at the bottom of the screen, next to the opponent button, however long the squad is. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
       ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry without opening the log at all. Deleting from inside the log keeps it open, so you can correct two things in a row."],
       ["End the match", "Tap <strong>End match</strong>, just under the player tiles. You'll get a summary with a minute-by-minute report."],
@@ -2986,13 +2996,28 @@
     var known = {};
     (T().roster || []).forEach(function (p) { known[p.id] = true; });
     var reusable = last && last.some(function (id) { return known[id]; });
+    // Who was in the squad when the last match finished. Anyone who is not on
+    // that list joined since, and a new player starts on the pitch, not on a
+    // bench nobody has put them on. Without this a team that was set up with one
+    // player and filled in afterwards started its next match with that single
+    // player on the pitch and everyone else on the bench.
+    var lastSquad = null;
+    var newest = null;
+    (T().history || []).forEach(function (h) {
+      if (h && Array.isArray(h.rosterSnapshot) && (!newest || String(h.date || "") > String(newest.date || ""))) newest = h;
+    });
+    if (newest) {
+      lastSquad = {};
+      newest.rosterSnapshot.forEach(function (r) { if (r && r.id) lastSquad[r.id] = true; });
+    }
     var usePlan = T().settings.planLineups ? planForRoster(normalisePlan(plan), T().roster) : null;
     var firstRow = usePlan ? planLineup(usePlan, 1) : null;
     if (firstRow && !firstRow.length) firstRow = null; // an empty first period means "no plan yet"
     var pt = {};
     var away = Array.isArray(unavailable) ? unavailable : [];
     T().roster.forEach(function (p) {
-      var on = firstRow ? firstRow.indexOf(p.id) !== -1 : (reusable ? last.indexOf(p.id) !== -1 : true);
+      var joinedSince = !!lastSquad && !lastSquad[p.id];
+      var on = firstRow ? firstRow.indexOf(p.id) !== -1 : (reusable ? (last.indexOf(p.id) !== -1 || joinedSince) : true);
       if (away.indexOf(p.id) !== -1) on = false; // not at the pitch today
       pt[p.id] = { onField: on, accumMs: 0, onSince: on ? 0 : null };
     });
@@ -5195,8 +5220,25 @@
       );
     }).join("");
 
+    // Until the clock has run once nothing tells the coach that the bench is
+    // theirs to set: a new match shows whoever the last one started with, or
+    // everyone. Say who is on, and how to change it, until the clock starts.
+    var preKickHtml = "";
+    if (!match.lineupCaptured && !match.clock.running && !match.clock.elapsedMs && !match.events.length) {
+      var nOn = 0, nBench = 0, nAway = 0;
+      T().roster.forEach(function (p) {
+        if (isOnField(match, p.id)) nOn++;
+        else if (isAbsent(match, p.id)) nAway++;
+        else nBench++;
+      });
+      preKickHtml = '<div class="pre-kick" id="preKick"><strong>' + nOn + " on the pitch</strong> \u00b7 " + nBench + " on the bench" +
+        (nAway ? " \u00b7 " + nAway + " away" : "") +
+        ". Tap On pitch / Bench on a tile to set who starts, then tap the timer.</div>";
+    }
+
     el.innerHTML =
       (T().settings.trackAssists ? assistBarHtml : "") +
+      preKickHtml +
       '<div class="player-grid">' + tilesHtml + "</div>" +
       // Pinned above the tab bar, see .live-dock. Nothing below the grid grows
       // during the match, so these stay exactly where they were at kick-off
