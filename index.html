@@ -1056,7 +1056,59 @@
   .brk-back { display: block; margin: 12px auto 4px; font-size: 0.9375rem; padding: 10px 14px; min-height: 44px; }
   .confirm-note b, .confirm-msg b { font-weight: 800; }
   .saved-chip { display: inline-flex; gap: 6px; align-items: center; margin-top: 8px; padding: 5px 12px; border-radius: 999px; background: rgba(46,125,82,.14); color: var(--brand-text); font-weight: 700; font-size: 0.875rem; }
-</style>
+
+  /* ==== v47 ================================================================
+     The pitch and the bench are two lists, a player's menu holds the cards and
+     the move to the bench, the assist bar is a size you can hit, and the own
+     goal picker says which team gets the point. */
+  .grp-head { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 8px; }
+  .grp-head h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem; margin: 0; }
+  .grp-n { font-family: var(--font-display); font-weight: 600; font-size: 1rem; background: var(--pitch); color: #fff; min-width: 26px; height: 26px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; padding: 0 7px; align-self: center; }
+  .grp-head.bench .grp-n { background: var(--ink-soft); }
+  .grp-hint { margin-left: auto; font-size: 0.75rem; color: var(--ink-soft); text-align: right; }
+  .bench-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .field-badge.on.menu::after { content: " \25BE"; }
+
+  /* A benched player is a compact row: shirt number, name, one line of facts,
+     and a 42 px button to bring them on. The whole row brings them on too. */
+  .tile.compact { display: grid; grid-template-columns: 24px 1fr 44px; grid-template-areas: "num name badge" "num goals badge" "num mins badge"; align-content: center; align-items: center; text-align: left; padding: 6px 8px; column-gap: 6px; min-height: 60px; cursor: pointer; }
+  .tile.compact .tile-num { grid-area: num; font-size: 1.25rem; text-align: center; }
+  .tile.compact .tile-name { grid-area: name; margin: 0; font-size: 0.875rem; }
+  .tile.compact .tile-goals { grid-area: goals; margin: 0; min-height: 0; }
+  .tile.compact .tile-goals:empty { display: none; }
+  .tile.compact .tile-mins { grid-area: mins; margin: 0; }
+  .tile.compact .field-badge, .tile.compact .field-badge.off { grid-area: badge; width: 44px; height: 44px; margin: 0; padding: 0; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--turf); color: #fff; font-size: 1rem; }
+  .tile.compact .field-badge.sent-off-badge { background: #A8362C; }
+  .tile.compact .field-badge .mini-card { width: 14px; height: 19px; border-color: rgba(255,255,255,.8); }
+  .tile.compact.least-played { box-shadow: inset 0 0 0 3px var(--gold-deep); }
+  .tile.compact.least-played .tile-mins::after { content: " \00b7 next"; font-weight: 800; }
+  .sr-only.sr-goal:focus { clip: auto; width: auto; height: auto; margin: 0; padding: 8px 12px; top: 4px; left: 4px; z-index: 3; background: var(--pitch); color: #fff; border-radius: 8px; white-space: normal; }
+
+  /* The assist bar: chips you can hit with a thumb, "No assist" first and set
+     apart, and a line that runs out when the bar goes. */
+  .assist-bar { background: var(--pitch-dark); color: #fff; border: 2px solid var(--gold); padding: 10px 12px 14px; overflow: hidden; }
+  .assist-bar .a-title { color: var(--gold); font-size: 0.9688rem; margin-bottom: 8px; }
+  .assist-bar .assist-chip { min-height: 44px; padding: 10px 14px; background: #FAF8F2; color: var(--pitch-dark); border: 1px solid #fff; font-size: 0.9375rem; }
+  .assist-bar .assist-chip[data-assist="none"] { background: transparent; color: #fff; border: 2px dashed rgba(255,255,255,.65); order: -1; }
+  .assist-bar .assist-chip-row { gap: 8px; }
+  .assist-timer { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--gold); animation: assist-shrink 8s linear forwards; width: 100%; }
+  @keyframes assist-shrink { to { width: 0; } }
+  @media (prefers-reduced-motion: reduce) { .assist-timer { animation: none; width: 40%; } }
+
+  /* The own goal picker names the team that gets the point. */
+  .og-btn { display: block; text-align: left; padding: 14px 16px; margin-top: 10px; line-height: 1.3; }
+  .og-btn small { display: block; font-weight: 500; font-size: 0.8125rem; margin-top: 2px; }
+  .og-us { background: var(--chalk-dim); border: 1px dashed var(--ink-soft); color: var(--ink); }
+
+  /* A player's menu. */
+  .manage .mg-cards { display: flex; gap: 10px; margin: 12px 8px 0; }
+  .manage .mg-cards .btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; width: auto; flex: 1; }
+  .mg-sw { width: 18px; height: 24px; border-radius: 3px; border: 1px solid rgba(0,0,0,.4); display: inline-block; flex: none; }
+  .mg-sw.y { background: var(--yellow-card); } .mg-sw.r { background: var(--red); }
+  .manage .btn.full { margin: 10px 8px 0; width: calc(100% - 16px); min-height: 52px; }
+  .mg-note { font-size: 0.875rem; color: var(--ink-soft); padding: 8px 10px 0; line-height: 1.4; }
+  .manage .brk-back { margin-top: 10px; }
+  </style>
 </head>
 <body>
 <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
@@ -1147,7 +1199,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "46";
+  var APP_VERSION = "47";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1315,6 +1367,7 @@
   var view = T().roster.length === 0 ? "team" : "match";
   var pendingAssistEventId = null;
   var assistBarTimer = null;
+  var assistShownAt = 0;
 
   // ---------- utilities ----------
 
@@ -3162,14 +3215,14 @@
       ["Match options", "Still on the Team screen: turn on <strong>Assists</strong>, <strong>Playing time</strong> or <strong>Cards</strong> only if you want to track them, and <strong>Line-up plan</strong> if you want to set who plays each period (more on that further down). All four are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>. During the match the strip under the clock shows both team names, with <strong>(H)</strong> for home or <strong>(A)</strong> for away behind them. Typed the opponent wrong? Tap its name in that strip (marked \u270e) to rename it."],
       ["The clock", "Tap the timer at the top, or the green <strong>Kick off</strong> button at the bottom, to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. Tap a player or the opponent button while it is stopped and the app asks whether to start the clock and log it in one go. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. The words under the number say where you are: <strong>Not started</strong>, <strong>Running</strong>, <strong>Break</strong> or <strong>Paused</strong>, and the panel turns gold whenever the clock is stopped. Give the match a period length at kick-off and it also counts down what is left, a thin bar fills along the bottom, and once the period is up it reads <strong>Time\u2019s up</strong> with how much is being added on; at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
-      ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
-      ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
-      ["On pitch / Bench", "Each tile shows who's on the pitch. Tap the badge to bench or bring on a player — benched players can't be tapped to score by mistake. Before the clock has run, a line above the tiles says how many are on the pitch and how many on the bench. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once; a player you add later starts on the pitch."],
-      ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
+      ["Score a goal", "Tap a player's tile on the pitch. If Assists is on, you'll be asked who assisted right after: large buttons, <strong>No assist</strong> first, and a thin line that runs out after 8 seconds. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
+      ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick who put it in their own net. Each choice says which team gets the point (<strong>Own goal by the opponent \u2014 point to your team</strong>), and an own goal is never counted as a goal for any player."],
+      ["On pitch / Bench", "The Match screen has two lists: <strong>On the pitch</strong>, with the large tiles, and <strong>Bench</strong> below it, one compact row per child. Tap a tile on the pitch to score; tap a row on the bench to bring that child on. The <strong>On pitch</strong> badge on a tile opens that child\u2019s menu, with the cards (if you track them) and <strong>Move to the bench</strong>, so a stray tap can\u2019t bench anyone. Before the clock has run the badge benches straight away, so you can set who starts, and a line above the tiles says how many are on the pitch and how many on the bench. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once; a player you add later starts on the pitch."],
+      ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on, on the bench too."],
       ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off. With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
       ["Half time and breaks", "The button at the bottom right is always the next step. While the clock runs it is <strong>Half time</strong> \u2014 <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods \u2014 and it turns gold when the period is up. Tap it to pause the clock and start a new period. While the clock is stopped it becomes <strong>Kick off</strong>, <strong>Start P2</strong> (and so on) or <strong>Resume</strong>, and starts the clock. It stays in view next to the opponent button and Undo, however long the squad is. It does nothing until the clock has actually run in the current period. If you gave the match a period length and tap well before it is up, the app asks <strong>End period early?</strong> first. In the last period it reads <strong>Full time</strong> and asks whether to end the match or play another period. At a break with a line-up plan, a sheet shows who comes on and who goes off with their shirt numbers; if the tap was a mistake, <strong>Wrong tap? Back to Period 1</strong> puts everything back and the clock keeps running. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
-      ["Cards", "Tap the small yellow or red square on a tile. A first yellow is logged at once; a red card, or a second yellow (which automatically becomes a red), asks you to confirm first, because it sends the child off. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
+      ["Cards", "Tap <strong>On pitch</strong> on a tile and choose <strong>Yellow card</strong> or <strong>Red card</strong>. A first yellow is logged at once. A red card, or a second yellow (which automatically becomes a red), sends the child off for the rest of the match: the menu says so before you tap, and Undo can reverse it. A sent-off child moves to the bench list and can't be brought back on. Cards are only logged while the clock runs."],
       ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. <strong>Undo</strong> (↺, bottom left, next to the opponent button) removes the most recent entry without opening the log at all, and also takes a break back, with who was on the pitch before it. It first shows exactly what it is about to remove \u2014 who, and the minute \u2014 and only does it when you tap <strong>Remove</strong>, so a stray tap can never wipe a goal. Deleting from inside the log keeps it open, so you can correct two things in a row."],
       ["End the match", "Tap <strong>End match</strong>, just under the player tiles, or <strong>Full time</strong> in the last period. The app shows the score it is about to save to History. You'll get a summary with a minute-by-minute report."],
       ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
@@ -3400,8 +3453,9 @@
     persist();
     if (T().settings.trackAssists) {
       pendingAssistEventId = ev.id;
+      assistShownAt = Date.now();
       clearTimeout(assistBarTimer);
-      assistBarTimer = setTimeout(function () { pendingAssistEventId = null; render(); }, 6000);
+      assistBarTimer = setTimeout(function () { pendingAssistEventId = null; render(); }, 8000);
     }
     render();
     var tile = document.querySelector('[data-tile="' + playerId + '"]');
@@ -3465,11 +3519,9 @@
     overlay.id = "ownGoalOverlay";
     overlay.innerHTML =
       '<div class="sheet">' +
-        '<div class="confirm-msg"><strong>Own goal</strong><br>Which team put it in their own net?</div>' +
-        '<div class="btn-row" style="margin-top:16px;">' +
-          '<button class="btn btn-primary" id="ogUsBtn">' + esc(T().teamName) + "</button>" +
-          '<button class="btn btn-primary" id="ogThemBtn">' + esc(match.opponentName) + "</button>" +
-        "</div>" +
+        '<div class="confirm-msg"><strong>Own goal</strong><br>Who put the ball in their own net?</div>' +
+        '<button class="btn btn-primary og-btn" id="ogThemBtn">Own goal by ' + esc(match.opponentName) + "<small>Point to " + esc(T().teamName) + "</small></button>" +
+        '<button class="btn og-us og-btn" id="ogUsBtn">Own goal by ' + esc(T().teamName) + "<small>Point to " + esc(match.opponentName) + "</small></button>" +
         '<button class="btn btn-ghost" id="ogCancelBtn" style="margin-top:10px;">Cancel</button>' +
       "</div>";
     document.body.appendChild(overlay);
@@ -3480,7 +3532,7 @@
     document.getElementById("ogThemBtn").onclick = function () { cleanup(); logOwnGoal("them"); };
   }
 
-  function toggleCard(playerId, cardType) {
+  function toggleCard(playerId, cardType, confirmed) {
     var match = T().activeMatch;
     if (!match) return;
     var player = rosterById(playerId);
@@ -3492,7 +3544,7 @@
     // The first yellow is a tap; a red, or the second yellow, sends a child off,
     // and the two card squares sit close together.
     var second = cardType === "yellow" && cardCounts(match, playerId).yellows >= 1;
-    if (cardType === "red" || second) {
+    if ((cardType === "red" || second) && !confirmed) {
       var who = player ? player.name + (player.number ? " (" + player.number + ")" : "") : "this player";
       var first = player ? player.name : "The child";
       showConfirm(cardType === "red" ? "Show a red card to " + who + "?" : "Second yellow for " + who + "?",
@@ -3522,6 +3574,50 @@
     }
     persist();
     render();
+  }
+
+  // The menu behind "On pitch ▾": cards, and the move to the bench. A stray tap
+  // on the badge can no longer bench a child or send one off, because both sit
+  // one deliberate tap further in, and the sheet ignores taps for its first
+  // moments like the break sheet does.
+  function showManageSheet(pid) {
+    var match = T().activeMatch;
+    var p = rosterById(pid);
+    if (!match || !p) return;
+    var old = document.getElementById("manageOverlay");
+    if (old) old.remove();
+    var cardsOn = !!T().settings.trackCards;
+    var cc = cardCounts(match, pid);
+    var second = cc.yellows >= 1;
+    var running = !!match.clock.running;
+    var o = document.createElement("div");
+    o.className = "overlay";
+    o.id = "manageOverlay";
+    var cardHtml = "";
+    if (cardsOn) {
+      cardHtml =
+        '<div class="mg-cards"><button class="btn ' + (second ? "btn-danger" : "btn-ghost") + '" id="mgYellow"' + (running ? "" : " disabled") + '><span class="mg-sw y"></span>' + (second ? "Second yellow" : "Yellow card") + "</button>" +
+        '<button class="btn btn-danger" id="mgRed"' + (running ? "" : " disabled") + '><span class="mg-sw r"></span>Red card</button></div>' +
+        '<div class="mg-note">' + (running
+          ? (second ? "A second yellow is a red card: " + esc(p.name) + " is sent off for the rest of the match and can’t come back on."
+                    : "A red card, or a second yellow, sends " + esc(p.name) + " off for the rest of the match.") + " Undo can reverse it."
+          : "Cards are only logged while the clock runs. Start the clock first.") + "</div>";
+    }
+    o.innerHTML = '<div class="sheet manage shield"><div class="brk-title">' + esc(p.number ? p.number + " · " : "") + esc(p.name) + "</div>" +
+      '<div class="brk-sub">On the pitch' + (cc.yellows ? " · " + cc.yellows + (cc.yellows === 1 ? " yellow card" : " yellow cards") : "") + "</div>" +
+      cardHtml +
+      '<button class="btn btn-ghost full" id="mgBench">Move ' + esc(p.name) + " to the bench</button>" +
+      '<button class="link-btn brk-back" id="mgCloseBtn">Close</button></div>';
+    document.body.appendChild(o);
+    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 350);
+    function close() { o.remove(); }
+    o.onclick = function (e) { if (e.target === o) close(); };
+    document.getElementById("mgCloseBtn").onclick = close;
+    document.getElementById("mgBench").onclick = function () { close(); toggleField(pid); };
+    var y = document.getElementById("mgYellow");
+    if (y) y.onclick = function () { close(); toggleCard(pid, "yellow", true); };
+    var r = document.getElementById("mgRed");
+    if (r) r.onclick = function () { close(); toggleCard(pid, "red", true); };
   }
 
   function toggleField(playerId) {
@@ -5595,14 +5691,23 @@
         .filter(function (p) { return (!scorer || p.id !== scorer.id) && isOnField(match, p.id); })
         .map(function (p) { return '<button class="assist-chip" data-assist="' + p.id + '">' + esc(p.name) + "</button>"; })
         .join("");
+      // The line at the bottom runs out with the bar; a redraw in between must
+      // not start it again, so it begins where the eight seconds have got to.
+      var assistGone = Math.min(8, Math.max(0, (Date.now() - assistShownAt) / 1000));
       assistBarHtml =
-        '<div class="assist-bar" id="assistBar">' +
-          '<div class="a-title">Goal' + (scorer ? " by " + esc(scorer.name) : "") + "! Assist by:</div>" +
+        '<div class="assist-bar" id="assistBar" role="group" aria-label="Who assisted?">' +
+          '<div class="a-title">Goal' + (scorer ? " by " + esc(scorer.name) : "") + "! Who assisted?</div>" +
           '<div class="assist-chip-row">' + chips + '<button class="assist-chip" data-assist="none">No assist</button></div>' +
+          '<div class="assist-timer" aria-hidden="true" style="animation-delay:-' + assistGone.toFixed(2) + 's"></div>' +
         "</div>";
     }
 
-    var tilesHtml = sortedRoster().map(function (p) {
+    // Who is on the pitch, and who is on the bench, are two lists. The pitch
+    // keeps the large tiles (a goal is a tap on one); the bench is a compact
+    // row per child that brings them on. Cards live in the player's menu.
+    var preNow = !match.lineupCaptured && !match.clock.running && !match.clock.elapsedMs && !match.events.length;
+    var pitchHtml = "", benchHtml = "", nPitch = 0, nBench = 0;
+    sortedRoster().forEach(function (p) {
       var goals = stats.scorers[p.id] || 0;
       var assistCount = stats.assists[p.id] || 0;
       var bits = [];
@@ -5610,32 +5715,54 @@
       if (T().settings.trackAssists && assistCount) bits.push(assistCount + (assistCount === 1 ? " assist" : " assists"));
       var onField = isOnField(match, p.id);
       var sentOff = T().settings.trackCards && hasRedCard(match, p.id);
-      var fieldBadge = '<button class="field-badge ' + (sentOff ? "sent-off-badge" : (onField ? "on" : "off")) + '" data-field="' + p.id + '" aria-label="' + esc(p.name) + (sentOff ? " is sent off" : (onField ? " is on the pitch. Move to the bench" : " is on the bench. Bring on")) + '"' + (sentOff ? " disabled" : "") + '>' + (sentOff ? "Sent off" : (onField ? "On pitch" : (isAbsent(match, p.id) ? "Away" : "Bench"))) + "</button>";
-      var controls = "";
       if (T().settings.trackCards) {
         var pcards = stats.cards[p.id] || [];
         var yellows = pcards.filter(function (c) { return c === "yellow"; }).length;
         var reds = pcards.filter(function (c) { return c === "red"; }).length;
         if (yellows) bits.push(yellows + (yellows === 1 ? " yellow" : " yellows"));
         if (reds) bits.push("red");
-        controls +=
-          '<button class="card-btn" data-card-yellow="' + p.id + '" aria-label="Yellow card for ' + esc(p.name) + '"' + (sentOff ? " disabled" : "") +
-            '><span class="mini-card yellow-btn' + (yellows ? " card-yellow" : "") + '"></span></button>' +
-          '<button class="card-btn" data-card-red="' + p.id + '" aria-label="Red card for ' + esc(p.name) + '"' + (sentOff ? " disabled" : "") +
-            '><span class="mini-card red-btn' + (reds ? " card-red" : "") + '"></span></button>';
       }
-      return (
-        '<div class="tile' + (onField ? "" : " benched") + (sentOff ? " sent-off" : "") + '" data-tile="' + p.id + '" data-goal="' + p.id + '">' +
-          fieldBadge +
-          '<div class="tile-num">' + esc(p.number || "") + "</div>" +
-          '<div class="tile-name">' + esc(p.name) + "</div>" +
-          '<div class="tile-goals">' + esc(bits.join(" · ")) + "</div>" +
-          (T().settings.trackPlayingTime
-            ? '<div class="tile-mins" data-mins="' + p.id + '"></div>' : "") +
-          (controls ? '<div class="tile-controls">' + controls + "</div>" : "") +
-        "</div>"
-      );
-    }).join("");
+      var who = p.name + (p.number ? ", number " + p.number : "");
+      var minsHtml = T().settings.trackPlayingTime ? '<div class="tile-mins" data-mins="' + p.id + '"></div>' : "";
+      if (onField) {
+        nPitch++;
+        var menu = !preNow;
+        pitchHtml +=
+          '<div class="tile" data-tile="' + p.id + '" data-goal="' + p.id + '">' +
+            '<button class="sr-only sr-goal" data-sr-goal="' + p.id + '">Log a goal for ' + esc(who) + "</button>" +
+            '<button class="field-badge on' + (menu ? " menu" : "") + '" data-field="' + p.id + '" aria-label="' + esc(p.name) + " is on the pitch. " +
+              (menu ? "Open actions: " + (T().settings.trackCards ? "cards, " : "") + "move to the bench" : "Move to the bench") + '">On pitch</button>' +
+            '<div class="tile-num">' + esc(p.number || "") + "</div>" +
+            '<div class="tile-name">' + esc(p.name) + "</div>" +
+            '<div class="tile-goals">' + esc(bits.join(" · ")) + "</div>" +
+            minsHtml +
+          "</div>";
+      } else {
+        nBench++;
+        var away = !sentOff && isAbsent(match, p.id);
+        var facts = (sentOff ? ["Sent off"] : away ? ["Away"] : []).concat(bits);
+        var badge = sentOff
+          ? '<button class="field-badge sent-off-badge" data-field="' + p.id + '" disabled aria-label="' + esc(p.name) + ' is sent off"><span class="mini-card red-btn card-red"></span></button>'
+          : '<button class="field-badge off" data-field="' + p.id + '" aria-label="Bring ' + esc(p.name) + ' on">▲</button>';
+        benchHtml +=
+          '<div class="tile benched compact' + (sentOff ? " sent-off" : "") + (away ? " away" : "") + '" data-tile="' + p.id + '" data-goal="' + p.id + '">' +
+            badge +
+            '<div class="tile-num">' + esc(p.number || "") + "</div>" +
+            '<div class="tile-name">' + esc(p.name) + "</div>" +
+            '<div class="tile-goals">' + esc(facts.join(" · ")) + "</div>" +
+            minsHtml +
+          "</div>";
+      }
+    });
+    var tilesHtml =
+      '<div class="grp-head"><h2>On the pitch</h2><span class="grp-n">' + nPitch + "</span>" +
+        (!preNow && nBench ? '<span class="grp-hint">Bench ' + nBench + " below ↓</span>" : "") + "</div>" +
+      '<div class="player-grid">' + pitchHtml + "</div>" +
+      (nBench
+        ? '<div class="grp-head bench"><h2>Bench</h2><span class="grp-n">' + nBench + "</span>" +
+            '<span class="grp-hint">' + (preNow ? "Tap a player to start them" : (T().settings.trackPlayingTime ? "Tap to bring on · gold = played least" : "Tap a player to bring them on")) + "</span></div>" +
+          '<div class="bench-grid">' + benchHtml + "</div>"
+        : "");
 
     // Until the clock has run once nothing tells the coach that the bench is
     // theirs to set: a new match shows whoever the last one started with, or
@@ -5650,7 +5777,7 @@
       });
       preKickHtml = '<div class="pre-kick" id="preKick"><strong>' + nOn + " on the pitch</strong> \u00b7 " + nBench + " on the bench" +
         (nAway ? " \u00b7 " + nAway + " away" : "") +
-        ". Tap On pitch / Bench on a tile to set who starts, then tap the timer.</div>";
+        ". Tap On pitch, or a player on the bench, to set who starts, then tap the timer.</div>";
     }
 
     // The pinned right-hand button is the next step of the match: start the
@@ -5675,7 +5802,7 @@
     el.innerHTML =
       (T().settings.trackAssists ? assistBarHtml : "") +
       preKickHtml +
-      '<div class="player-grid">' + tilesHtml + "</div>" +
+      tilesHtml +
       // Pinned above the tab bar, see .live-dock. Nothing below the grid grows
       // during the match, so these stay exactly where they were at kick-off
       // however many goals are logged. The log itself is a record, not a
@@ -5730,17 +5857,22 @@
         };
       });
     }
+    // A tile on the pitch scores; a tile on the bench brings the child on.
     el.querySelectorAll("[data-goal]").forEach(function (n) {
-      n.onclick = function () { logGoal(n.getAttribute("data-goal")); };
+      n.onclick = function () {
+        var gid = n.getAttribute("data-goal");
+        if (isOnField(match, gid)) logGoal(gid); else toggleField(gid);
+      };
     });
+    // The badge on the pitch opens the player's menu; before the clock has run
+    // it benches straight away, so the starting line-up is quick to set.
     el.querySelectorAll("[data-field]").forEach(function (btn) {
-      btn.onclick = function (e) { e.stopPropagation(); toggleField(btn.getAttribute("data-field")); };
-    });
-    el.querySelectorAll("[data-card-yellow]").forEach(function (btn) {
-      btn.onclick = function (e) { e.stopPropagation(); toggleCard(btn.getAttribute("data-card-yellow"), "yellow"); };
-    });
-    el.querySelectorAll("[data-card-red]").forEach(function (btn) {
-      btn.onclick = function (e) { e.stopPropagation(); toggleCard(btn.getAttribute("data-card-red"), "red"); };
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        var pid = btn.getAttribute("data-field");
+        if (isOnField(match, pid) && !preNow && !hasRedCard(match, pid)) showManageSheet(pid);
+        else toggleField(pid);
+      };
     });
     el.querySelectorAll("[data-del-event]").forEach(function (btn) {
       btn.onclick = function () {
@@ -5953,7 +6085,7 @@
       '<div class="card">' +
         toggleRow("trackAssists", "Assists", "Ask who assisted after each goal") +
         toggleRow("trackPlayingTime", "Playing time", "Shows each child's minutes on their tile, outlines who has played least, and adds minutes to the match summary.") +
-        toggleRow("trackCards", "Cards", "Adds a yellow and a red button to every tile. A second yellow, or a red, sends the child off.") +
+        toggleRow("trackCards", "Cards", "Adds Yellow and Red card buttons to each child\u2019s menu (tap On pitch). A second yellow, or a red, sends the child off.") +
         toggleRow("planLineups", "Line-up plan", "Choose 2 halves, 4 quarters or 8 periods, and set who plays each one before kick-off. The app proposes it at every break, so a change of line-up is one tap instead of six.") +
       "</div>" +
       '<h2 class="section-title">Share this team</h2>' +
