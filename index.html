@@ -450,6 +450,7 @@
   .tile.sent-off { opacity: 0.6; }
   .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red-text); }
   .confirm-msg { font-size: 0.9375rem; line-height: 1.5; padding: 8px 4px 0; }
+  .confirm-note { font-size: 0.8125rem; line-height: 1.45; color: var(--ink-soft); padding: 6px 4px 0; }
 
   .goal-btn-row { display: flex; gap: 10px; margin-bottom: 18px; }
   .opp-goal-btn {
@@ -1047,7 +1048,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "44";
+  var APP_VERSION = "45";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1290,11 +1291,14 @@
     if (p >= 2) return { main: "Next period", sub: "P" + p };
     return { main: "Half time", sub: "" };
   }
-  function periodTag(match) {
-    var p = match.period || 1;
+  function periodTagFor(match, p) {
     var fmt = (match.plan && match.plan.periods) || match.periodFormat;
     if (fmt) return periodShort(fmt, p - 1);
     return "P" + p;
+  }
+
+  function periodTag(match) {
+    return periodTagFor(match, match.period || 1);
   }
 
   // The only place the clock face is written. The per-second tick used to
@@ -2528,7 +2532,7 @@
     return d.innerHTML;
   }
 
-  function showConfirm(message, confirmLabel, onConfirm, danger) {
+  function showConfirm(message, confirmLabel, onConfirm, danger, note) {
     var old = document.getElementById("confirmOverlay");
     if (old) old.remove();
     var overlay = document.createElement("div");
@@ -2537,6 +2541,7 @@
     overlay.innerHTML =
       '<div class="sheet">' +
         '<div class="confirm-msg">' + esc(message) + "</div>" +
+        (note ? '<div class="confirm-note">' + esc(note) + "</div>" : "") +
         '<div class="btn-row" style="margin-top:16px;">' +
           '<button class="btn btn-ghost" id="confirmCancelBtn">Cancel</button>' +
           '<button class="btn ' + (danger ? "btn-danger" : "btn-primary") + '" id="confirmOkBtn">' + esc(confirmLabel || "Confirm") + "</button>" +
@@ -2967,9 +2972,9 @@
     var sections = [
       ["Put it on your home screen", "Opened in a browser, the app offers to add itself — on Android and desktop Chrome with an <strong>Install</strong> button, on iPhone with the steps to follow, because Apple gives websites no way to do it for you. Installed, it opens fullscreen and works without signal."],
       ["Set up your team", "Go to <strong>Team</strong> and add each player's name and shirt number. This only needs doing once — it's saved on this device for every future match."],
-      ["Several teams", "Tap <strong>Switch</strong> at the top of the Team screen to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
-      ["Match options", "Still on the Team screen: turn on Assists, Playing time, or Cards only if you want to track them. All three are off by default to keep things simple."],
-      ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>."],
+      ["Several teams", "Tap <strong>Teams</strong> at the top of the Team screen (it reads <strong>Switch</strong> once you have more than one) to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
+      ["Match options", "Still on the Team screen: turn on <strong>Assists</strong>, <strong>Playing time</strong> or <strong>Cards</strong> only if you want to track them, and <strong>Line-up plan</strong> if you want to set who plays each period (more on that further down). All four are off by default to keep things simple."],
+      ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>. During the match the strip under the clock shows both team names, with <strong>(H)</strong> for home or <strong>(A)</strong> for away behind them. Typed the opponent wrong? Tap its name in that strip (marked \u270e) to rename it."],
       ["The clock", "Tap the timer at the top to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. Give the match a period length at kick-off and the number turns gold once the referee plays past it, so you can see how much is being added on, and at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
       ["Score a goal", "Tap a player's tile. If Assists is on, you'll be asked who assisted right after. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
       ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick which team put it in their own net. The point goes to the other team automatically, and an own goal is never counted as a goal for any player."],
@@ -2979,13 +2984,14 @@
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
       ["Half time and breaks", "Tap <strong>Half time</strong> \u2014 it reads <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods, and <strong>Next period</strong> again in the second half \u2014 to pause the clock and start a new period. It stays in view at the bottom of the screen, next to the opponent button and Undo, however long the squad is. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
-      ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. <strong>Undo</strong> (↺, bottom left, next to the opponent button) removes the most recent entry without opening the log at all, and also takes a break back. Deleting from inside the log keeps it open, so you can correct two things in a row."],
+      ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. <strong>Undo</strong> (↺, bottom left, next to the opponent button) removes the most recent entry without opening the log at all, and also takes a break back. It first shows exactly what it is about to remove \u2014 who, and the minute \u2014 and only does it when you tap <strong>Remove</strong>, so a stray tap can never wipe a goal. Deleting from inside the log keeps it open, so you can correct two things in a row."],
       ["End the match", "Tap <strong>End match</strong>, just under the player tiles. You'll get a summary with a minute-by-minute report."],
       ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
       ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match for its <strong>Card</strong> or its written report."],
       ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>Fix</strong> on a match in History to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
       ["Keep a backup", "Everything lives on this device only. <strong>Export team data</strong> with all three choices left on writes one file with the lot: your players, your settings, every match you have played, and every match you have <em>prepared</em> — their line-ups, period lengths and who couldn't make it. Clearing your browser data would otherwise take all of that with it, so keep the file somewhere safe. The app reminds you when matches have been played, or preparation has been done, since your last backup. <strong>Import team data</strong> puts it all back."],
-      ["Share your team", "<strong>Export team data</strong> asks what to put in the file: <strong>Players &amp; settings</strong>, <strong>Matches played</strong>, <strong>Prepared matches</strong> \u2014 all three by default, which is your backup. Turn some off to share: just the squad for a new coach, or just the prepared matches to hand someone next week's line-up. A prepared match is only a list of players, so when you export those on their own the names and numbers travel with them; on the other coach's phone the app matches them to her own squad by name and number, and tells her plainly if someone is missing. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."]
+      ["Share your team", "<strong>Export team data</strong> asks what to put in the file: <strong>Players &amp; settings</strong>, <strong>Matches played</strong>, <strong>Prepared matches</strong> \u2014 all three by default, which is your backup. Turn some off to share: just the squad for a new coach, or just the prepared matches to hand someone next week's line-up. A prepared match is only a list of players, so when you export those on their own the names and numbers travel with them; on the other coach's phone the app matches them to her own squad by name and number, and tells her plainly if someone is missing. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."],
+      ["Find this help again", "On the start screen the <strong>?</strong> sits at the top left. While a match is on it is at the bottom of the Match screen, next to <strong>Match log</strong>, and on the Team screen as <strong>? Help</strong> \u2014 the top bar is kept free for the score and the clock."]
     ];
     var body = sections.map(function (s) {
       return '<div class="help-section"><h3>' + esc(s[0]) + "</h3><p>" + s[1] + "</p></div>";
@@ -3409,9 +3415,57 @@
     return !!(adv && match.events.length === adv.eventsLen);
   }
 
-  function undoLast() {
+  // What Undo would act on right now: the break, or the id of the newest entry.
+  // The confirmation remembers it, so "Remove" can only remove what it showed.
+  function undoKey(match) {
+    if (breakIsLast(match)) return "break";
+    var n = match.events.length;
+    return n ? String(match.events[n - 1].id || n) : "";
+  }
+
+  // Undo is one tap away from the opponent button, so it never acts blind: it
+  // says what will go, and the coach confirms. A stray tap then costs a Cancel
+  // instead of a goal.
+  function undoPrompt() {
     var match = T().activeMatch;
     if (!match) return;
+    var key = undoKey(match);
+    if (breakIsLast(match)) {
+      showConfirm("Take the break back and return to " + periodTagFor(match, match.lastAdvance.fromPeriod) + "?",
+        "Take back", function () { undoLast(key); }, false);
+      return;
+    }
+    if (!match.events.length) return;
+    var ev = match.events[match.events.length - 1];
+    function who(id) { var pl = rosterById(id); return pl ? pl.name : "a player"; }
+    var opp = match.opponentName || "the opponent";
+    var at = " (" + (ev.minuteAtEvent || 0) + "')";
+    var msg, note = "";
+    if (ev.type === "goal") {
+      msg = "Remove the goal by " + who(ev.playerId) + at + "?";
+      if (ev.assistId) note = "The assist by " + who(ev.assistId) + " goes with it.";
+    } else if (ev.type === "opponent_goal") {
+      msg = "Remove the goal for " + opp + at + "?";
+    } else if (ev.type === "own_goal") {
+      msg = "Remove the own goal by " + (ev.by === "us" ? T().teamName : opp) + at + "?";
+    } else if (ev.type === "card") {
+      msg = "Remove the " + (ev.cardType === "red" ? "red" : "yellow") + " card for " + who(ev.playerId) + at + "?";
+      if (ev.cardType === "red") {
+        note = (ev.auto ? "The yellow card that led to it is removed too. " : "") + who(ev.playerId) + " can play again.";
+      }
+    } else {
+      msg = "Remove the last entry?";
+    }
+    showConfirm(msg, "Remove", function () { undoLast(key); }, true, note);
+  }
+
+  function undoLast(expectKey) {
+    var match = T().activeMatch;
+    if (!match) return;
+    if (expectKey != null && undoKey(match) !== expectKey) {
+      showToast("Nothing was removed \u2014 the latest entry changed. Tap Undo again.", "warning");
+      return;
+    }
     if (breakIsLast(match)) {
       var adv = match.lastAdvance;
       match.period = adv.fromPeriod;
@@ -5339,7 +5393,7 @@
 
     document.getElementById("matchLogBtn").onclick = showMatchLogSheet;
     document.getElementById("matchHelpBtn").onclick = showHelp;
-    document.getElementById("undoBtn").onclick = undoLast;
+    document.getElementById("undoBtn").onclick = undoPrompt;
 
     document.getElementById("oppGoalBtn").onclick = logOpponentGoal;
     document.getElementById("halfTimeBtn").onclick = startNextPeriod;
