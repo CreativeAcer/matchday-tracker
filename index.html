@@ -72,7 +72,7 @@
     --ink-soft: #AEBBAF;
     --line: rgba(241,238,227,0.14);
   }
-  html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 62px); min-height: 100%; }
+  html { scroll-padding-top: var(--head-h, calc(env(safe-area-inset-top, 0px) + 62px)); min-height: 100%; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -98,10 +98,16 @@
     align-items: center;
     justify-content: space-between;
     padding: calc(10px + env(safe-area-inset-top, 0px))
-             calc(10px + env(safe-area-inset-right, 0px)) 10px
-             calc(10px + env(safe-area-inset-left, 0px));
+             calc(14px + env(safe-area-inset-right, 0px)) 10px
+             calc(14px + env(safe-area-inset-left, 0px));
     gap: 8px;
   }
+  /* In a live match the top bar is the score and the clock and nothing else:
+     Undo lives with the other match buttons, help lives on the Match and Team
+     screens. Outside a match the round help button sits on the left, with an
+     invisible twin on the right so the final score stays centred. */
+  .top-spacer { width: 42px; height: 42px; flex-shrink: 0; visibility: hidden; }
+  header.topbar.live .help-icon, header.topbar.live .top-spacer { display: none; }
   /* Both header icons read as buttons: a filled pill with a bright glyph, so
      they stay obvious against the dark green in either theme. */
   .icon-btn {
@@ -128,23 +134,51 @@
     border: 1px solid rgba(255,255,255,0.16);
     border-radius: 12px;
     color: var(--on-dark);
-    padding: 6px 12px;
+    padding: 6px 8px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
     line-height: 1.15;
   }
   .clock-btn:active { background: rgba(255,255,255,0.14); }
   .clock-time {
     font-family: var(--font-display);
-    font-size: 1.5rem;
+    font-size: min(1.5rem, 10vw);
+    white-space: nowrap;
     font-weight: 600;
     letter-spacing: 0.5px;
   }
   .clock-total { font-size: 0.625rem; color: rgba(250,248,242,0.55); letter-spacing: 0.3px; }
   .clock-time.over { color: var(--gold); }
-  .clock-state { font-size: 0.6875rem; color: var(--gold); }
+  .clock-state { font-size: min(0.6875rem, 3vw); color: var(--gold); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .clock-state.running { color: #8FD9AE; }
+
+  /* The score sits either side of the clock in the top bar, the two numbers a
+     coach reads together; the strip under it only names the teams, so it can be
+     one thin line. The strip pins itself just below the top bar, wherever that
+     ends (--topbar-h, measured by syncChrome). */
+  .top-mid {
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .top-score {
+    font-family: var(--font-display);
+    font-size: min(2.25rem, 11vw);
+    font-weight: 700;
+    line-height: 1;
+    flex: 0 0 auto;
+    min-width: 1ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-score.them { color: var(--gold); }
+  .top-sep { display: none; font-family: var(--font-display); font-size: 1.5rem; opacity: 0.5; }
+  /* After the match there is no clock, just the final score. */
+  .top-mid.final .clock-btn { display: none; }
+  .top-mid.final .top-sep { display: block; }
+  .top-mid.final { gap: 14px; }
 
   .scoreboard {
     background: var(--pitch);
@@ -152,38 +186,34 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
-    padding: 8px calc(14px + env(safe-area-inset-right, 0px)) 16px
+    gap: 10px;
+    padding: 4px calc(14px + env(safe-area-inset-right, 0px)) 5px
                  calc(14px + env(safe-area-inset-left, 0px));
     position: sticky;
-    top: calc(env(safe-area-inset-top, 0px) + 62px);
+    top: var(--topbar-h, calc(env(safe-area-inset-top, 0px) + 74px));
     z-index: 19;
   }
-  .score-side { text-align: center; min-width: 0; flex: 1; }
-  .score-num {
-    font-family: var(--font-display);
-    font-size: 2.5rem;
-    font-weight: 700;
-    display: block;
-    line-height: 1;
-  }
-  .score-side.them .score-num { color: var(--gold); }
+  .score-side { text-align: center; min-width: 0; flex: 0 1 auto; }
   .score-label {
     display: block;
-    font-size: 0.75rem;
-    margin-top: 3px;
+    font-size: 0.8125rem;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .score-label-btn {
-    background: none; border: none; color: inherit; font: inherit;
-    padding: 2px 4px; width: 100%;
+    background: none; border: none; color: inherit; font-family: inherit; font-weight: inherit;
+    padding: 1px 4px; width: 100%;
     display: flex; align-items: center; justify-content: center; gap: 5px;
   }
-  .score-label-btn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  #usScoreLabel { display: flex; align-items: center; justify-content: center; }
+  /* A long team name gives way, the (H) or (A) after it never does. */
+  .score-label .lbl { display: flex; min-width: 0; overflow: hidden; }
+  .score-label .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .score-label .ha { flex: none; white-space: pre; }
   .score-label-btn .pen { flex-shrink: 0; font-size: 0.6875rem; opacity: 0.8; }
-  .score-sep { font-family: var(--font-display); font-size: 1.375rem; opacity: 0.5; margin-top: -6px; }
+  .score-sep { font-family: var(--font-display); font-size: 1rem; opacity: 0.5; }
 
   main.screen { flex: 1;
     padding: 16px calc(14px + env(safe-area-inset-right, 0px))
@@ -457,6 +487,17 @@
     display: flex; align-items: center; justify-content: center;
     text-align: center; line-height: 1.2;
   }
+  /* Undo is the one control you reach for in a hurry (the wrong child was
+     tapped), so it sits in the pinned row, in thumb range. It is narrow and
+     labelled, with the big opponent button beside it as the easy target. */
+  .live-dock .dock-undo {
+    flex: 0 0 60px; width: 60px; min-height: 52px; padding: 6px 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    line-height: 1.1;
+  }
+  .dock-undo-ico { font-size: 1.25rem; line-height: 1; }
+  .dock-undo-txt { font-size: 0.6875rem; font-weight: 700; margin-top: 3px; }
+  .live-dock .dock-undo:disabled { opacity: 0.4; }
   .live-dock .dock-period {
     flex: 1 1 0; min-width: 0; min-height: 52px; padding: 6px 8px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -789,6 +830,13 @@
   .team-card .btn { width: auto; flex-shrink: 0; padding: 12px 16px; font-size: 0.875rem; min-height: 44px; }
   .playing-as { font-size: 0.8125rem; color: var(--ink-soft); margin: -6px 0 12px; }
   .playing-as strong { color: var(--ink); }
+  .title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .help-pill {
+    flex-shrink: 0; min-height: 40px; padding: 8px 14px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+    font-weight: 700; font-size: 0.875rem;
+  }
+  .match-actions-2 .help-mini { flex: 0 0 56px; width: 56px; padding-left: 0; padding-right: 0; font-weight: 700; }
   .link-btn {
     background: none; border: none; padding: 0; font-size: 0.8125rem;
     color: var(--brand-text); font-weight: 700; text-decoration: underline;
@@ -871,6 +919,12 @@
 
   ::-webkit-scrollbar { display: none; }
 
+  /* Very narrow phones: the clock shares its row with two scores. */
+  @media (max-width: 340px) {
+    .top-mid { gap: 6px; }
+    .clock-btn { padding-left: 4px; padding-right: 4px; }
+  }
+
   /* ---- short screens ---------------------------------------------------
      The clock, scoreboard and tab bar are a flat 212px whatever the phone, so
      on a small screen they eat a third of it and push Half time out of reach.
@@ -884,20 +938,19 @@
   @media (max-height: 700px) {
     header.topbar {
       padding: calc(6px + env(safe-area-inset-top, 0px))
-               calc(10px + env(safe-area-inset-right, 0px)) 6px
-               calc(10px + env(safe-area-inset-left, 0px));
+               calc(14px + env(safe-area-inset-right, 0px)) 6px
+               calc(14px + env(safe-area-inset-left, 0px));
     }
-    .clock-btn { padding: 2px 12px; }
-    .clock-time { font-size: 1.1875rem; }
-    .clock-state { font-size: 0.625rem; }
+    .clock-btn { padding: 2px 8px; }
+    .clock-time { font-size: min(1.1875rem, 7vw); }
+    .clock-state { font-size: min(0.625rem, 3vw); }
     .clock-total { font-size: 0.5625rem; }
     .scoreboard {
-      gap: 10px;
-      padding: 2px calc(14px + env(safe-area-inset-right, 0px)) 6px
+      padding: 2px calc(14px + env(safe-area-inset-right, 0px)) 3px
                    calc(14px + env(safe-area-inset-left, 0px));
-      top: calc(env(safe-area-inset-top, 0px) + 54px);
+      top: var(--topbar-h, calc(env(safe-area-inset-top, 0px) + 54px));
     }
-    .score-num { font-size: 1.625rem; }
+    .top-score { font-size: min(2rem, 10vw); }
     .score-label { font-size: 0.75rem; }
     main.screen { padding-top: 10px; }
     .player-grid { gap: 8px; margin-bottom: 10px; }
@@ -911,22 +964,25 @@
 <div id="app">
   <header class="topbar">
     <button class="icon-btn help-icon" id="helpBtn" aria-label="How to use this app">?</button>
-    <button class="clock-btn" id="clockBtn">
-      <span class="clock-time" id="clockTime">00:00</span>
-      <span class="clock-total hidden" id="clockTotal"></span>
-      <span class="clock-state" id="clockState">No match yet</span>
-    </button>
-    <button class="icon-btn" id="undoBtn" aria-label="Undo last event">↺</button>
+    <div class="top-mid" id="topMid">
+      <span class="top-score us" id="usScoreNum">0</span>
+      <button class="clock-btn" id="clockBtn">
+        <span class="clock-time" id="clockTime">00:00</span>
+        <span class="clock-total hidden" id="clockTotal"></span>
+        <span class="clock-state" id="clockState">No match yet</span>
+      </button>
+      <span class="top-sep" aria-hidden="true">–</span>
+      <span class="top-score them" id="themScoreNum">0</span>
+    </div>
+    <span class="top-spacer" aria-hidden="true"></span>
   </header>
 
   <div class="scoreboard" id="scoreboardBar">
     <div class="score-side us">
-      <span class="score-num" id="usScoreNum">0</span>
       <span class="score-label" id="usScoreLabel">Your Team</span>
     </div>
     <span class="score-sep">–</span>
     <div class="score-side them">
-      <span class="score-num" id="themScoreNum">0</span>
       <button class="score-label score-label-btn" id="themScoreLabel">Opponent</button>
     </div>
   </div>
@@ -991,7 +1047,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "42";
+  var APP_VERSION = "44";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -2921,9 +2977,9 @@
       ["Fair playing time", "With <strong>Playing time</strong> on, each tile shows the minutes played so far, updating as the clock runs. After the first five minutes the player with the fewest minutes is outlined, so you can see at a glance who is due to come on."],
       ["Prepare a match in advance", "On the Match screen, <strong>Prepare a match for later</strong> saves a match you will play another day: the opponent, home or away, the kick-off date and time, who can\u2019t make it, the match format and the line-up plan. Prepared matches appear under <strong>Ready to play</strong>, earliest first, and <strong>Start this match</strong> begins it with everything already filled in. Players you marked away start on the bench, and the planner leaves them out so the line-up is spread over the players who are actually there. A match whose kick-off has passed stays in the list, marked <em>past</em>, until you start or delete it."],
       ["Line-up plan", "With <strong>Line-up plan</strong> on, you set before kick-off who plays each period \u2014 2 halves, 4 quarters or 8 short periods. <strong>Spread evenly</strong> fills the grid so everyone gets nearly the same number of periods, and the column at the right of each name shows their share. The first period is on the pitch the moment you kick off, With 8 periods the names stay pinned on the left and the periods scroll sideways, so every box keeps its full size. At every break the app asks whether to apply the next line-up \u2014 it lists who comes on and who goes off, and changes nothing until you tap Apply. A player sent off with a red card stays off, whatever the plan says."],
-      ["Half time and breaks", "Tap <strong>Half time</strong> \u2014 it reads <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods, and <strong>Next period</strong> again in the second half \u2014 to pause the clock and start a new period. It stays in view at the bottom of the screen, next to the opponent button, however long the squad is. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
+      ["Half time and breaks", "Tap <strong>Half time</strong> \u2014 it reads <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods, and <strong>Next period</strong> again in the second half \u2014 to pause the clock and start a new period. It stays in view at the bottom of the screen, next to the opponent button and Undo, however long the squad is. It does nothing until the clock has actually run in the current period, so a stray tap can't skip you through a match that hasn't been played. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap the small yellow or red square on a tile. A second yellow automatically becomes a red. A red card automatically benches the player for the rest of the match, and they can't be brought back on."],
-      ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. ↺ Undo at the top removes the most recent entry without opening the log at all. Deleting from inside the log keeps it open, so you can correct two things in a row."],
+      ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. <strong>Undo</strong> (↺, bottom left, next to the opponent button) removes the most recent entry without opening the log at all, and also takes a break back. Deleting from inside the log keeps it open, so you can correct two things in a row."],
       ["End the match", "Tap <strong>End match</strong>, just under the player tiles. You'll get a summary with a minute-by-minute report."],
       ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
       ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match for its <strong>Card</strong> or its written report."],
@@ -4991,17 +5047,23 @@
 
     var match = T().activeMatch;
     document.getElementById("scoreboardBar").classList.toggle("hidden", !match && view !== "summary");
-    document.getElementById("undoBtn").disabled = !match || (match.events.length === 0 && !breakIsLast(match));
+    var showScore = !!match || view === "summary";
+    document.getElementById("topMid").classList.toggle("final", !match && view === "summary");
+    document.getElementById("usScoreNum").style.visibility = showScore ? "visible" : "hidden";
+    document.getElementById("themScoreNum").style.visibility = showScore ? "visible" : "hidden";
+    document.querySelector("header.topbar").classList.toggle("live", !!match);
     document.getElementById("clockBtn").style.visibility = match ? "visible" : "hidden";
 
     if (match) {
       var stats = computeStats(match);
       document.getElementById("usScoreNum").textContent = stats.scoreUs;
       document.getElementById("themScoreNum").textContent = stats.scoreThem;
-      document.getElementById("usScoreLabel").textContent = T().teamName + (match.isHome !== false ? " (H)" : " (A)");
+      document.getElementById("usScoreLabel").innerHTML =
+        '<span class="lbl"><span class="nm">' + esc(T().teamName) + '</span><span class="ha"> ' +
+        (match.isHome !== false ? "(H)" : "(A)") + "</span></span>";
       document.getElementById("themScoreLabel").innerHTML =
-        '<span class="lbl">' + esc(match.opponentName + (match.isHome !== false ? " (A)" : " (H)")) +
-        '</span><span class="pen" aria-hidden="true">✎</span>';
+        '<span class="lbl"><span class="nm">' + esc(match.opponentName) + '</span><span class="ha"> ' +
+        (match.isHome !== false ? "(A)" : "(H)") + '</span></span><span class="pen" aria-hidden="true">✎</span>';
       paintClock(match);
       document.getElementById("clockState").textContent = match.clock.running ? "Running — tap to pause" : "Paused — tap to start";
       document.getElementById("clockState").classList.toggle("running", match.clock.running);
@@ -5028,6 +5090,15 @@
       var root = document.documentElement.style;
       var nav = document.querySelector(".bottom-nav");
       if (nav) root.setProperty("--nav-h", Math.round(nav.getBoundingClientRect().height) + "px");
+      // The score strip pins itself under the top bar, which is taller or
+      // shorter depending on the phone, the text size and the clock face.
+      var bar = document.querySelector("header.topbar");
+      var board = document.getElementById("scoreboardBar");
+      if (bar) {
+        var barH = bar.getBoundingClientRect().height;
+        root.setProperty("--topbar-h", Math.round(barH) + "px");
+        root.setProperty("--head-h", Math.round(barH + (board && board.offsetParent !== null ? board.getBoundingClientRect().height : 0)) + "px");
+      }
       var dock = document.getElementById("liveDock");
       var h = 0;
       if (dock && dock.offsetParent !== null && window.getComputedStyle(dock).position === "sticky") {
@@ -5245,6 +5316,9 @@
       // however many goals are logged. The log itself is a record, not a
       // control, so it lives behind a button like the other reference screens.
       '<div class="live-dock" id="liveDock">' +
+        '<button class="btn btn-ghost dock-undo" id="undoBtn" aria-label="Undo last event"' +
+          (match.events.length === 0 && !breakIsLast(match) ? " disabled" : "") + '>' +
+          '<span class="dock-undo-ico" aria-hidden="true">\u21ba</span><span class="dock-undo-txt">Undo</span></button>' +
         '<button class="opp-goal-btn" id="oppGoalBtn">+ ' + esc(match.opponentName) + " scored</button>" +
         '<button class="btn btn-ghost dock-period" id="halfTimeBtn"><span class="dock-period-main">' +
           esc(periodButtonLabel(match).main) + "</span>" +
@@ -5260,9 +5334,12 @@
           ? '<button class="btn btn-ghost" id="matchPlanBtn">Line-up plan</button>' : "") +
         '<button class="btn btn-ghost" id="matchLogBtn">Match log' +
           (match.events.length ? " (" + match.events.length + ")" : "") + "</button>" +
+        '<button class="btn btn-ghost help-mini" id="matchHelpBtn" aria-label="How to use this app">?</button>' +
       "</div>";
 
     document.getElementById("matchLogBtn").onclick = showMatchLogSheet;
+    document.getElementById("matchHelpBtn").onclick = showHelp;
+    document.getElementById("undoBtn").onclick = undoLast;
 
     document.getElementById("oppGoalBtn").onclick = logOpponentGoal;
     document.getElementById("halfTimeBtn").onclick = startNextPeriod;
@@ -5476,7 +5553,8 @@
 
     el.innerHTML =
       noticeHtml() +
-      '<h1 class="screen-title">Team &amp; settings</h1>' +
+      '<div class="title-row"><h1 class="screen-title">Team &amp; settings</h1>' +
+        '<button class="help-pill" id="teamHelpBtn" aria-label="How to use this app">? Help</button></div>' +
       '<div class="card">' +
         '<div class="team-card">' +
           "<div>" +
@@ -5518,6 +5596,7 @@
       "</div>";
 
     document.getElementById("switchTeamBtn").onclick = showTeamPicker;
+    document.getElementById("teamHelpBtn").onclick = showHelp;
     var goMatch = document.getElementById("goToMatchBtn");
     if (goMatch) goMatch.onclick = function () { view = "match"; render(); };
     document.getElementById("teamNameInput").onchange = function (e) {
@@ -5700,7 +5779,6 @@
       showToast("Opponent renamed to " + name + ".");
     });
   };
-  document.getElementById("undoBtn").onclick = undoLast;
   document.getElementById("importFileInput").onchange = function (e) {
     var file = e.target.files && e.target.files[0];
     if (file) importDataFromFile(file);
@@ -5783,6 +5861,7 @@
       if (view === "match" && T().activeMatch && T().activeMatch.clock.running) {
         paintClock(T().activeMatch);
         updateLiveMinutes();
+        syncChrome();
       }
     }
   }, 1000);
