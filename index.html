@@ -1145,6 +1145,11 @@
   .hi-btns { display: flex; gap: 8px; margin-top: 10px; }
   .hi-btns .btn { flex: 1 1 0; width: auto; min-height: 44px; padding: 10px 12px; }
   .scorers-toggle { margin-top: 10px; min-height: 44px; }
+  
+  /* ==== v49 ================================================================ */
+  .field-note { font-size: 0.8125rem; line-height: 1.4; color: var(--ink-soft); margin: -6px 2px 12px; }
+  .field-note:empty { display: none; }
+  .field-note.warn { color: var(--red-text); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -1224,11 +1229,36 @@
   // Half minutes are real (8 periods in a 60-minute match is 7.5 each), and a
   // Belgian keyboard types a comma, so "7,5" and "7.5" both mean seven and a
   // half. Anything after the number is ignored ("15 min" is 15), as before.
+  // The floor is a tenth of a minute (six seconds), so the countdown, the bar and
+  // the gold "Time's up" can be tried out without waiting; below 1 minute used to
+  // be dropped without a word and the match simply had no length at all.
   function cleanPeriodMinutes(v) {
     var hit = /^\s*(\d+(?:[.,]\d+)?)/.exec(String(v == null ? "" : v));
     if (!hit) return null;
     var m = Math.round(parseFloat(hit[1].replace(",", ".")) * 100) / 100;
-    return (m >= 1 && m <= 60) ? m : null;
+    return (m >= 0.1 && m <= 60) ? m : null;
+  }
+
+  // Under the length field: what the app made of what was typed.
+  function periodNoteText(raw) {
+    var s = String(raw == null ? "" : raw).trim();
+    if (!s) return "";
+    var m = cleanPeriodMinutes(s);
+    if (m == null) return "Not used: enter 0.1 to 60 minutes, or leave it empty.";
+    return "Counts down from " + formatClock(Math.round(m * 60000)) + " in each period.";
+  }
+
+  function wirePeriodNote(inputId, noteId) {
+    var inp = document.getElementById(inputId);
+    var note = document.getElementById(noteId);
+    if (!inp || !note) return;
+    var sync = function () {
+      var t = periodNoteText(inp.value);
+      note.textContent = t;
+      note.className = "field-note" + (t && cleanPeriodMinutes(inp.value) == null ? " warn" : "");
+    };
+    inp.addEventListener("input", sync);
+    sync();
   }
 
   var PLAN_FORMATS = [2, 4, 8];
@@ -1237,7 +1267,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "48";
+  var APP_VERSION = "49";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -2568,6 +2598,7 @@
             '<label class="field-label" for="prepMins">Length of each half, quarter or period, in minutes (optional)</label>' +
             '<input class="text-input" id="prepMins" inputmode="decimal" maxlength="5" placeholder="e.g. 15 or 7,5" value="' +
               esc(entry.periodMinutes || "") + '">' +
+            '<div class="field-note" id="prepMinsNote" role="status" aria-live="polite"></div>' +
             (roster.length
               ? '<label class="field-label">Who can’t make it?</label>' +
                 '<div class="prep-av-list">' + absentRows + "</div>"
@@ -2580,6 +2611,7 @@
 
       var back = overlay.querySelector(".prep-scroll");
       if (back) back.scrollTop = keepY;
+      wirePeriodNote("prepMins", "prepMinsNote");
 
       var prepEnable = document.getElementById("prepEnablePlan");
       if (prepEnable) prepEnable.onclick = function () {
@@ -3316,7 +3348,7 @@
       ["Several teams", "Tap <strong>Teams</strong> at the top of the Team screen (it reads <strong>Switch</strong> once you have more than one) to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on <strong>Assists</strong>, <strong>Playing time</strong> or <strong>Cards</strong> only if you want to track them, and <strong>Line-up plan</strong> if you want to set who plays each period (more on that further down). All four are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>. During the match the strip under the clock shows both team names, with <strong>(H)</strong> for home or <strong>(A)</strong> for away behind them. Typed the opponent wrong? Tap its name in that strip (marked \u270e) to rename it."],
-      ["The clock", "Tap the timer at the top, or the green <strong>Kick off</strong> button at the bottom, to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. Tap a player or the opponent button while it is stopped and the app asks whether to start the clock and log it in one go. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. The words under the number say where you are: <strong>Not started</strong>, <strong>Running</strong>, <strong>Break</strong> or <strong>Paused</strong>, and the panel turns gold whenever the clock is stopped. Give the match a period length at kick-off and it also counts down what is left, a thin bar fills along the bottom, and once the period is up it reads <strong>Time\u2019s up</strong> with how much is being added on; at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>."],
+      ["The clock", "Tap the timer at the top, or the green <strong>Kick off</strong> button at the bottom, to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. Tap a player or the opponent button while it is stopped and the app asks whether to start the clock and log it in one go. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. The words under the number say where you are: <strong>Not started</strong>, <strong>Running</strong>, <strong>Break</strong> or <strong>Paused</strong>, and the panel turns gold whenever the clock is stopped. Give the match a period length at kick-off and it also counts down what is left, a thin bar fills along the bottom, and once the period is up it reads <strong>Time\u2019s up</strong> with how much is being added on; at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>. The line under the field says what the app made of what you typed; anything from <strong>0,1</strong> (six seconds, handy for trying it out) up to 60 is accepted."],
       ["Score a goal", "Tap a player's tile on the pitch. If Assists is on, you'll be asked who assisted right after: large buttons, <strong>No assist</strong> first, and a thin line that runs out after 8 seconds. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
       ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick who put it in their own net. Each choice says which team gets the point (<strong>Own goal by the opponent \u2014 point to your team</strong>), and an own goal is never counted as a goal for any player."],
       ["On pitch / Bench", "The Match screen has two lists: <strong>On the pitch</strong>, with the large tiles, and <strong>Bench</strong> below it, one compact row per child. Tap a tile on the pitch to score; tap a row on the bench to bring that child on. The <strong>On pitch</strong> badge on a tile opens that child\u2019s menu, with the cards (if you track them) and <strong>Move to the bench</strong>, so a stray tap can\u2019t bench anyone. Before the clock has run the badge benches straight away, so you can set who starts, and a line above the tiles says how many are on the pitch and how many on the bench. Whoever was on the pitch when you started the clock becomes the lineup the next match begins with, so you only set the bench once; a player you add later starts on the pitch."],
@@ -3472,7 +3504,9 @@
       T().lastLineup = match.startingLineup;
     }
     if (match.plan) T().lastPlan = normalisePlan(match.plan);
-    if (match.periodMinutes) T().lastPeriodMinutes = match.periodMinutes;
+    // Only a real length is remembered for the next kick-off: six seconds typed to try
+    // the countdown out must not come back as next Saturday's default.
+    if (match.periodMinutes && match.periodMinutes >= 1) T().lastPeriodMinutes = match.periodMinutes;
     T().history.unshift(record);
     T().activeMatch = null;
     persist();
@@ -5823,6 +5857,7 @@
               '<label class="field-label" for="periodMinsInput">Length of each half, quarter or period, in minutes (optional)</label>' +
               '<input class="text-input" id="periodMinsInput" inputmode="decimal" maxlength="5" placeholder="e.g. 15 or 7,5" value="' +
                 esc(pendingPeriodMinutes || "") + '">' +
+              '<div class="field-note" id="periodMinsNote" role="status" aria-live="polite"></div>' +
               (T().settings.planLineups
                 ? '<label class="field-label">Match format</label>' +
                   '<div class="btn-row" style="margin-bottom:10px;">' +
@@ -5863,6 +5898,7 @@
         if (minsEl) minsEl.oninput = function (e) {
           pendingPeriodMinutes = cleanPeriodMinutes(e.target.value);
         };
+        wirePeriodNote("periodMinsInput", "periodMinsNote");
         document.getElementById("homeBtn").onclick = function () {
           readKickoffFields();
           pendingIsHome = true;
