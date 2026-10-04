@@ -1278,7 +1278,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "50";
+  var APP_VERSION = "51";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -2228,7 +2228,7 @@
     o.className = "overlay";
     o.id = "hereOverlay";
     var rows = roster.map(function (p) {
-      return '<button class="prep-av" data-here="' + escAttr(p.id) + '" aria-pressed="false">' +
+      return '<button class="prep-av" data-here="' + esc(p.id) + '" aria-pressed="false">' +
         '<span class="plan-num">' + esc(p.number || "–") + "</span>" +
         '<span class="prep-av-nm">' + esc(p.name) + "</span>" +
         '<span class="prep-av-tag">There</span>' +
@@ -2932,10 +2932,14 @@
     setTimeout(function () { t.remove(); }, ms);
   }
 
+  // Safe as text and inside a double-quoted attribute. innerHTML leaves " alone, so
+  // a name like Jo"hn cut an aria-label or a value short, and a made-up name could
+  // add attributes of its own: an imported file or a pasted list is enough to put
+  // one in the squad.
   function esc(str) {
     var d = document.createElement("div");
     d.textContent = str == null ? "" : String(str);
-    return d.innerHTML;
+    return d.innerHTML.replace(/"/g, "&quot;");
   }
 
   function showConfirm(message, confirmLabel, onConfirm, danger, note, cancelLabel) {
@@ -4553,10 +4557,6 @@
     showToast(list.length + (list.length === 1 ? " player added." : " players added."));
   }
 
-  function escAttr(str) {
-    return esc(str).replace(/"/g, "&quot;");
-  }
-
   // Fixing a typo in a name or a shirt number. The name is corrected in the
   // matches already played too, because those keep their own copy of the squad
   // and would otherwise go on showing the typo; shirt numbers there stay as
@@ -4573,9 +4573,9 @@
       '<div class="sheet">' +
         '<div class="confirm-msg"><strong>Edit player</strong></div>' +
         '<label class="field-label" for="epName" style="margin-top:12px;">Name</label>' +
-        '<input class="text-input" id="epName" value="' + escAttr(p.name) + '" autocomplete="off" enterkeyhint="next">' +
+        '<input class="text-input" id="epName" value="' + esc(p.name) + '" autocomplete="off" enterkeyhint="next">' +
         '<label class="field-label" for="epNum">Shirt number</label>' +
-        '<input class="text-input" id="epNum" inputmode="numeric" maxlength="3" value="' + escAttr(p.number || "") + '" autocomplete="off" enterkeyhint="done">' +
+        '<input class="text-input" id="epNum" inputmode="numeric" maxlength="3" value="' + esc(p.number || "") + '" autocomplete="off" enterkeyhint="done">' +
         '<div class="confirm-note">The name is corrected in past matches too.</div>' +
         '<div class="btn-row" style="margin-top:16px;">' +
           '<button class="btn btn-ghost" id="epCancelBtn">Cancel</button>' +
@@ -5619,15 +5619,6 @@
 
     draw();
     overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
-    esc0(overlay);
-  }
-
-  // Closing an overlay with the Escape key, the same way the other sheets do.
-  function esc0(overlay) {
-    var onKey = function (e) {
-      if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", onKey); }
-    };
-    document.addEventListener("keydown", onKey);
   }
 
   function applyImport(file, target, mode, parts) {
@@ -6429,8 +6420,8 @@
         '<div class="roster-item">' +
           '<div class="roster-num">' + esc(p.number || "–") + "</div>" +
           '<div class="roster-name">' + esc(p.name) + "</div>" +
-          '<button class="roster-edit" data-edit="' + p.id + '" aria-label="Edit ' + escAttr(p.name) + '">Edit</button>' +
-          '<button class="roster-remove" data-remove="' + p.id + '" aria-label="Remove ' + escAttr(p.name) + '"' +
+          '<button class="roster-edit" data-edit="' + p.id + '" aria-label="Edit ' + esc(p.name) + '">Edit</button>' +
+          '<button class="roster-remove" data-remove="' + p.id + '" aria-label="Remove ' + esc(p.name) + '"' +
             (matchOn ? ' disabled title="Not while a match is on"' : "") + ">Remove</button>" +
         "</div>"
       );
@@ -6482,7 +6473,7 @@
             (state.teams.length > 1 ? "Switch" : "Teams") + "</button>" +
         "</div>" +
         '<label class="field-label" for="teamNameInput" style="margin-top:14px;">Team name</label>' +
-        '<input class="text-input" id="teamNameInput" value="' + escAttr(T().teamName) + '" style="margin-bottom:0;">' +
+        '<input class="text-input" id="teamNameInput" value="' + esc(T().teamName) + '" style="margin-bottom:0;">' +
         '<p class="hint" style="margin:6px 0 0;">This is the name on the match card you share.</p>' +
       "</div>";
 
@@ -6713,8 +6704,8 @@
           '<div class="hi-meta">vs ' + esc(m.opponentName) + " · " + homeAwayLabel + (dateStr ? " · " + dateStr : "") + "</div>" +
           (scorerNames ? '<div class="hi-scorers">' + esc(scorerNames) + "</div>" : "") +
           '<div class="hi-btns">' +
-            '<button class="btn btn-gold" data-card="' + m.id + '" aria-label="Share card for the match against ' + escAttr(m.opponentName) + '">Share card</button>' +
-            '<button class="btn btn-ghost" data-more="' + m.id + '" aria-haspopup="dialog" aria-label="More for the match against ' + escAttr(m.opponentName) + '">More</button>' +
+            '<button class="btn btn-gold" data-card="' + m.id + '" aria-label="Share card for the match against ' + esc(m.opponentName) + '">Share card</button>' +
+            '<button class="btn btn-ghost" data-more="' + m.id + '" aria-haspopup="dialog" aria-label="More for the match against ' + esc(m.opponentName) + '">More</button>' +
           "</div>" +
         "</div>"
       );
@@ -6952,6 +6943,8 @@
     try { incoming = migrate(JSON.parse(e.newValue)); } catch (err) { return; }
     state = incoming;
     pendingAssistEventId = null;
+    editMatchId = null;
+    matchEditRedraw = null;
     // An open sheet holds references into the state that was just replaced.
     // Acting on it would write the old state back — a break sheet "applied"
     // a line-up that was never saved. Closing it is the honest option.
