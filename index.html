@@ -1108,6 +1108,43 @@
   .manage .btn.full { margin: 10px 8px 0; width: calc(100% - 16px); min-height: 52px; }
   .mg-note { font-size: 0.875rem; color: var(--ink-soft); padding: 8px 10px 0; line-height: 1.4; }
   .manage .brk-back { margin-top: 10px; }
+  
+  /* ==== v48 ================================================================
+     First run (Welcome and the pasted list), the back-up line, History. */
+  .app-name { display: none; font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; letter-spacing: .2px; color: var(--on-dark); text-align: center; }
+  .top-mid.idle > *:not(.app-name) { display: none; }
+  .top-mid.idle .app-name { display: block; }
+
+  .step-tag { display: inline-block; font-size: 0.75rem; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--brand-text); }
+  .step-hint { margin: 2px 2px 10px; font-size: 0.9062rem; color: var(--ink); }
+  .welcome .wl-title { font-family: var(--font-display); font-weight: 600; font-size: 1.375rem; margin: 2px 0 6px; }
+  .welcome .wl-text { color: var(--ink-soft); font-size: 0.9062rem; line-height: 1.5; margin: 0 0 12px; }
+  textarea.paste-box { display: block; width: 100%; min-height: 150px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--edge); background: var(--chalk-dim); color: var(--ink); font-family: inherit; font-size: max(1rem, 16px); line-height: 1.45; resize: vertical; margin-bottom: 8px; }
+  textarea.paste-box:focus { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
+  textarea.paste-box::placeholder { color: var(--ink-soft); opacity: .85; }
+  .paste-found { font-size: 0.875rem; font-weight: 700; color: var(--ink); min-height: 1.3em; }
+  .paste-found.none { color: var(--ink-soft); font-weight: 600; }
+  .paste-note { font-size: 0.8125rem; color: var(--ink-soft); margin-top: 2px; }
+  .paste-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+  .pchip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px 4px 5px; font-size: 0.9062rem; font-weight: 600; background: rgba(46,125,82,.14); border: 1px solid rgba(46,125,82,.45); color: var(--ink); overflow-wrap: anywhere; }
+  .pchip b { font-family: var(--font-display); background: var(--pitch); color: #fff; min-width: 24px; height: 24px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; padding: 0 4px; }
+  .pchip.nonum b { background: var(--edge); }
+  .welcome .link-btn, .see-history, .paste-link { display: block; margin: 10px auto 0; min-height: 44px; font-size: 0.9375rem; }
+  .paste-link { margin-top: 12px; }
+
+  .roster-edit { background: none; border: none; color: var(--brand-text); font-size: 0.8125rem; font-weight: 700; padding: 8px 10px; min-height: 44px; }
+
+  .backup-strip { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin: 0 0 12px; border-radius: 12px; background: var(--chalk-dim); border: 1px solid var(--edge); font-size: 0.875rem; line-height: 1.4; }
+  .backup-strip .bs-txt { flex: 1 1 160px; min-width: 0; }
+  .backup-strip .bs-last { display: block; color: var(--ink-soft); }
+  .backup-strip.stale { border-color: var(--gold-deep); background: rgba(226,163,61,.14); }
+  .backup-strip.stale .bs-last { color: var(--ink); }
+  .backup-strip .btn { width: auto; flex: none; padding: 10px 14px; min-height: 44px; }
+  .notice .btn-row .btn { margin-top: 0; }
+
+  .hi-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .hi-btns .btn { flex: 1 1 0; width: auto; min-height: 44px; padding: 10px 12px; }
+  .scorers-toggle { margin-top: 10px; min-height: 44px; }
   </style>
 </head>
 <body>
@@ -1116,6 +1153,7 @@
   <header class="topbar">
     <button class="icon-btn help-icon" id="helpBtn" aria-label="How to use this app">?</button>
     <div class="top-mid" id="topMid">
+      <span class="app-name" id="appName">Matchday Tracker</span>
       <span class="top-score us" id="usScoreNum">0</span>
       <button class="clock-btn" id="clockBtn">
         <span class="clock-time" id="clockTime">00:00</span>
@@ -1199,7 +1237,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "47";
+  var APP_VERSION = "48";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1225,6 +1263,7 @@
       lastExportPrep: "",
       lastExportHistory: "",
       backupNudgeSeen: "",
+      lastBackupAt: 0,
       lastExportCount: 0
     };
   }
@@ -1275,6 +1314,7 @@
         lastExportPrep: carryPrepSignature(t.lastExportPrep, up),
         lastExportHistory: typeof t.lastExportHistory === "string" ? t.lastExportHistory : "",
         backupNudgeSeen: typeof t.backupNudgeSeen === "string" ? t.backupNudgeSeen : "",
+        lastBackupAt: typeof t.lastBackupAt === "number" ? t.lastBackupAt : 0,
         lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
       };
     });
@@ -1368,6 +1408,12 @@
   var pendingAssistEventId = null;
   var assistBarTimer = null;
   var assistShownAt = 0;
+  // First run: whether the single-player form is showing instead of the list to
+  // paste, the text typed into that list so far, and whether History shows every
+  // scorer rather than the top three.
+  var welcomeSingle = false;
+  var pasteDraft = "";
+  var scorersAll = false;
 
   // ---------- utilities ----------
 
@@ -2911,6 +2957,7 @@
       };
     });
     all("backupDismissBtn").forEach(function (b) { b.onclick = dismissBackupNudge; });
+    all("backupNudgeNowBtn").forEach(function (b) { b.onclick = backupNow; });
     all("installDismissBtn").forEach(function (b) { b.onclick = hideInstallHint; });
   }
 
@@ -3034,7 +3081,7 @@
     // the coach isn't nudged after every single game.
     var edited = historyEdited();
     var prepMoved = prepChanged();
-    if (storageOk && (n >= 3 || prepMoved || edited) && backupNudgeState() !== T().backupNudgeSeen) {
+    if (backupNudgeDue()) {
       var what = [];
       if (n >= 3) what.push(n + " matches recorded");
       if (edited) what.push("a match you changed");
@@ -3045,12 +3092,65 @@
       }
       out += '<div class="notice notice-warn">' +
              '<div>' + esc(what.join(" and ")) +
-             ' not in your last backup. Use <strong>Export team data</strong> to keep a copy \u2014 ' +
+             ' not in your last backup. <strong>Back up now</strong> keeps a copy — ' +
              'it holds your prepared matches and line-up plans too.</div>' +
-             '<button class="btn btn-ghost" id="backupDismissBtn" style="margin-top:10px;">Got it</button>' +
+             '<div class="btn-row" style="margin-top:10px;">' +
+               '<button class="btn btn-primary" id="backupNudgeNowBtn">Back up now</button>' +
+               '<button class="btn btn-ghost" id="backupDismissBtn">Got it</button>' +
+             "</div>" +
              "</div>";
     }
     return out;
+  }
+
+  // The line that says, on Team and History, where the data lives and when it
+  // last left the phone. Only a full file counts as a backup: a partial export
+  // is a way of sharing, and the export sheet already says so.
+  function backupAgoText(ts) {
+    var then = new Date(ts);
+    var now = new Date(Date.now());
+    then.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    var days = Math.round((now - then) / 86400000);
+    if (days <= 0) return "today";
+    if (days === 1) return "yesterday";
+    if (days < 14) return days + " days ago";
+    return "on " + new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+
+  // Whether the dismissible reminder is on screen right now.
+  function backupNudgeDue() {
+    return storageOk && (unexportedCount() >= 3 || prepChanged() || historyEdited()) &&
+      backupNudgeState() !== T().backupNudgeSeen;
+  }
+
+  function backupStripHtml(idSuffix) {
+    var t = T();
+    if (!t.roster.length && !t.history.length && !(t.upcoming || []).length) return "";
+    // While the reminder is up it says the same thing, louder, so the line waits.
+    if (backupNudgeDue()) return "";
+    var ts = t.lastBackupAt || 0;
+    var last = ts > 0
+      ? "Last backup: " + backupAgoText(ts)
+      : (t.lastExportCount > 0 ? "Last backup: earlier (date not recorded)" : "Last backup: never");
+    var n = unexportedCount();
+    var edited = historyEdited();
+    var prepMoved = prepChanged();
+    var since = [];
+    if (n > 0) since.push(n + (n === 1 ? " match" : " matches") + " not in it");
+    if (edited) since.push("a match was changed");
+    if (prepMoved) since.push("prepared matches changed");
+    if (since.length) last += " · " + since.join(" · ");
+    var risky = since.length > 0 || (ts === 0 && t.lastExportCount === 0 && t.history.length > 0);
+    return '<div class="backup-strip' + (risky ? " stale" : "") + '">' +
+      '<div class="bs-txt"><strong>Saved on this phone only.</strong><span class="bs-last">' + esc(last) + "</span></div>" +
+      '<button class="btn ' + (risky ? "btn-primary" : "btn-ghost") + '" id="backupNowBtn' + (idSuffix || "") + '">Back up now</button>' +
+      "</div>";
+  }
+
+  // One tap, a full file: players, settings, matches played and prepared.
+  function backupNow() {
+    exportData(defaultExportParts());
   }
 
   // What the reminder is currently about. Dismissing stores this, and the
@@ -3074,6 +3174,8 @@
       T().lastExportHistory = historySignature(T().history);
     }
     if (parts.prep) T().lastExportPrep = prepSignature(T().upcoming);
+    // Only a file with everything in it is a backup; a partial one is a way to share.
+    if (parts.players && parts.history && parts.prep) T().lastBackupAt = Date.now();
     persist();
     render();
   }
@@ -3210,7 +3312,7 @@
     overlay.id = "helpOverlay";
     var sections = [
       ["Put it on your home screen", "Opened in a browser, the app offers to add itself — on Android and desktop Chrome with an <strong>Install</strong> button, on iPhone with the steps to follow, because Apple gives websites no way to do it for you. Installed, it opens fullscreen and works without signal."],
-      ["Set up your team", "Go to <strong>Team</strong> and add each player's name and shirt number. This only needs doing once — it's saved on this device for every future match."],
+      ["Set up your team", "Go to <strong>Team</strong>. A new team starts with a list to fill in: paste or type one player per line, with or without a shirt number (<strong>7 Arthur</strong>, <strong>Arthur 7</strong> and <strong>7. Arthur</strong> all work), check the players the app found, and tap <strong>Add</strong>. <strong>Add one at a time</strong> gives you the Name and No. fields instead, and from the first player on they are always there: Enter moves from Name to No. and then adds. <strong>Edit</strong> on a player\u2019s row fixes a name or a shirt number. This only needs doing once — it's saved on this device for every future match."],
       ["Several teams", "Tap <strong>Teams</strong> at the top of the Team screen (it reads <strong>Switch</strong> once you have more than one) to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on <strong>Assists</strong>, <strong>Playing time</strong> or <strong>Cards</strong> only if you want to track them, and <strong>Line-up plan</strong> if you want to set who plays each period (more on that further down). All four are off by default to keep things simple."],
       ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>. During the match the strip under the clock shows both team names, with <strong>(H)</strong> for home or <strong>(A)</strong> for away behind them. Typed the opponent wrong? Tap its name in that strip (marked \u270e) to rename it."],
@@ -3224,12 +3326,12 @@
       ["Half time and breaks", "The button at the bottom right is always the next step. While the clock runs it is <strong>Half time</strong> \u2014 <strong>Next quarter</strong> or <strong>Next period</strong> when you play quarters or eight periods \u2014 and it turns gold when the period is up. Tap it to pause the clock and start a new period. While the clock is stopped it becomes <strong>Kick off</strong>, <strong>Start P2</strong> (and so on) or <strong>Resume</strong>, and starts the clock. It stays in view next to the opponent button and Undo, however long the squad is. It does nothing until the clock has actually run in the current period. If you gave the match a period length and tap well before it is up, the app asks <strong>End period early?</strong> first. In the last period it reads <strong>Full time</strong> and asks whether to end the match or play another period. At a break with a line-up plan, a sheet shows who comes on and who goes off with their shirt numbers; if the tap was a mistake, <strong>Wrong tap? Back to Period 1</strong> puts everything back and the clock keeps running. If the period ran past its length you're told by how much. Goals are stamped with the period they were scored in, and the match report groups them. Never tap it and nothing changes — reports stay a single list."],
       ["Cards", "Tap <strong>On pitch</strong> on a tile and choose <strong>Yellow card</strong> or <strong>Red card</strong>. A first yellow is logged at once. A red card, or a second yellow (which automatically becomes a red), sends the child off for the rest of the match: the menu says so before you tap, and Undo can reverse it. A sent-off child moves to the bench list and can't be brought back on. Cards are only logged while the clock runs."],
       ["Fix a mistake", "<strong>Match log</strong> opens the list of everything logged so far \u2014 it lives behind a button rather than on the Match screen itself, so a long match never pushes the buttons out of reach. The number on the button is how many entries there are. Every entry has ✎ (edit) and ✕ (delete). Edit lets you change who scored, who assisted, or who received a card. <strong>Undo</strong> (↺, bottom left, next to the opponent button) removes the most recent entry without opening the log at all, and also takes a break back, with who was on the pitch before it. It first shows exactly what it is about to remove \u2014 who, and the minute \u2014 and only does it when you tap <strong>Remove</strong>, so a stray tap can never wipe a goal. Deleting from inside the log keeps it open, so you can correct two things in a row."],
-      ["End the match", "Tap <strong>End match</strong>, just under the player tiles, or <strong>Full time</strong> in the last period. The app shows the score it is about to save to History. You'll get a summary with a minute-by-minute report."],
+      ["End the match", "Tap <strong>End match</strong>, just under the player tiles, or <strong>Full time</strong> in the last period. The app shows the score it is about to save to History. You'll get a summary with a minute-by-minute report, marked <strong>Saved to History</strong>, with a <strong>See History</strong> link under it."],
       ["Share the match card", "<strong>Share match card</strong> turns the result into a picture \u2014 score, scorers and every goal's minute \u2014 ready for the team chat. Press and hold the picture to save or send it; on phones that allow it a <strong>Share picture</strong> button appears too. <strong>Share as text</strong> is still there if you'd rather paste the report."],
-      ["History", "The <strong>History</strong> tab keeps every past match, season top scorers, and a button on each match for its <strong>Card</strong> or its written report."],
-      ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>Fix</strong> on a match in History to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
-      ["Keep a backup", "Everything lives on this device only. <strong>Export team data</strong> with all three choices left on writes one file with the lot: your players, your settings, every match you have played, and every match you have <em>prepared</em> — their line-ups, period lengths and who couldn't make it. Clearing your browser data would otherwise take all of that with it, so keep the file somewhere safe. The app reminds you when matches have been played, or preparation has been done, since your last backup. <strong>Import team data</strong> puts it all back."],
-      ["Share your team", "<strong>Export team data</strong> asks what to put in the file: <strong>Players &amp; settings</strong>, <strong>Matches played</strong>, <strong>Prepared matches</strong> \u2014 all three by default, which is your backup. Turn some off to share: just the squad for a new coach, or just the prepared matches to hand someone next week's line-up. A prepared match is only a list of players, so when you export those on their own the names and numbers travel with them; on the other coach's phone the app matches them to her own squad by name and number, and tells her plainly if someone is missing. Another parent or coach loads it with <strong>Import team data</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."],
+      ["History", "The <strong>History</strong> tab lists every past match, newest first. <strong>Share card</strong> on a match sends the picture; <strong>More</strong> holds the written report, <strong>Fix this match</strong> and <strong>Delete this match</strong>, so Delete is never next to the button you use most. The season top scorers come below the matches: the top three, and <strong>Show all</strong> for the rest."],
+      ["Fix a finished match", "Spotted a mistake in the car? Tap <strong>More</strong> on a match in History and choose <strong>Fix this match</strong> to edit or delete any entry. The score, the scorers and the season totals are all recalculated."],
+      ["Keep a backup", "Everything lives on this device only. The line at the top of <strong>Team</strong> and <strong>History</strong> says when you last backed up, and <strong>Back up now</strong> there writes one file with the lot: your players, your settings, every match you have played, and every match you have <em>prepared</em> — their line-ups, period lengths and who couldn’t make it. Clearing your browser data would otherwise take all of that with it, so keep the file somewhere safe. The line turns gold, and a reminder appears, when matches have been played or preparation has been done since your last backup. <strong>Import a file</strong> puts it all back."],
+      ["Share your team", "<strong>Back up team data</strong>, lower down on Team and History, asks what to put in the file: <strong>Players &amp; settings</strong>, <strong>Matches played</strong>, <strong>Prepared matches</strong> — all three by default, which is your backup. Turn some off to share: just the squad for a new coach, or just the prepared matches to hand someone next week's line-up. A prepared match is only a list of players, so when you export those on their own the names and numbers travel with them; on the other coach's phone the app matches them to her own squad by name and number, and tells her plainly if someone is missing. Another parent or coach loads it with <strong>Import a file</strong> — no retyping the roster. Importing adds it as an extra team and never touches the teams already on the device, unless you choose to replace one with the same name."],
       ["Find this help again", "On the start screen the <strong>?</strong> sits at the top left. While a match is on it is at the bottom of the Match screen, next to <strong>Match log</strong>, and on the Team screen as <strong>? Help</strong> \u2014 the top bar is kept free for the score and the clock."]
     ];
     var body = sections.map(function (s) {
@@ -4246,9 +4348,152 @@
     }
   }
 
+  // ---------- pasted player lists ----------
+  // One entry is "7 Arthur", "Arthur 7", "7. Arthur", "7 - Arthur", "#7 Arthur",
+  // "Arthur (7)" or just "Arthur". A shirt number is one to three digits at the
+  // start or at the end; anything else is part of the name.
+  var LIST_MAX = 40;
+  var LIST_NAME_MAX = 40;
+
+  function parsePlayerEntry(text) {
+    var s = String(text || "").replace(/[ \t]+/g, " ").replace(/\s+/g, " ").trim();
+    s = s.replace(/^[-*•·–—]+\s+/, "");
+    if (!s) return null;
+    var num = "";
+    var name = s;
+    var m = s.match(/^#?(\d{1,3})(?:\s*[.):\-–—]\s*|\s+)(.+)$/);
+    if (m && /[^\d\s]/.test(m[2])) {
+      num = m[1];
+      name = m[2];
+    } else {
+      m = s.match(/^(.+?)(?:\s+|\s*[-–—:#(]\s*)#?(\d{1,3})\)?$/);
+      if (m && /[^\d\s]/.test(m[1])) {
+        num = m[2];
+        name = m[1];
+      }
+    }
+    name = name.replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, "");
+    if (!name || !/[^\d\s]/.test(name)) return null;
+    return { name: name.slice(0, LIST_NAME_MAX), number: num };
+  }
+
+  // Splits a pasted block into players. A line with one comma is "name, number"
+  // (or "number, name"); a line with more commas is several players.
+  function parsePlayerList(text) {
+    var players = [];
+    var seen = {};
+    var dup = 0;
+    var skipped = 0;
+    var cut = 0;
+    var isNum = function (x) { return /^\s*#?\d{1,3}\s*[.)]?\s*$/.test(x); };
+    String(text || "").split(/\r?\n|;/).forEach(function (line) {
+      if (!line.trim()) return;
+      var parts = line.split(",");
+      var entries = (parts.length === 2 && isNum(parts[0]) !== isNum(parts[1])) ? [parts.join(" ")] : parts;
+      entries.forEach(function (e) {
+        if (!e.trim()) return;
+        var p = parsePlayerEntry(e);
+        if (!p) { skipped++; return; }
+        var key = p.name.toLowerCase() + "|" + p.number;
+        if (seen[key]) { dup++; return; }
+        if (players.length >= LIST_MAX) { cut++; return; }
+        seen[key] = true;
+        players.push(p);
+      });
+    });
+    var used = {};
+    var twice = [];
+    players.forEach(function (p) {
+      if (!p.number) return;
+      if (used[p.number] && twice.indexOf(p.number) < 0) twice.push(p.number);
+      used[p.number] = true;
+    });
+    return { players: players, dup: dup, skipped: skipped, cut: cut, twice: twice };
+  }
+
+  function addPlayersBulk(list) {
+    if (!list || !list.length) return;
+    var live = T().activeMatch;
+    list.forEach(function (p) {
+      var player = { id: uid(), name: p.name, number: p.number };
+      T().roster.push(player);
+      if (live) {
+        live.playingTime = live.playingTime || {};
+        live.playingTime[player.id] = { onField: false, accumMs: 0, onSince: null };
+      }
+    });
+    pasteDraft = "";
+    welcomeSingle = false;
+    persist();
+    render();
+    window.scrollTo(0, 0);
+    showToast(list.length + (list.length === 1 ? " player added." : " players added."));
+  }
+
+  function escAttr(str) {
+    return esc(str).replace(/"/g, "&quot;");
+  }
+
+  // Fixing a typo in a name or a shirt number. The name is corrected in the
+  // matches already played too, because those keep their own copy of the squad
+  // and would otherwise go on showing the typo; shirt numbers there stay as
+  // they were played.
+  function showEditPlayer(pid) {
+    var p = rosterById(pid);
+    if (!p) return;
+    var old = document.getElementById("editPlayerOverlay");
+    if (old) old.remove();
+    var o = document.createElement("div");
+    o.className = "overlay";
+    o.id = "editPlayerOverlay";
+    o.innerHTML =
+      '<div class="sheet">' +
+        '<div class="confirm-msg"><strong>Edit player</strong></div>' +
+        '<label class="field-label" for="epName" style="margin-top:12px;">Name</label>' +
+        '<input class="text-input" id="epName" value="' + escAttr(p.name) + '" autocomplete="off" enterkeyhint="next">' +
+        '<label class="field-label" for="epNum">Shirt number</label>' +
+        '<input class="text-input" id="epNum" inputmode="numeric" maxlength="3" value="' + escAttr(p.number || "") + '" autocomplete="off" enterkeyhint="done">' +
+        '<div class="confirm-note">The name is corrected in past matches too.</div>' +
+        '<div class="btn-row" style="margin-top:16px;">' +
+          '<button class="btn btn-ghost" id="epCancelBtn">Cancel</button>' +
+          '<button class="btn btn-primary" id="epSaveBtn">Save</button>' +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(o);
+    var nameEl = document.getElementById("epName");
+    var numEl = document.getElementById("epNum");
+    // The sheet takes focus when it opens; the field wins a moment later, because
+    // typing is the whole point of this sheet.
+    setTimeout(function () {
+      nameEl.focus();
+      try { nameEl.setSelectionRange(nameEl.value.length, nameEl.value.length); } catch (e) {}
+    }, 0);
+    function close() { o.remove(); }
+    o.onclick = function (e) { if (e.target === o) close(); };
+    document.getElementById("epCancelBtn").onclick = close;
+    function save() {
+      var name = nameEl.value.replace(/\s+/g, " ").trim();
+      var num = numEl.value.trim();
+      if (!name) { showToast("Enter a name first.", "warning"); nameEl.focus(); return; }
+      var clash = num && T().roster.filter(function (x) { return x.id !== pid && x.number === num; })[0];
+      p.name = name;
+      p.number = num;
+      T().history.forEach(function (h) {
+        (h.rosterSnapshot || []).forEach(function (r) { if (r && r.id === pid) r.name = name; });
+      });
+      persist();
+      close();
+      render();
+      if (clash) showToast("Heads up: number " + num + " is also " + clash.name + ".", "warning");
+    }
+    document.getElementById("epSaveBtn").onclick = save;
+    nameEl.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); numEl.focus(); } };
+    numEl.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); save(); } };
+  }
+
   // ---------- roster ----------
 
-  function addPlayer(name, number) {
+  function addPlayer(name, number, refocus) {
     name = (name || "").trim();
     number = (number || "").trim();
     if (!name) {
@@ -4271,6 +4516,8 @@
     }
     persist();
     render();
+    // Straight back to Name, so a whole squad can be typed without reaching for the screen.
+    if (refocus) { var again = document.getElementById("newName"); if (again) again.focus(); }
     if (clash) showToast("Heads up: number " + number + " is also " + clash.name + ".", "warning");
     else if (live) showToast(name + " is on the bench — tap Bench to bring them on.");
   }
@@ -4519,7 +4766,7 @@
 
       overlay.innerHTML =
         '<div class="card-sheet">' +
-          '<div class="plan-title">Export</div>' +
+          '<div class="plan-title">Back up or share</div>' +
           '<div class="card-scroll export-scroll">' +
             row("players", "Players &amp; settings",
                 "The squad, the match options and the line-up you last used.") +
@@ -5432,6 +5679,7 @@
         ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : []),
       lastExportHistory: historySignature(Array.isArray(data.history) ? data.history : []),
       backupNudgeSeen: "",
+      lastBackupAt: 0,
       lastExportCount: Array.isArray(data.history) ? data.history.length : 0
     };
   }
@@ -5491,6 +5739,7 @@
     document.getElementById("scoreboardBar").classList.toggle("hidden", !match && view !== "summary");
     var showScore = !!match || view === "summary";
     document.getElementById("topMid").classList.toggle("final", !match && view === "summary");
+    document.getElementById("topMid").classList.toggle("idle", !match && view !== "summary");
     document.getElementById("usScoreNum").style.visibility = showScore ? "visible" : "hidden";
     document.getElementById("themScoreNum").style.visibility = showScore ? "visible" : "hidden";
     document.querySelector("header.topbar").classList.toggle("live", !!match);
@@ -6003,6 +6252,7 @@
         '<div class="ss-teams">' + esc(record.teamName) + (isHome ? " (Home)" : " (Away)") + " vs " + esc(record.opponentName) + (isHome ? " (Away)" : " (Home)") + "</div>" +
         (dateStr ? '<div class="ss-teams">' + esc(dateStr) + "</div>" : "") +
         '<div class="saved-chip">\u2713 Saved to History</div>' +
+        '<button class="link-btn see-history" id="seeHistoryBtn">See History</button>' +
       "</div>" +
       '<h2 class="section-title">Scorers</h2>' +
       '<div class="stat-list">' + scorerHtml + "</div>" +
@@ -6021,6 +6271,7 @@
     document.getElementById("copySummaryBtn").onclick = function () { shareOrCopy(shareText); };
     document.getElementById("newMatchBtn").onclick = function () { view = "match"; render(); };
     document.getElementById("doneBtn").onclick = function () { view = "match"; render(); };
+    document.getElementById("seeHistoryBtn").onclick = function () { view = "history"; render(); window.scrollTo(0, 0); };
   }
 
   function renderTeamScreen() {
@@ -6029,12 +6280,18 @@
     // button says so plainly instead of leading the coach into a dialog that
     // then refuses.
     var matchOn = !!T().activeMatch;
+    // A team without players starts with a list to paste. The Name and No.
+    // fields come back behind "Add one at a time", and for good as soon as
+    // there is a first player.
+    if (T().roster.length) welcomeSingle = false;
+    var welcome = !T().roster.length && !welcomeSingle;
     var rosterHtml = sortedRoster().map(function (p) {
       return (
         '<div class="roster-item">' +
           '<div class="roster-num">' + esc(p.number || "–") + "</div>" +
           '<div class="roster-name">' + esc(p.name) + "</div>" +
-          '<button class="roster-remove" data-remove="' + p.id + '"' +
+          '<button class="roster-edit" data-edit="' + p.id + '" aria-label="Edit ' + escAttr(p.name) + '">Edit</button>' +
+          '<button class="roster-remove" data-remove="' + p.id + '" aria-label="Remove ' + escAttr(p.name) + '"' +
             (matchOn ? ' disabled title="Not while a match is on"' : "") + ">Remove</button>" +
         "</div>"
       );
@@ -6051,10 +6308,30 @@
       );
     }
 
-    el.innerHTML =
-      noticeHtml() +
-      '<div class="title-row"><h1 class="screen-title">Team &amp; settings</h1>' +
-        '<button class="help-pill" id="teamHelpBtn" aria-label="How to use this app">? Help</button></div>' +
+    var playersHtml = welcome
+      ? '<div class="card welcome">' +
+          '<span class="step-tag">Step 1 of 2</span>' +
+          '<div class="wl-title">Add your players</div>' +
+          '<p class="wl-text">Paste or type your list, one player per line. Shirt numbers are optional: “7 Arthur”, “Arthur 7” and “7. Arthur” all work.</p>' +
+          '<label class="field-label" for="pasteBox">Players</label>' +
+          '<textarea class="paste-box" id="pasteBox" rows="6" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="7 Arthur&#10;Romeo 2&#10;9. Mathis"></textarea>' +
+          '<div class="paste-found none" id="pasteFound" role="status" aria-live="polite"></div>' +
+          '<div class="paste-chips" id="pasteChips"></div>' +
+          '<button class="btn btn-primary" id="pasteAddBtn" disabled>Add players</button>' +
+          '<button class="link-btn" id="singleAddLink">Add one at a time</button>' +
+        "</div>"
+      : '<h2 class="section-title">Players</h2>' +
+        '<div class="card">' +
+          '<div class="roster-list">' + (rosterHtml || '<div class="empty-state">No players yet — add your first one below.</div>') + "</div>" +
+          '<div class="add-player-row">' +
+            '<div class="name-input"><label class="field-label" for="newName">Name</label><input class="text-input" id="newName" autocomplete="off" autocapitalize="words" enterkeyhint="next"></div>' +
+            '<div class="num-input"><label class="field-label" for="newNum">No.</label><input class="text-input" id="newNum" inputmode="numeric" maxlength="3" autocomplete="off" enterkeyhint="done"></div>' +
+            '<button class="btn btn-primary" id="addPlayerBtn">Add</button>' +
+          "</div>" +
+          (T().roster.length ? "" : '<button class="link-btn paste-link" id="pasteLink">Paste a list instead</button>') +
+        "</div>";
+
+    var teamCardHtml =
       '<div class="card">' +
         '<div class="team-card">' +
           "<div>" +
@@ -6066,49 +6343,113 @@
             (state.teams.length > 1 ? "Switch" : "Teams") + "</button>" +
         "</div>" +
         '<label class="field-label" for="teamNameInput" style="margin-top:14px;">Team name</label>' +
-        '<input class="text-input" id="teamNameInput" value="' + esc(T().teamName) + '" style="margin-bottom:0;">' +
-      "</div>" +
-      '<h2 class="section-title">Players</h2>' +
-      '<div class="card">' +
-        '<div class="roster-list">' + (rosterHtml || '<div class="empty-state">No players yet — add your first one below.</div>') + "</div>" +
-        '<div class="add-player-row">' +
-          '<div class="num-input"><label class="field-label" for="newNum">No.</label><input class="text-input" id="newNum" inputmode="numeric" maxlength="3"></div>' +
-          '<div class="name-input"><label class="field-label" for="newName">Name</label><input class="text-input" id="newName"></div>' +
-          '<button class="btn btn-primary" id="addPlayerBtn">Add</button>' +
-        "</div>" +
-      "</div>" +
+        '<input class="text-input" id="teamNameInput" value="' + escAttr(T().teamName) + '" style="margin-bottom:0;">' +
+        '<p class="hint" style="margin:6px 0 0;">This is the name on the match card you share.</p>' +
+      "</div>";
+
+    el.innerHTML =
+      noticeHtml() +
+      '<div class="title-row"><h1 class="screen-title">Team &amp; settings</h1>' +
+        '<button class="help-pill" id="teamHelpBtn" aria-label="How to use this app">? Help</button></div>' +
+      backupStripHtml("") +
+      (welcome ? playersHtml + teamCardHtml : teamCardHtml + playersHtml) +
       (T().roster.length && !T().activeMatch
-        ? '<button class="btn btn-primary" id="goToMatchBtn" style="margin-bottom:6px;">Start a match</button>'
+        ? (T().history.length === 0 && !(T().upcoming || []).length
+            ? '<p class="step-hint"><span class="step-tag">Step 2 of 2</span><br>Your team is ready. Start the first match.</p>'
+            : "") +
+          '<button class="btn btn-primary" id="goToMatchBtn" style="margin-bottom:6px;">Start a match</button>'
         : "") +
       '<h2 class="section-title">Match options</h2>' +
       '<p class="hint">Off by default — turn on only what you actually want to track.</p>' +
       '<div class="card">' +
         toggleRow("trackAssists", "Assists", "Ask who assisted after each goal") +
         toggleRow("trackPlayingTime", "Playing time", "Shows each child's minutes on their tile, outlines who has played least, and adds minutes to the match summary.") +
-        toggleRow("trackCards", "Cards", "Adds Yellow and Red card buttons to each child\u2019s menu (tap On pitch). A second yellow, or a red, sends the child off.") +
+        toggleRow("trackCards", "Cards", "Adds Yellow and Red card buttons to each child’s menu (tap On pitch). A second yellow, or a red, sends the child off.") +
         toggleRow("planLineups", "Line-up plan", "Choose 2 halves, 4 quarters or 8 periods, and set who plays each one before kick-off. The app proposes it at every break, so a change of line-up is one tap instead of six.") +
       "</div>" +
-      '<h2 class="section-title">Share this team</h2>' +
-      '<p class="hint">One file with everything: players, settings, matches played and matches prepared. Keep it as a backup, or send it to another parent or coach so they don’t have to type it all in again.</p>' +
+      '<h2 class="section-title">Back up and share</h2>' +
+      '<p class="hint">Everything is saved on this phone only. One file holds the lot: players, settings, matches played and matches prepared. Keep it as a backup, or send it to another parent or coach so they don’t have to type it all in again.</p>' +
       '<div class="btn-row">' +
-        '<button class="btn btn-primary" id="exportBtn">Export team data</button>' +
-        '<button class="btn btn-ghost" id="importBtn">Import team data</button>' +
+        '<button class="btn btn-primary" id="exportBtn">Back up team data</button>' +
+        '<button class="btn btn-ghost" id="importBtn">Import a file</button>' +
       "</div>";
 
     document.getElementById("switchTeamBtn").onclick = showTeamPicker;
     document.getElementById("teamHelpBtn").onclick = showHelp;
     var goMatch = document.getElementById("goToMatchBtn");
     if (goMatch) goMatch.onclick = function () { view = "match"; render(); };
+    var nowBtn = document.getElementById("backupNowBtn");
+    if (nowBtn) nowBtn.onclick = backupNow;
     document.getElementById("teamNameInput").onchange = function (e) {
       T().teamName = e.target.value.trim() || "My Team";
       persist();
       render();
     };
-    document.getElementById("addPlayerBtn").onclick = function () {
-      var num = document.getElementById("newNum").value;
-      var name = document.getElementById("newName").value;
-      addPlayer(name, num);
+
+    var box = document.getElementById("pasteBox");
+    if (box) {
+      var addAll = document.getElementById("pasteAddBtn");
+      var found = document.getElementById("pasteFound");
+      var chips = document.getElementById("pasteChips");
+      var syncList = function () {
+        pasteDraft = box.value;
+        var r = parsePlayerList(box.value);
+        var n = r.players.length;
+        var notes = [];
+        if (r.dup) notes.push(r.dup + (r.dup === 1 ? " repeated line left out" : " repeated lines left out"));
+        if (r.skipped) notes.push(r.skipped + (r.skipped === 1 ? " line without a name left out" : " lines without a name left out"));
+        if (r.cut) notes.push("only the first " + LIST_MAX + " are used");
+        if (r.twice.length) notes.push("shirt number " + r.twice.join(", ") + (r.twice.length === 1 ? " is used twice" : " are used twice"));
+        found.className = "paste-found" + (n ? "" : " none");
+        found.innerHTML = (n ? esc(n + (n === 1 ? " player found" : " players found")) : "Nothing to add yet.") +
+          (notes.length ? '<div class="paste-note">' + esc(notes.join(" · ")) + "</div>" : "");
+        chips.innerHTML = r.players.map(function (p) {
+          return '<span class="pchip' + (p.number ? "" : " nonum") + '"><b>' + esc(p.number || "–") + "</b>" + esc(p.name) + "</span>";
+        }).join("");
+        addAll.disabled = !n;
+        addAll.textContent = n ? "Add " + n + (n === 1 ? " player" : " players") : "Add players";
+      };
+      box.value = pasteDraft;
+      box.oninput = syncList;
+      syncList();
+      addAll.onclick = function () { addPlayersBulk(parsePlayerList(box.value).players); };
+      document.getElementById("singleAddLink").onclick = function () {
+        welcomeSingle = true;
+        render();
+        var ne = document.getElementById("newName");
+        if (ne) ne.focus();
+      };
+    }
+    var pasteLink = document.getElementById("pasteLink");
+    if (pasteLink) pasteLink.onclick = function () {
+      welcomeSingle = false;
+      render();
+      var pb = document.getElementById("pasteBox");
+      if (pb) pb.focus();
     };
+
+    var nameEl = document.getElementById("newName");
+    var numEl = document.getElementById("newNum");
+    if (nameEl && numEl) {
+      // Enter in Name moves to the number, Enter in No. adds and returns to Name.
+      nameEl.onkeydown = function (e) {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        if (!nameEl.value.trim()) { showToast("Enter a name first.", "warning"); return; }
+        numEl.focus();
+      };
+      numEl.onkeydown = function (e) {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        addPlayer(nameEl.value, numEl.value, true);
+      };
+      document.getElementById("addPlayerBtn").onclick = function () {
+        addPlayer(nameEl.value, numEl.value, true);
+      };
+    }
+    el.querySelectorAll("[data-edit]").forEach(function (btn) {
+      btn.onclick = function () { showEditPlayer(btn.getAttribute("data-edit")); };
+    });
     el.querySelectorAll("[data-remove]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-remove");
@@ -6128,6 +6469,44 @@
     document.getElementById("exportBtn").onclick = showExportSheet;
     document.getElementById("importBtn").onclick = function () {
       document.getElementById("importFileInput").click();
+    };
+  }
+
+  // The written report, Fix and Delete sit behind one More button per match, so
+  // the row has a single large Share card button and Delete is never next to it.
+  function showMatchMore(id) {
+    var m = T().history.filter(function (h) { return h.id === id; })[0];
+    if (!m) return;
+    var old = document.getElementById("moreOverlay");
+    if (old) old.remove();
+    var d = new Date(m.date);
+    var dateStr = isNaN(d) ? "" : d.toLocaleDateString();
+    var o = document.createElement("div");
+    o.className = "overlay";
+    o.id = "moreOverlay";
+    o.innerHTML =
+      '<div class="sheet manage shield">' +
+        '<div class="brk-title">' + m.scoreUs + " – " + m.scoreThem + " vs " + esc(m.opponentName) + "</div>" +
+        '<div class="brk-sub">' + (m.isHome !== false ? "Home" : "Away") + (dateStr ? " · " + esc(dateStr) : "") + "</div>" +
+        '<button class="btn btn-ghost full" id="mmCopyBtn">' + (canShareText() ? "Share as text" : "Copy as text") + "</button>" +
+        '<button class="btn btn-ghost full" id="mmFixBtn">Fix this match</button>' +
+        '<button class="btn btn-danger full" id="mmDelBtn">Delete this match</button>' +
+        '<button class="link-btn brk-back" id="mmCloseBtn">Close</button>' +
+      "</div>";
+    document.body.appendChild(o);
+    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 350);
+    function close() { o.remove(); }
+    o.onclick = function (e) { if (e.target === o) close(); };
+    document.getElementById("mmCloseBtn").onclick = close;
+    document.getElementById("mmCopyBtn").onclick = function () { close(); shareOrCopy(buildShareText(m)); };
+    document.getElementById("mmFixBtn").onclick = function () { close(); showEditMatch(id); };
+    document.getElementById("mmDelBtn").onclick = function () {
+      close();
+      showConfirm("Delete this match from history?", "Delete", function () {
+        T().history = T().history.filter(function (h) { return h.id !== id; });
+        persist();
+        render();
+      }, true, "vs " + m.opponentName + ", " + m.scoreUs + " – " + m.scoreThem + ". This can’t be undone.");
     };
   }
 
@@ -6162,13 +6541,19 @@
       return { name: seasonNames[pid] || "Unknown", goals: season[pid].goals || 0, assists: season[pid].assists || 0, minutes: season[pid].minutes || 0 };
     }).sort(function (a, b) { return b.goals - a.goals; });
 
+    var TOP = 3;
+    var shownRows = scorersAll ? seasonRows : seasonRows.slice(0, TOP);
     var seasonHtml = seasonRows.length
-      ? seasonRows.map(function (r) {
+      ? shownRows.map(function (r) {
           var extra = "";
           if (T().settings.trackAssists) extra += " · " + r.assists + (r.assists === 1 ? " assist" : " assists");
           if (T().settings.trackPlayingTime) extra += " · " + r.minutes + " min";
           return '<div class="stat-row"><span class="sr-name">' + esc(r.name) + '</span><span class="sr-val">' + r.goals + (r.goals === 1 ? " goal" : " goals") + esc(extra) + "</span></div>";
-        }).join("")
+        }).join("") +
+        (seasonRows.length > TOP
+          ? '<button class="btn btn-ghost scorers-toggle" id="scorersToggleBtn" aria-expanded="' + scorersAll + '">' +
+              (scorersAll ? "Show top " + TOP : "Show all " + seasonRows.length + " players") + "</button>"
+          : "")
       : '<div class="empty-state">No matches recorded yet.</div>';
 
     var listHtml = T().history.map(function (m) {
@@ -6185,15 +6570,13 @@
         '<div class="history-item">' +
           '<div class="hi-top">' +
             '<div><span class="hi-score">' + m.scoreUs + " – " + m.scoreThem + "</span> <span class=\"result-pill " + result + "\">" + resultLabel + "</span></div>" +
-            '<div class="hi-actions">' +
-              '<button class="hi-copy" data-card="' + m.id + '">Card</button>' +
-              '<button class="hi-copy" data-copy="' + m.id + '">' + (canShareText() ? "Share" : "Copy") + "</button>" +
-              '<button class="hi-edit" data-fix="' + m.id + '">Fix</button>' +
-              '<button class="hi-remove" data-del="' + m.id + '">Delete</button>' +
-            "</div>" +
           "</div>" +
           '<div class="hi-meta">vs ' + esc(m.opponentName) + " · " + homeAwayLabel + (dateStr ? " · " + dateStr : "") + "</div>" +
           (scorerNames ? '<div class="hi-scorers">' + esc(scorerNames) + "</div>" : "") +
+          '<div class="hi-btns">' +
+            '<button class="btn btn-gold" data-card="' + m.id + '" aria-label="Share card for the match against ' + escAttr(m.opponentName) + '">Share card</button>' +
+            '<button class="btn btn-ghost" data-more="' + m.id + '" aria-haspopup="dialog" aria-label="More for the match against ' + escAttr(m.opponentName) + '">More</button>' +
+          "</div>" +
         "</div>"
       );
     }).join("");
@@ -6201,19 +6584,24 @@
     el.innerHTML =
       noticeHtml() +
       '<h1 class="screen-title">History</h1>' +
+      backupStripHtml("2") +
       '<div class="card">' +
         '<div class="stat-row"><span class="sr-name">Record</span><span class="sr-val">' + played + " played · " + wins + "W " + draws + "D " + losses + "L</span></div>" +
       "</div>" +
-      '<h2 class="section-title">Season top scorers</h2>' +
-      '<div class="card"><div class="stat-list">' + seasonHtml + "</div></div>" +
       '<h2 class="section-title">Matches</h2>' +
       '<div class="card">' + (listHtml || '<div class="empty-state">No matches yet.</div>') + "</div>" +
+      '<h2 class="section-title">Season top scorers</h2>' +
+      '<div class="card"><div class="stat-list">' + seasonHtml + "</div></div>" +
       '<div class="btn-row">' +
-        '<button class="btn btn-primary" id="exportBtn2">Export team data</button>' +
-        '<button class="btn btn-ghost" id="importBtn2">Import team data</button>' +
+        '<button class="btn btn-primary" id="exportBtn2">Back up team data</button>' +
+        '<button class="btn btn-ghost" id="importBtn2">Import a file</button>' +
       "</div>" +
       '<button class="btn btn-danger" id="clearAllBtn" style="margin-top:12px;">Clear all teams on this device</button>';
 
+    var nowBtn = document.getElementById("backupNowBtn2");
+    if (nowBtn) nowBtn.onclick = backupNow;
+    var tog = document.getElementById("scorersToggleBtn");
+    if (tog) tog.onclick = function () { scorersAll = !scorersAll; render(); };
     document.getElementById("exportBtn2").onclick = showExportSheet;
     document.getElementById("importBtn2").onclick = function () {
       document.getElementById("importFileInput").click();
@@ -6228,30 +6616,13 @@
         true
       );
     };
-    el.querySelectorAll("[data-del]").forEach(function (btn) {
-      btn.onclick = function () {
-        var id = btn.getAttribute("data-del");
-        showConfirm("Delete this match from history?", "Delete", function () {
-          T().history = T().history.filter(function (m) { return m.id !== id; });
-          persist();
-          render();
-        }, true);
-      };
-    });
-    el.querySelectorAll("[data-fix]").forEach(function (btn) {
-      btn.onclick = function () { showEditMatch(btn.getAttribute("data-fix")); };
+    el.querySelectorAll("[data-more]").forEach(function (btn) {
+      btn.onclick = function () { showMatchMore(btn.getAttribute("data-more")); };
     });
     el.querySelectorAll("[data-card]").forEach(function (btn) {
       btn.onclick = function () {
         var m = T().history.filter(function (h) { return h.id === btn.getAttribute("data-card"); })[0];
         if (m) showMatchCard(m);
-      };
-    });
-    el.querySelectorAll("[data-copy]").forEach(function (btn) {
-      btn.onclick = function () {
-        var id = btn.getAttribute("data-copy");
-        var m = T().history.filter(function (h) { return h.id === id; })[0];
-        if (m) shareOrCopy(buildShareText(m));
       };
     });
   }
