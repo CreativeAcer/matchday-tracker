@@ -125,8 +125,7 @@
     justify-content: center;
   }
   .icon-btn:active { background: rgba(255,255,255,0.30); }
-  .icon-btn:disabled { opacity: 0.4; }
-  .help-icon { font-weight: 700; }
+    .help-icon { font-weight: 700; }
 
   .clock-btn {
     flex: 1;
@@ -134,7 +133,6 @@
     border: 1px solid rgba(255,255,255,0.16);
     border-radius: 12px;
     color: var(--on-dark);
-    padding: 6px 8px;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -150,9 +148,9 @@
     font-weight: 600;
     letter-spacing: 0.5px;
   }
-  .clock-total { font-size: 0.625rem; color: rgba(250,248,242,0.55); letter-spacing: 0.3px; }
+  .clock-total { color: rgba(250,248,242,0.55); letter-spacing: 0.3px; }
   .clock-time.over { color: var(--gold); }
-  .clock-state { font-size: min(0.6875rem, 3vw); color: var(--gold); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .clock-state { color: var(--gold); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .clock-state.running { color: #8FD9AE; }
 
   /* The score sits either side of the clock in the top bar, the two numbers a
@@ -309,7 +307,7 @@
   .switch {
     display: block;
     width: 46px; height: 27px; border-radius: 20px;
-    background: var(--line); border: none; position: relative; flex-shrink: 0;
+    border: none; position: relative; flex-shrink: 0;
   }
   .switch::after {
     content: ''; position: absolute; top: 3px; left: 3px;
@@ -317,8 +315,7 @@
     background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,0.25);
     transition: left 0.15s ease;
   }
-  .switch.on { background: var(--turf); }
-  .switch.on::after { left: 22px; background: #fff; }
+    .switch.on::after { left: 22px; background: #fff; }
 
   /* The import sheet. A radio for the one either/or choice, switches for the
      parts, and a line that says in words what the chosen combination will do. */
@@ -363,7 +360,7 @@
   /* Club names are typed by hand and are sometimes one long unbroken word.
      Anywhere a name is shown, it breaks rather than widening the page. */
   .score-label, .tile-name, .roster-name, .playing-as, .tc-name, .screen-title,
-  .opp-goal-btn, .btn, .notice, .log-line, .plan-summary {
+  .opp-goal-btn, .btn, .notice, .plan-summary {
     overflow-wrap: anywhere;
   }
 
@@ -397,22 +394,18 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  .tile.benched { opacity: 0.5; }
-  .tile.benched .tile-num, .tile.benched .tile-name { color: var(--ink-soft); }
-  .field-badge {
+      .field-badge {
     display: block;
     width: calc(100% + 16px);
     margin: -10px -8px 6px;
     padding: 13px 0;
     border: none;
     font-family: var(--font-body);
-    font-size: 0.7188rem;
     font-weight: 700;
     background: var(--turf);
     color: #fff;
   }
-  .field-badge.off { background: var(--chalk-dim); color: var(--ink-soft); }
-  .field-badge.sent-off-badge { background: var(--red); color: #fff; }
+    .field-badge.sent-off-badge { color: #fff; }
   .field-badge:disabled { opacity: 0.85; }
   .tile:active { background: var(--chalk-dim); }
   .tile.just-scored { animation: pulse-gold 0.5s ease; }
@@ -426,34 +419,19 @@
     color: var(--brand-text); line-height: 1;
   }
   .tile-name {
-    font-size: 0.7812rem; font-weight: 600; margin-top: 3px;
+    font-weight: 600; margin-top: 3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .tile-goals { font-size: 0.6875rem; color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
-  .tile-mins { font-size: 0.6875rem; color: var(--ink-soft); margin-top: 1px; }
+  .tile-goals { color: var(--ink-soft); margin-top: 1px; min-height: 14px; }
+  .tile-mins { color: var(--ink-soft); margin-top: 1px; }
   .tile.least-played { box-shadow: inset 0 0 0 2px var(--gold-deep); }
   .tile.least-played .tile-mins { color: var(--gold-text); font-weight: 700; }
-  .tile-controls { display: flex; justify-content: center; gap: 2px; margin-top: 2px; }
-  /* The coloured rectangle stays small, but its button carries a 44px hit area
-     so it can be tapped one-handed on a sideline. */
-  .card-btn {
-    background: none; border: none; padding: 0;
-    width: 44px; height: 44px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .card-btn:disabled { opacity: 0.4; }
-  .mini-card { display: block; width: 20px; height: 26px; border-radius: 3px; border: 1px solid var(--line); }
-  .mini-card.yellow-btn { background: rgba(232,201,61,0.4); border-color: rgba(185,127,34,0.55); }
-  .mini-card.yellow-btn.card-yellow { background: var(--yellow-card); border-color: var(--gold-deep); }
-  .mini-card.red-btn { background: rgba(193,68,59,0.4); border-color: rgba(122,38,32,0.55); }
-  .mini-card.red-btn.card-red { background: var(--red); border-color: #7a2620; }
-  .tile.sent-off { opacity: 0.6; }
-  .tile.sent-off .tile-num, .tile.sent-off .tile-name { color: var(--red-text); }
-  .confirm-msg { font-size: 0.9375rem; line-height: 1.5; padding: 8px 4px 0; }
+        .mini-card { display: block; width: 20px; height: 26px; border-radius: 3px; border: 1px solid var(--line); }
+        .mini-card.red-btn.card-red { background: var(--red); border-color: #7a2620; }
+      .confirm-msg { font-size: 0.9375rem; line-height: 1.5; padding: 8px 4px 0; }
   .confirm-note { font-size: 0.8125rem; line-height: 1.45; color: var(--ink-soft); padding: 6px 4px 0; }
 
-  .goal-btn-row { display: flex; gap: 10px; margin-bottom: 18px; }
-  .opp-goal-btn {
+    .opp-goal-btn {
     flex: 1;
     min-width: 0;
     background: var(--chalk-dim);
@@ -497,14 +475,14 @@
     line-height: 1.1;
   }
   .dock-undo-ico { font-size: 1.25rem; line-height: 1; }
-  .dock-undo-txt { font-size: 0.6875rem; font-weight: 700; margin-top: 3px; }
+  .dock-undo-txt { font-weight: 700; margin-top: 3px; }
   .live-dock .dock-undo:disabled { opacity: 0.4; }
   .live-dock .dock-period {
     flex: 1 1 0; min-width: 0; min-height: 52px; padding: 6px 8px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     line-height: 1.15;
   }
-  .dock-period-sub { font-size: 0.6875rem; font-weight: 600; color: var(--ink-soft); margin-top: 2px; }
+  .dock-period-sub { font-weight: 600; color: var(--ink-soft); margin-top: 2px; }
   /* Held sideways there is no room to pin anything: it scrolls with the page. */
   @media (max-height: 520px) {
     .live-dock { position: static; box-shadow: none; margin: 14px 0 4px; padding: 0; background: none; }
@@ -525,13 +503,10 @@
     max-width: 420px;
     margin: 0 auto;
     z-index: 30;
-    background: var(--gold);
-    color: var(--pitch-dark);
     border-radius: 12px;
-    padding: 10px 12px;
     box-shadow: 0 10px 28px rgba(0,0,0,0.35);
   }
-  .assist-bar .a-title { font-weight: 700; font-size: 0.8438rem; margin-bottom: 8px; }
+  .assist-bar .a-title { font-weight: 700; }
   .assist-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
   .assist-chip {
     background: rgba(22,33,26,0.12);
@@ -563,8 +538,7 @@
   }
   .empty-state { color: var(--ink-soft); font-size: 0.8438rem; padding: 10px 2px; }
 
-  .end-match-btn { margin-top: 22px; }
-  /* Sits above the match log, so it keeps a fixed distance from the top
+    /* Sits above the match log, so it keeps a fixed distance from the top
      however many goals are logged. */
   .match-actions { margin-top: 18px; margin-bottom: 10px; }
   .match-actions-2 { margin-bottom: 4px; }
@@ -605,9 +579,7 @@
   .result-pill.draw { background: var(--chalk-dim); color: var(--ink-soft); }
   .hi-remove { background: none; border: none; color: var(--ink-soft); font-size: 0.75rem; padding: 8px 10px; min-height: 44px; }
   .hi-copy { background: none; border: none; color: var(--brand-text); font-size: 0.75rem; font-weight: 700; padding: 8px 10px; min-height: 44px; }
-  .hi-edit { background: none; border: none; color: var(--brand-text); font-size: 0.75rem; font-weight: 700; padding: 8px 10px; min-height: 44px; }
-  .hi-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-  .share-textarea {
+      .share-textarea {
     width: 100%; min-height: 150px; margin-top: 10px;
     padding: 10px; border-radius: 10px; border: 1px solid var(--line);
     background: var(--chalk-dim); color: var(--ink); font-family: var(--font-body);
@@ -784,8 +756,7 @@
     padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   }
   .help-section { margin-bottom: 18px; }
-  .help-section:last-child { margin-bottom: 0; }
-  .help-section h3 {
+    .help-section h3 {
     font-family: var(--font-display); font-weight: 600; font-size: 0.9375rem;
     margin: 0 0 6px; color: var(--brand-text);
   }
@@ -867,7 +838,7 @@
     color: var(--ink-soft);
   }
   .tab-btn .tab-icon { font-size: 1.25rem; line-height: 1; }
-  .tab-btn .tab-label { font-size: 0.6875rem; font-weight: 600; }
+  .tab-btn .tab-label { font-weight: 600; }
   .tab-btn.active { color: var(--brand-text); }
   .tab-btn:active { background: var(--chalk-dim); }
 
@@ -878,11 +849,7 @@
     left: 16px; right: 16px;
     bottom: calc(86px + env(safe-area-inset-bottom, 0px));
     margin: 0 auto;
-    max-width: 420px;
     text-align: center;
-    padding: 16px 20px;
-    border-radius: 16px;
-    font-size: 0.9688rem;
     font-weight: 700;
     line-height: 1.4;
     z-index: 50;
@@ -942,8 +909,7 @@
                calc(14px + env(safe-area-inset-right, 0px)) 6px
                calc(14px + env(safe-area-inset-left, 0px));
     }
-    .clock-btn { padding: 2px 8px; }
-    .clock-time { font-size: min(1.1875rem, 7vw); }
+        .clock-time { font-size: min(1.1875rem, 7vw); }
     .clock-state { font-size: min(0.625rem, 3vw); }
     .clock-total { font-size: 0.5625rem; }
     .scoreboard {
@@ -1108,7 +1074,6 @@
   .manage .btn.full { margin: 10px 8px 0; width: calc(100% - 16px); min-height: 52px; }
   .mg-note { font-size: 0.875rem; color: var(--ink-soft); padding: 8px 10px 0; line-height: 1.4; }
   .manage .brk-back { margin-top: 10px; }
-  
   /* ==== v48 ================================================================
      First run (Welcome and the pasted list), the back-up line, History. */
   .app-name { display: none; font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; letter-spacing: .2px; color: var(--on-dark); text-align: center; }
@@ -1145,12 +1110,10 @@
   .hi-btns { display: flex; gap: 8px; margin-top: 10px; }
   .hi-btns .btn { flex: 1 1 0; width: auto; min-height: 44px; padding: 10px 12px; }
   .scorers-toggle { margin-top: 10px; min-height: 44px; }
-  
   /* ==== v49 ================================================================ */
   .field-note { font-size: 0.8125rem; line-height: 1.4; color: var(--ink-soft); margin: -6px 2px 12px; }
   .field-note:empty { display: none; }
   .field-note.warn { color: var(--red-text); font-weight: 600; }
-  
   /* ==== v50 ================================================================ */
   .pre-kick { display: flex; align-items: center; gap: 10px; }
   .pre-kick-txt { flex: 1; min-width: 0; }
@@ -1223,19 +1186,11 @@
   // a failed write costs nothing. Only read when a card is opened.
   var CARD_TIMELINE_KEY = "matchdayTrackerCardTimeline_v1";
 
-  // Same rule as the formats below, and it is not a style preference: load()
-  // runs near the top of this file and reaches carryPrepSignature(), which
-  // reads this. Assigned further down it would still be undefined at that
-  // moment, load() would throw, the catch would hand back an empty state and
-  // persist() would write that over the coach's season. A previous release
-  // shipped exactly that bug.
   // The tag itself marks the signature format: earlier versions counted
   // players where this one names them, and the two must be told apart.
   var PREP_SIG_TAG = "2|";
 
   // 2 halves, 4 quarters, or 8 short periods — youth football uses all three.
-  // Declared here, not beside the planner: load() normalises saved plans on
-  // startup, so this must already hold its value by then.
   // A period length is optional; it only drives the "running over" cue.
   // Half minutes are real (8 periods in a 60-minute match is 7.5 each), and a
   // Belgian keyboard types a comma, so "7,5" and "7.5" both mean seven and a
@@ -1278,7 +1233,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "51";
+  var APP_VERSION = "54";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -1290,22 +1245,32 @@
   }
 
   function newTeam(name) {
+    return normaliseTeam({ teamName: name });
+  }
+
+  // The one place that lists a team's fields and what each is coerced to.
+  function normaliseTeam(t) {
+    // Normalised once and reused: normaliseUpcoming mints a fresh id for an
+    // entry that has none, so running it twice produced two different
+    // fingerprints and a backup reminder that fired straight after a backup.
+    var up = Array.isArray(t.upcoming)
+      ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [];
     return {
-      id: uid(),
-      teamName: name || "My Team",
-      roster: [],
-      settings: defaultSettings(),
-      activeMatch: null,
-      history: [],
-      lastLineup: null,
-      lastPlan: null,
-      lastPeriodMinutes: null,
-      upcoming: [],
-      lastExportPrep: "",
-      lastExportHistory: "",
-      backupNudgeSeen: "",
-      lastBackupAt: 0,
-      lastExportCount: 0
+      id: t.id || uid(),
+      teamName: t.teamName || "My Team",
+      roster: Array.isArray(t.roster) ? t.roster : [],
+      settings: Object.assign(defaultSettings(), t.settings || {}),
+      activeMatch: t.activeMatch || null,
+      history: Array.isArray(t.history) ? t.history : [],
+      lastLineup: Array.isArray(t.lastLineup) ? t.lastLineup : null,
+      lastPlan: normalisePlan(t.lastPlan),
+      lastPeriodMinutes: cleanPeriodMinutes(t.lastPeriodMinutes),
+      upcoming: up,
+      lastExportPrep: carryPrepSignature(t.lastExportPrep, up),
+      lastExportHistory: typeof t.lastExportHistory === "string" ? t.lastExportHistory : "",
+      backupNudgeSeen: typeof t.backupNudgeSeen === "string" ? t.backupNudgeSeen : "",
+      lastBackupAt: typeof t.lastBackupAt === "number" ? t.lastBackupAt : 0,
+      lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
     };
   }
 
@@ -1335,30 +1300,7 @@
     // One bad entry must not cost the coach every other team on the device.
     teams = teams.filter(function (t) { return t && typeof t === "object"; });
 
-    teams = teams.map(function (t) {
-      // Normalised once and reused: normaliseUpcoming mints a fresh id for an
-      // entry that has none, so running it twice produced two different
-      // fingerprints and a backup reminder that fired straight after a backup.
-      var up = Array.isArray(t.upcoming)
-        ? t.upcoming.map(normaliseUpcoming).filter(Boolean) : [];
-      return {
-        id: t.id || uid(),
-        teamName: t.teamName || "My Team",
-        roster: Array.isArray(t.roster) ? t.roster : [],
-        settings: Object.assign(defaultSettings(), t.settings || {}),
-        activeMatch: t.activeMatch || null,
-        history: Array.isArray(t.history) ? t.history : [],
-        lastLineup: Array.isArray(t.lastLineup) ? t.lastLineup : null,
-        lastPlan: normalisePlan(t.lastPlan),
-        lastPeriodMinutes: cleanPeriodMinutes(t.lastPeriodMinutes),
-        upcoming: up,
-        lastExportPrep: carryPrepSignature(t.lastExportPrep, up),
-        lastExportHistory: typeof t.lastExportHistory === "string" ? t.lastExportHistory : "",
-        backupNudgeSeen: typeof t.backupNudgeSeen === "string" ? t.backupNudgeSeen : "",
-        lastBackupAt: typeof t.lastBackupAt === "number" ? t.lastBackupAt : 0,
-        lastExportCount: typeof t.lastExportCount === "number" ? t.lastExportCount : 0
-      };
-    });
+    teams = teams.map(function (t) { return normaliseTeam(t); });
 
     var activeId = parsed.activeTeamId;
     if (!teams.some(function (t) { return t.id === activeId; })) activeId = teams[0].id;
@@ -1441,11 +1383,9 @@
     }
   }
 
-  var state = load();
-  // Write the normalised (possibly migrated) shape straight back, so an upgrade
-  // isn't left half-applied if the app is closed without touching anything.
-  persist();
-  var view = T().roster.length === 0 ? "team" : "match";
+  // Both are set when the app starts, at the end of this file.
+  var state;                     // the saved data
+  var view;                      // which tab is showing: match, summary, team or history
   var pendingAssistEventId = null;
   var assistBarTimer = null;
   var assistShownAt = 0;
@@ -1517,7 +1457,7 @@
   // playing eight short periods is not at "Half time", and the small line under
   // it says which period is running, which the clock only shows from the second.
   function periodButtonLabel(match) {
-    var fmt = (match.plan && match.plan.periods) || match.periodFormat;
+    var fmt = matchFormat(match);
     var p = match.period || 1;
     if (fmt === 8 || fmt === 4) {
       return {
@@ -1531,7 +1471,7 @@
     return { main: "Half time", sub: "" };
   }
   function periodTagFor(match, p) {
-    var fmt = (match.plan && match.plan.periods) || match.periodFormat;
+    var fmt = matchFormat(match);
     if (fmt) return periodShort(fmt, p - 1);
     return "P" + p;
   }
@@ -1561,6 +1501,10 @@
   function periodIsDue(match) {
     return !!(match.clock.running && match.periodMinutes && periodStartKnown(match) &&
       periodElapsedMs(match) >= match.periodMinutes * 60000);
+  }
+  // Nothing has happened yet: the clock has never run, no event, no line-up captured.
+  function isPreKickoff(match) {
+    return !match.lineupCaptured && !match.clock.running && !match.clock.elapsedMs && !match.events.length;
   }
   function periodWords(match) {
     var f = matchFormat(match), p = match.period || 1;
@@ -1607,7 +1551,7 @@
     totalEl.classList.toggle("hidden", !multi);
     totalEl.textContent = multi ? formatClock(clockElapsedMs(match)) + " total" : "";
     var pm = match.periodMinutes && known ? match.periodMinutes * 60000 : 0;
-    var timeUp = ph === "running" && !!pm && periodElapsedMs(match) >= pm;
+    var timeUp = periodIsDue(match);
     btn.className = "clock-btn st-" + ph + (timeUp ? " st-over" : "");
     var txt;
     if (ph === "running") {
@@ -1678,18 +1622,15 @@
     return out;
   }
 
-  function goalTimeline(events, opponentName, record) {
-    var ourName = (record && record.teamName) || T().teamName;
-    return (events || [])
+  function goalTimeline(record) {
+    var ourName = record.teamName || T().teamName;
+    var opponentName = record.opponentName;
+    return (record.events || [])
       .filter(function (e) { return e.type === "goal" || e.type === "opponent_goal" || e.type === "own_goal"; })
       .map(function (e) {
         if (e.type === "goal") {
-          var scorerName = record ? nameInRecord(record, e.playerId) : (rosterById(e.playerId) ? rosterById(e.playerId).name : "Unknown");
-          var assistName = null;
-          if (e.assistId) {
-            assistName = record ? nameInRecord(record, e.assistId) : (rosterById(e.assistId) ? rosterById(e.assistId).name : null);
-          }
-          return { minute: e.minuteAtEvent, period: e.period || 1, forUs: true, name: scorerName, assistName: assistName, ownGoal: false };
+          var assistName = e.assistId ? nameInRecord(record, e.assistId) : null;
+          return { minute: e.minuteAtEvent, period: e.period || 1, forUs: true, name: nameInRecord(record, e.playerId), assistName: assistName, ownGoal: false };
         }
         if (e.type === "own_goal") {
           // Listed under the team it counts FOR, flagged as an own goal.
@@ -1715,12 +1656,10 @@
   }
 
   function oneTimelineRow(t) {
-    return (function (t) {
-      var desc = "⚽ " + esc(t.name) +
-        (t.ownGoal ? " (own goal)" : "") +
-        (t.assistName ? " (assist: " + esc(t.assistName) + ")" : "");
-      return '<div class="event-row"><span class="event-minute">' + t.minute + "'</span><span class=\"event-desc\">" + desc + "</span></div>";
-    })(t);
+    var desc = "⚽ " + esc(t.name) +
+      (t.ownGoal ? " (own goal)" : "") +
+      (t.assistName ? " (assist: " + esc(t.assistName) + ")" : "");
+    return '<div class="event-row"><span class="event-minute">' + t.minute + "'</span><span class=\"event-desc\">" + desc + "</span></div>";
   }
 
   /* ---------- Shareable match card ----------------------------------------
@@ -1772,7 +1711,7 @@
         goals: record.scorers[pid], assists: (record.assists || {})[pid] || 0
       };
     }).sort(function (a, b) { return b.goals - a.goals || a.name.localeCompare(b.name); });
-    return { scorers: scorers, timeline: goalTimeline(record.events, record.opponentName, record) };
+    return { scorers: scorers, timeline: goalTimeline(record) };
   }
 
   // opts.timeline === false leaves the minute-by-minute list off: the score, the
@@ -2000,7 +1939,7 @@
     // Wait for the webfonts so the card never silently comes out in Arial.
     try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
     // The switch only means something when there is a goal to list.
-    var hasGoals = goalTimeline(record.events, record.opponentName, record).length > 0;
+    var hasGoals = goalTimeline(record).length > 0;
     var withTimeline = cardTimelinePref();
     var cv, url;
     try { cv = drawMatchCard(record, { timeline: withTimeline }); url = cv.toDataURL("image/png"); }
@@ -2105,6 +2044,14 @@
   var pendingOpponentName = "";
   var pendingIsHome = true;
   var pendingTeamId = null;     // which team the ones above belong to
+  // Forget everything half-entered on the kick-off form.
+  function resetKickoffDraft() {
+    pendingPlan = null;
+    pendingFormatSet = false;
+    pendingPeriodMinutes = null;
+    pendingOpponentName = "";
+    pendingIsHome = true;
+  }
 
   // Follow last week's format unless the coach has overridden it, so a saved
   // plan is never quietly dropped for being the wrong shape.
@@ -2115,11 +2062,7 @@
     // relying on each of those remembering to.
     if (pendingTeamId !== state.activeTeamId) {
       pendingTeamId = state.activeTeamId;
-      pendingPlan = null;
-      pendingFormatSet = false;
-      pendingPeriodMinutes = null;
-      pendingOpponentName = "";
-      pendingIsHome = true;
+      resetKickoffDraft();
     }
     if (pendingPeriodMinutes == null) pendingPeriodMinutes = T().lastPeriodMinutes;
     if (pendingFormatSet) return;
@@ -2129,12 +2072,17 @@
 
   function planSummaryText() {
     var plan = planForRoster(normalisePlan(pendingPlan || T().lastPlan), sortedRoster());
-    if (!plan || plan.periods !== pendingPeriods || !plan.lineups.some(function (r) { return r.length; })) {
+    if (!plan || plan.periods !== pendingPeriods || !planHasPlayers(plan)) {
       return "No plan yet \u2014 everyone currently on the pitch starts.";
     }
     return plan.lineups.map(function (r, i) {
       return periodShort(plan.periods, i) + " " + r.length;
     }).join("  \u00b7  ") + "  on the pitch";
+  }
+
+  // A plan that puts at least one player on the pitch in at least one period.
+  function planHasPlayers(plan) {
+    return !!plan && plan.lineups.some(function (r) { return r.length; });
   }
 
   function normalisePlan(p) {
@@ -2222,11 +2170,7 @@
   function showAttendanceSheet(initialAway, onDone) {
     var roster = sortedRoster();
     var away = (initialAway || []).filter(function (id) { return !!rosterById(id); });
-    var old = document.getElementById("hereOverlay");
-    if (old) old.remove();
-    var o = document.createElement("div");
-    o.className = "overlay";
-    o.id = "hereOverlay";
+    var o = newOverlay("hereOverlay");
     var rows = roster.map(function (p) {
       return '<button class="prep-av" data-here="' + esc(p.id) + '" aria-pressed="false">' +
         '<span class="plan-num">' + esc(p.number || "–") + "</span>" +
@@ -2246,7 +2190,7 @@
         '<button class="btn btn-ghost" id="hereCancel">Cancel</button>' +
       "</div>";
     document.body.appendChild(o);
-    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 350);
+    armShield(o, 350);
 
     var goBtn = o.querySelector("#hereGo");
     function refresh() {
@@ -2281,7 +2225,7 @@
   // the pitch; someone who is back waits on the bench until they are picked, like
   // anyone else. Once the clock has run the bench is live and this does nothing.
   function applyAttendance(match, awayIds) {
-    if (!match || match.lineupCaptured || match.clock.running || match.clock.elapsedMs || match.events.length) return false;
+    if (!match || !isPreKickoff(match)) return false;
     var ids = (awayIds || []).filter(function (id) { return !!rosterById(id); });
     ids.forEach(function (id) { setOnField(match, id, false); });
     match.unavailable = ids.slice();
@@ -2304,7 +2248,7 @@
       if (want[p.id] && !now) on.push(p.id);
       if (!want[p.id] && now) off.push(p.id);
     });
-    return { on: on, off: off, lineup: row };
+    return { on: on, off: off };
   }
 
   function applyPlanPeriod(match, period) {
@@ -2313,11 +2257,6 @@
     ch.on.forEach(function (id) { setOnField(match, id, true); });
     ch.off.forEach(function (id) { setOnField(match, id, false); });
     return ch;
-  }
-
-  function planNameOf(id) {
-    var p = rosterById(id);
-    return p ? p.name : "Unknown";
   }
 
   function showLineupPlanner(plan, periods, onSave, excludeIds, onCancel) {
@@ -2336,11 +2275,7 @@
     }
     var onCount = work.lineups[0].length || Math.min(roster.length, 7);
 
-    var old = document.getElementById("planOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "planOverlay";
+    var overlay = newOverlay("planOverlay");
     document.body.appendChild(overlay);
 
     function isOn(pi, q) { return work.lineups[q].indexOf(ids[pi]) !== -1; }
@@ -2462,11 +2397,7 @@
         " uses the same line-up.", "warning");
       return true;
     }
-    var old = document.getElementById("breakOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "breakOverlay";
+    var overlay = newOverlay("breakOverlay");
     var lines = "";
     if (ch.on.length) lines += '<div class="brk-line on"><span class="pl-on">On</span><span class="np-row">' + ch.on.map(numNameOf).join("") + "</span></div>";
     if (ch.off.length) lines += '<div class="brk-line off"><span class="pl-off">Off</span><span class="np-row">' + ch.off.map(numNameOf).join("") + "</span></div>";
@@ -2484,7 +2415,7 @@
     document.body.appendChild(overlay);
     // The first moment of the sheet ignores taps: it opens under the thumb that
     // just pressed Next period, and a double tap must not land on Apply.
-    setTimeout(function () { var sh = overlay.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 450);
+    armShield(overlay, 450);
     document.getElementById("breakApply").onclick = function () {
       overlay.remove();
       var applied = applyPlanPeriod(match, match.period);
@@ -2565,7 +2496,7 @@
     if (absent) bits.push(absent + (absent === 1 ? " player away" : " players away"));
     if (u.periodMinutes) bits.push(u.periodMinutes + " min each");
     var plan = normalisePlan(u.plan);
-    if (plan && plan.lineups.some(function (r) { return r.length; })) {
+    if (planHasPlayers(plan)) {
       bits.push((PLAN_FORMAT_LABELS[plan.periods] || plan.periods + " periods") + " planned");
     }
     return bits.join(" · ");
@@ -2608,11 +2539,7 @@
     var periods = (entry.plan && entry.plan.periods) ||
       (normalisePlan(T().lastPlan) || {}).periods || 4;
 
-    var old = document.getElementById("prepOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "prepOverlay";
+    var overlay = newOverlay("prepOverlay");
     document.body.appendChild(overlay);
 
     function splitDate() {
@@ -2629,11 +2556,6 @@
       var pm = document.getElementById("prepMins");
       if (pm) entry.periodMinutes = cleanPeriodMinutes(pm.value);
     }
-    function availableIds() {
-      return roster.filter(function (p) { return entry.unavailable.indexOf(p.id) === -1; })
-                   .map(function (p) { return p.id; });
-    }
-
     function draw() {
       var keep = overlay.querySelector(".prep-scroll");
       var keepY = keep ? keep.scrollTop : 0;
@@ -2650,7 +2572,7 @@
       var planBlock = "";
       if (T().settings.planLineups) {
         var plan = entry.plan;
-        var planned = plan && plan.lineups.some(function (r) { return r.length; })
+        var planned = planHasPlayers(plan)
           ? plan.lineups.map(function (r, i) { return periodShort(plan.periods, i) + " " + r.length; }).join("  ·  ")
           : "Not planned yet";
         planBlock =
@@ -2759,7 +2681,7 @@
       };
     }
 
-    overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+    closeOnBackdrop(overlay);
     draw();
   }
 
@@ -2812,7 +2734,7 @@
     var awayScore = isHome ? record.scoreThem : record.scoreUs;
     var d = new Date(record.date);
     var dateStr = isNaN(d) ? "" : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-    var timeline = goalTimeline(record.events, record.opponentName, record);
+    var timeline = goalTimeline(record);
 
     var lines = [];
     if (dateStr) lines.push(dateStr);
@@ -2879,11 +2801,7 @@
   }
 
   function showCopyFallback(text) {
-    var old = document.getElementById("copyOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "copyOverlay";
+    var overlay = newOverlay("copyOverlay");
     overlay.innerHTML =
       '<div class="sheet">' +
         '<div class="confirm-msg">Couldn\u2019t copy automatically. Tap the text below, select all, then copy.</div>' +
@@ -2900,7 +2818,7 @@
     ta.select();
     function cleanup() { overlay.remove(); }
     document.getElementById("copyFallbackClose").onclick = cleanup;
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    closeOnBackdrop(overlay, cleanup);
     document.getElementById("copyFallbackTry").onclick = function () {
       ta.focus();
       ta.select();
@@ -2942,12 +2860,25 @@
     return d.innerHTML.replace(/"/g, "&quot;");
   }
 
-  function showConfirm(message, confirmLabel, onConfirm, danger, note, cancelLabel) {
-    var old = document.getElementById("confirmOverlay");
+  // The sheets share three moves: replace a sheet with the same id, close on a tap on
+  // the dimmed backdrop, and ignore taps for a moment after opening.
+  function newOverlay(id) {
+    var old = document.getElementById(id);
     if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "confirmOverlay";
+    var o = document.createElement("div");
+    o.className = "overlay";
+    o.id = id;
+    return o;
+  }
+  function closeOnBackdrop(o, close) {
+    o.onclick = function (e) { if (e.target === o) (close || function () { o.remove(); })(); };
+  }
+  function armShield(o, ms) {
+    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, ms);
+  }
+
+  function showConfirm(message, confirmLabel, onConfirm, danger, note, cancelLabel) {
+    var overlay = newOverlay("confirmOverlay");
     overlay.innerHTML =
       '<div class="sheet">' +
         '<div class="confirm-msg">' + esc(message) + "</div>" +
@@ -2961,36 +2892,7 @@
     function cleanup() { overlay.remove(); }
     document.getElementById("confirmCancelBtn").onclick = cleanup;
     document.getElementById("confirmOkBtn").onclick = function () { cleanup(); onConfirm(); };
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
-  }
-
-  // A confirm with more than two outcomes, stacked so long labels stay readable.
-  function showChoice(message, options) {
-    var old = document.getElementById("choiceOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "choiceOverlay";
-    var buttons = options.map(function (o, i) {
-      return '<button class="btn ' + (o.danger ? "btn-danger" : "btn-primary") +
-        '" data-choice="' + i + '" style="margin-top:10px;">' + esc(o.label) + "</button>";
-    }).join("");
-    overlay.innerHTML =
-      '<div class="sheet">' +
-        '<div class="confirm-msg">' + esc(message) + "</div>" +
-        buttons +
-        '<button class="btn btn-ghost" id="choiceCancelBtn" style="margin-top:10px;">Cancel</button>' +
-      "</div>";
-    document.body.appendChild(overlay);
-    function cleanup() { overlay.remove(); }
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
-    document.getElementById("choiceCancelBtn").onclick = cleanup;
-    overlay.querySelectorAll("[data-choice]").forEach(function (btn) {
-      btn.onclick = function () {
-        cleanup();
-        options[parseInt(btn.getAttribute("data-choice"), 10)].onPick();
-      };
-    });
+    closeOnBackdrop(overlay, cleanup);
   }
 
   // ---------- teams ----------
@@ -3327,11 +3229,7 @@
   }
 
   function showTextPrompt(title, placeholder, initial, confirmLabel, onSubmit) {
-    var old = document.getElementById("promptOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "promptOverlay";
+    var overlay = newOverlay("promptOverlay");
     overlay.innerHTML =
       '<div class="sheet">' +
         '<div class="confirm-msg"><strong>' + esc(title) + "</strong></div>" +
@@ -3346,7 +3244,7 @@
     input.value = initial || "";
     input.focus();
     function cleanup() { overlay.remove(); }
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    closeOnBackdrop(overlay, cleanup);
     document.getElementById("promptCancelBtn").onclick = cleanup;
     function submit() {
       var v = input.value.trim();
@@ -3391,11 +3289,7 @@
   }
 
   function showTeamPicker() {
-    var old = document.getElementById("teamOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "teamOverlay";
+    var overlay = newOverlay("teamOverlay");
     var rows = state.teams.map(function (t) {
       var current = t.id === state.activeTeamId;
       return (
@@ -3418,7 +3312,7 @@
       "</div>";
     document.body.appendChild(overlay);
     function cleanup() { overlay.remove(); }
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    closeOnBackdrop(overlay, cleanup);
     document.getElementById("teamCloseBtn").onclick = cleanup;
     document.getElementById("addTeamBtn").onclick = function () { cleanup(); addTeam(); };
     overlay.querySelectorAll("[data-pick-team]").forEach(function (btn) {
@@ -3430,11 +3324,7 @@
   }
 
   function showHelp() {
-    var old = document.getElementById("helpOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "helpOverlay";
+    var overlay = newOverlay("helpOverlay");
     var sections = [
       ["Put it on your home screen", "Opened in a browser, the app offers to add itself — on Android and desktop Chrome with an <strong>Install</strong> button, on iPhone with the steps to follow, because Apple gives websites no way to do it for you. Installed, it opens fullscreen and works without signal."],
       ["Set up your team", "Go to <strong>Team</strong>. A new team starts with a list to fill in: paste or type one player per line, with or without a shirt number (<strong>7 Arthur</strong>, <strong>Arthur 7</strong> and <strong>7. Arthur</strong> all work), check the players the app found, and tap <strong>Add</strong>. <strong>Add one at a time</strong> gives you the Name and No. fields instead, and from the first player on they are always there: Enter moves from Name to No. and then adds. <strong>Edit</strong> on a player\u2019s row fixes a name or a shirt number. This only needs doing once — it's saved on this device for every future match."],
@@ -3476,7 +3366,7 @@
     document.body.appendChild(overlay);
     function cleanup() { overlay.remove(); }
     document.getElementById("helpCloseBtn").onclick = cleanup;
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    closeOnBackdrop(overlay, cleanup);
   }
 
   function isOnField(match, playerId) {
@@ -3741,11 +3631,7 @@
     if (!match) return;
     // No clock check here: choosing the team goes through logOwnGoal, which on
     // a stopped clock asks "Start and log", like every other tap.
-    var old = document.getElementById("ownGoalOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "ownGoalOverlay";
+    var overlay = newOverlay("ownGoalOverlay");
     overlay.innerHTML =
       '<div class="sheet">' +
         '<div class="confirm-msg"><strong>Own goal</strong><br>Who put the ball in their own net?</div>' +
@@ -3755,7 +3641,7 @@
       "</div>";
     document.body.appendChild(overlay);
     function cleanup() { overlay.remove(); }
-    overlay.onclick = function (e) { if (e.target === overlay) cleanup(); };
+    closeOnBackdrop(overlay, cleanup);
     document.getElementById("ogCancelBtn").onclick = cleanup;
     document.getElementById("ogUsBtn").onclick = function () { cleanup(); logOwnGoal("us"); };
     document.getElementById("ogThemBtn").onclick = function () { cleanup(); logOwnGoal("them"); };
@@ -3838,9 +3724,9 @@
       '<button class="btn btn-ghost full" id="mgBench">Move ' + esc(p.name) + " to the bench</button>" +
       '<button class="link-btn brk-back" id="mgCloseBtn">Close</button></div>';
     document.body.appendChild(o);
-    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 350);
+    armShield(o, 350);
     function close() { o.remove(); }
-    o.onclick = function (e) { if (e.target === o) close(); };
+    closeOnBackdrop(o, close);
     document.getElementById("mgCloseBtn").onclick = close;
     document.getElementById("mgBench").onclick = function () { close(); toggleField(pid); };
     var y = document.getElementById("mgYellow");
@@ -3937,11 +3823,7 @@
 
   function showFullTime(match) {
     var st = computeStats(match);
-    var old = document.getElementById("fullTimeOverlay");
-    if (old) old.remove();
-    var o = document.createElement("div");
-    o.className = "overlay";
-    o.id = "fullTimeOverlay";
+    var o = newOverlay("fullTimeOverlay");
     o.innerHTML = '<div class="sheet"><div class="confirm-msg"><strong>Full time?</strong><br>That was the last of the ' + matchFormat(match) +
       " planned periods. Save " + esc(T().teamName) + " " + st.scoreUs + " – " + st.scoreThem + " " + esc(match.opponentName) + "?</div>" +
       '<div class="confirm-note">It goes to History. A finished match can’t be reopened, but you can edit it there.</div>' +
@@ -3950,7 +3832,7 @@
       '<button class="btn btn-ghost" id="ftCancelBtn" style="margin-top:10px;">Not yet</button></div>';
     document.body.appendChild(o);
     function done() { o.remove(); }
-    o.onclick = function (e) { if (e.target === o) done(); };
+    closeOnBackdrop(o, done);
     document.getElementById("ftCancelBtn").onclick = done;
     document.getElementById("ftEndBtn").onclick = function () { done(); endMatch(); };
     document.getElementById("ftMoreBtn").onclick = function () { done(); if (T().activeMatch === match) advancePeriod(match); };
@@ -4280,11 +4162,7 @@
 
   function showEditMatch(matchId) {
     editMatchId = matchId;
-    var old = document.getElementById("matchEditOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "matchEditOverlay";
+    var overlay = newOverlay("matchEditOverlay");
     document.body.appendChild(overlay);
 
     function close() {
@@ -4346,7 +4224,7 @@
     }
 
     matchEditRedraw = draw;
-    overlay.onclick = function (e) { if (e.target === overlay) close(); };
+    closeOnBackdrop(overlay, close);
     draw();
   }
 
@@ -4357,14 +4235,10 @@
     if (!ev || (ev.type !== "goal" && ev.type !== "card" && ev.type !== "own_goal")) return;
     if (autoRedRefused(ev)) return;
 
-    var old = document.getElementById("editOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "editOverlay";
+    var overlay = newOverlay("editOverlay");
     document.body.appendChild(overlay);
     function close() { overlay.remove(); }
-    overlay.onclick = function (e) { if (e.target === overlay) close(); };
+    closeOnBackdrop(overlay, close);
 
     if (ev.type === "own_goal") {
       var selBy = ev.by === "us" ? "us" : "them";
@@ -4564,11 +4438,7 @@
   function showEditPlayer(pid) {
     var p = rosterById(pid);
     if (!p) return;
-    var old = document.getElementById("editPlayerOverlay");
-    if (old) old.remove();
-    var o = document.createElement("div");
-    o.className = "overlay";
-    o.id = "editPlayerOverlay";
+    var o = newOverlay("editPlayerOverlay");
     o.innerHTML =
       '<div class="sheet">' +
         '<div class="confirm-msg"><strong>Edit player</strong></div>' +
@@ -4592,7 +4462,7 @@
       try { nameEl.setSelectionRange(nameEl.value.length, nameEl.value.length); } catch (e) {}
     }, 0);
     function close() { o.remove(); }
-    o.onclick = function (e) { if (e.target === o) close(); };
+    closeOnBackdrop(o, close);
     document.getElementById("epCancelBtn").onclick = close;
     function save() {
       var name = nameEl.value.replace(/\s+/g, " ").trim();
@@ -4864,11 +4734,7 @@
 
   function showExportSheet() {
     var parts = defaultExportParts();
-    var old = document.getElementById("exportOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "exportOverlay";
+    var overlay = newOverlay("exportOverlay");
     document.body.appendChild(overlay);
 
     function row(key, title, desc) {
@@ -4907,8 +4773,7 @@
                 'Keep a full export as well.</div>'
               : "") +
           "</div>" +
-          '<button class="btn btn-primary" id="exportGoBtn"' + (any ? "" : " disabled") + ">Export" +
-            (any ? "" : "") + "</button>" +
+          '<button class="btn btn-primary" id="exportGoBtn"' + (any ? "" : " disabled") + ">Export</button>" +
           '<button class="btn btn-ghost" id="exportCancelBtn">Cancel</button>' +
         "</div>";
 
@@ -4928,7 +4793,7 @@
       };
     }
 
-    overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+    closeOnBackdrop(overlay);
     draw();
   }
 
@@ -5206,7 +5071,7 @@
       var n = looseOf(p.name);
       fileNameCount[n] = (fileNameCount[n] || 0) + 1;
     });
-    var map = {}, unmatched = [], matched = 0;
+    var map = {}, unmatched = [];
     (fileRoster || []).forEach(function (p) {
       // The same id is the same child, however the name is spelt: a name
       // corrected on one device must not come back as a second player.
@@ -5218,10 +5083,10 @@
         var n = looseOf(p.name);
         if (nameCount[n] === 1 && fileNameCount[n] === 1) hit = byName[n];
       }
-      if (hit) { map[p.id] = hit; matched++; }
+      if (hit) map[p.id] = hit;
       else unmatched.push(p);
     });
-    return { map: map, unmatched: unmatched, matched: matched };
+    return { map: map, unmatched: unmatched };
   }
 
   // Tallies keyed by player id. Two of the file's players folding onto one of
@@ -5298,7 +5163,7 @@
   // reads cannot disagree with what actually happens.
   function mergeIntoTeam(target, file, parts) {
     var t = JSON.parse(JSON.stringify(target));
-    var s = { playersAdded: 0, playersMatched: 0, matchesAdded: 0, matchesKept: 0,
+    var s = { playersAdded: 0, matchesAdded: 0, matchesKept: 0,
               prepAdded: 0, prepUpdated: 0, prepSame: 0, prepKeptNewer: 0,
               planTurnedOn: false, liveRestored: false, liveSkipped: "",
               unmatchedNames: [],
@@ -5307,7 +5172,6 @@
               namesMissing: !!(parts.prep && file.hasPrep && !file.roster.length) };
 
     var mp = matchPlayers(file.roster, t.roster);
-    s.playersMatched = mp.matched;
 
     if (parts.players) {
       mp.unmatched.forEach(function (p) {
@@ -5353,7 +5217,7 @@
 
     var planArrived = false;
     var hasPlan = function (u) {
-      return !!(u.plan && u.plan.lineups.some(function (r) { return r.length; }));
+      return planHasPlayers(u.plan);
     };
     if (parts.prep) {
       t.upcoming = t.upcoming || [];
@@ -5516,11 +5380,7 @@
     var parts = { players: file.roster.length > 0,
                   history: file.hasHistory || file.hasLive, prep: file.hasPrep };
 
-    var old = document.getElementById("importOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "importOverlay";
+    var overlay = newOverlay("importOverlay");
     document.body.appendChild(overlay);
 
     function partRow(key, title, desc) {
@@ -5618,7 +5478,7 @@
     }
 
     draw();
-    overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+    closeOnBackdrop(overlay);
   }
 
   function applyImport(file, target, mode, parts) {
@@ -5703,7 +5563,7 @@
     // option is off would be silently ignored at kick-off.
     var note = "";
     var planIn = (built.upcoming || []).some(function (u) {
-      return u.plan && u.plan.lineups.some(function (r) { return r.length; });
+      return planHasPlayers(u.plan);
     });
     if (planIn && !built.settings.planLineups) {
       built.settings.planLineups = true;
@@ -5769,15 +5629,15 @@
   }
 
   function teamFromImport(data, id) {
-    return {
-      id: id || uid(),
-      teamName: data.teamName || "My Team",
+    var t = normaliseTeam({
+      id: id,
+      teamName: data.teamName,
       roster: data.roster.map(function (p) {
         return { id: p.id || uid(), name: p.name || "", number: p.number || "" };
       }),
-      settings: Object.assign(defaultSettings(), data.settings || {}),
+      settings: data.settings,
       activeMatch: restoredActiveMatch(data),
-      history: Array.isArray(data.history) ? data.history : [],
+      history: data.history,
       // Only ids that exist in the restored roster: an older file, or one from
       // another coach, can name players this team doesn't have.
       lastLineup: Array.isArray(data.lastLineup)
@@ -5785,17 +5645,15 @@
             return (data.roster || []).some(function (p) { return p.id === pid; });
           })
         : null,
-      lastPlan: normalisePlan(data.lastPlan),
-      lastPeriodMinutes: cleanPeriodMinutes(data.lastPeriodMinutes),
-      upcoming: Array.isArray(data.upcoming)
-        ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : [],
-      lastExportPrep: prepSignature(Array.isArray(data.upcoming)
-        ? data.upcoming.map(normaliseUpcoming).filter(Boolean) : []),
-      lastExportHistory: historySignature(Array.isArray(data.history) ? data.history : []),
-      backupNudgeSeen: "",
-      lastBackupAt: 0,
-      lastExportCount: Array.isArray(data.history) ? data.history.length : 0
-    };
+      lastPlan: data.lastPlan,
+      lastPeriodMinutes: data.lastPeriodMinutes,
+      upcoming: data.upcoming
+    });
+    // An imported team starts with a backup record that matches what it holds.
+    t.lastExportPrep = prepSignature(t.upcoming);
+    t.lastExportHistory = historySignature(t.history);
+    t.lastExportCount = t.history.length;
+    return t;
   }
 
   function finishImport(team, replacedId, note) {
@@ -5910,148 +5768,144 @@
     } catch (e) {}
   }
 
+  // The "Start a match" form: what the match tab shows while no match is running.
+  function renderKickoffForm(el) {
+    syncPendingFormat();
+    el.innerHTML =
+      noticeHtml() +
+      '<h1 class="screen-title">Start a match</h1>' +
+      upcomingHtml() +
+      '<p class="playing-as">Playing as <strong>' + esc(T().teamName) + "</strong>" +
+        (state.teams.length > 1 ? ' — <button class="link-btn" id="quickSwitchBtn">switch team</button>' : "") + "</p>" +
+      (T().roster.length === 0
+        ? '<p class="hint">Add your players first, from the Team &amp; settings menu.</p>' +
+          '<button class="btn btn-primary" id="goToTeamBtn">Go to Team &amp; settings</button>'
+        : '<div class="card">' +
+            '<label class="field-label" for="opponentInput">Opponent (optional)</label>' +
+            '<input class="text-input" id="opponentInput" placeholder="e.g. FC Riverside" value="' +
+              esc(pendingOpponentName || "") + '">' +
+            '<label class="field-label">Home or away?</label>' +
+            '<div class="btn-row" style="margin-bottom:14px;">' +
+              '<button class="btn toggle-seg' + (pendingIsHome ? " on" : "") + '" id="homeBtn" aria-pressed="' + !!pendingIsHome + '">Home</button>' +
+              '<button class="btn toggle-seg' + (pendingIsHome ? "" : " on") + '" id="awayBtn" aria-pressed="' + !pendingIsHome + '">Away</button>' +
+            '</div>' +
+            '<label class="field-label" for="periodMinsInput">Length of each half, quarter or period, in minutes (optional)</label>' +
+            '<input class="text-input" id="periodMinsInput" inputmode="decimal" maxlength="5" placeholder="e.g. 15 or 7,5" value="' +
+              esc(pendingPeriodMinutes || "") + '">' +
+            '<div class="field-note" id="periodMinsNote" role="status" aria-live="polite"></div>' +
+            (T().settings.planLineups
+              ? '<label class="field-label">Match format</label>' +
+                '<div class="btn-row" style="margin-bottom:10px;">' +
+                  PLAN_FORMATS.map(function (nP) {
+                    return '<button class="btn toggle-seg' + (pendingPeriods === nP ? " on" : "") +
+                      '" data-kick-fmt="' + nP + '">' + PLAN_FORMAT_LABELS[nP] + "</button>";
+                  }).join("") +
+                "</div>" +
+                '<button class="btn btn-ghost" id="planBtn">Line-up plan</button>' +
+                '<div class="plan-summary" id="planSummary">' + planSummaryText() + "</div>"
+              : '<p class="hint kick-hint">Playing quarters or 8 short periods? ' +
+                '<button class="link-btn" id="enablePlanBtn">Turn on line-up planning</button></p>') +
+            '<button class="btn btn-primary" id="kickoffBtn">Kick off</button>' +
+          "</div>" +
+          '<button class="btn btn-ghost" id="prepBtn" style="margin-top:12px;">Prepare a match for later</button>');
+    var qs = document.getElementById("quickSwitchBtn");
+    if (qs) qs.onclick = showTeamPicker;
+    wireUpcoming(el);
+    var pb = document.getElementById("prepBtn");
+    if (pb) pb.onclick = function () { showMatchPrep(null); };
+    if (T().roster.length === 0) {
+      document.getElementById("goToTeamBtn").onclick = function () { view = "team"; render(); };
+    } else {
+      // Every field is mirrored into the pending state the moment it changes,
+      // not at the known redraw points. Some redraws arrive unannounced —
+      // visibilitychange fires when the coach unlocks the phone — and only
+      // what has already been stored survives those.
+      var readKickoffFields = function () {
+        var el2 = document.getElementById("periodMinsInput");
+        if (el2) pendingPeriodMinutes = cleanPeriodMinutes(el2.value);
+        var el3 = document.getElementById("opponentInput");
+        if (el3) pendingOpponentName = el3.value;
+      };
+      document.getElementById("opponentInput").oninput = function (e) {
+        pendingOpponentName = e.target.value;
+      };
+      var minsEl = document.getElementById("periodMinsInput");
+      if (minsEl) minsEl.oninput = function (e) {
+        pendingPeriodMinutes = cleanPeriodMinutes(e.target.value);
+      };
+      wirePeriodNote("periodMinsInput", "periodMinsNote");
+      var setHome = function (home) {
+        readKickoffFields();
+        pendingIsHome = home;
+        var hb = document.getElementById("homeBtn"), ab = document.getElementById("awayBtn");
+        hb.classList.toggle("on", home);
+        ab.classList.toggle("on", !home);
+        hb.setAttribute("aria-pressed", home ? "true" : "false");
+        ab.setAttribute("aria-pressed", home ? "false" : "true");
+      };
+      document.getElementById("homeBtn").onclick = function () { setHome(true); };
+      document.getElementById("awayBtn").onclick = function () { setHome(false); };
+      var enablePlan = document.getElementById("enablePlanBtn");
+      if (enablePlan) enablePlan.onclick = function () {
+        readKickoffFields();
+        T().settings.planLineups = true;
+        persist();
+        render();
+        showToast("Line-up plan is on \u2014 pick 2 halves, 4 quarters or 8 periods.");
+      };
+      if (T().settings.planLineups) {
+        var setFormat = function (nPeriods) {
+          readKickoffFields();
+          pendingPeriods = nPeriods;
+          pendingFormatSet = true;
+          pendingPlan = null; // a different format needs a fresh plan
+          render();
+        };
+        el.querySelectorAll("[data-kick-fmt]").forEach(function (btn) {
+          btn.onclick = function () { setFormat(parseInt(btn.getAttribute("data-kick-fmt"), 10)); };
+        });
+        document.getElementById("planBtn").onclick = function () {
+          readKickoffFields();
+          showLineupPlanner(pendingPlan || T().lastPlan, pendingPeriods, function (plan) {
+            pendingPlan = plan;
+            render();
+          });
+        };
+      }
+      document.getElementById("kickoffBtn").onclick = function () {
+        readKickoffFields();
+        var pm = document.getElementById("periodMinsInput");
+        // The same rule the summary line above the button uses: a plan made
+        // for another format is no plan at all. Kicking off used to fall
+        // back to last week's four quarters after "8 periods" was chosen.
+        var chosenPlan = pendingPlan || T().lastPlan;
+        if (T().settings.planLineups) {
+          var np = normalisePlan(chosenPlan);
+          if (!np || np.periods !== pendingPeriods) chosenPlan = null;
+        }
+        var minsRaw = pm ? pm.value : null;
+        var fmtChoice = T().settings.planLineups ? pendingPeriods : null;
+        var oppChoice = pendingOpponentName, homeChoice = pendingIsHome;
+        function begin(awayIds) {
+          var known = {};
+          T().roster.forEach(function (p) { known[p.id] = true; });
+          startNewMatch(oppChoice, homeChoice, chosenPlan,
+            (awayIds || []).filter(function (id) { return known[id]; }), minsRaw, fmtChoice);
+          resetKickoffDraft();
+        }
+        // One player cannot be "away" from a one-player team, so no question.
+        if (T().roster.length < 2) begin([]);
+        else showAttendanceSheet([], begin);
+      };
+    }
+  }
+
   function renderMatchScreen() {
     var el = document.getElementById("matchScreen");
     var match = T().activeMatch;
 
     if (!match) {
-      syncPendingFormat();
-      el.innerHTML =
-        noticeHtml() +
-        '<h1 class="screen-title">Start a match</h1>' +
-        upcomingHtml() +
-        '<p class="playing-as">Playing as <strong>' + esc(T().teamName) + "</strong>" +
-          (state.teams.length > 1 ? ' — <button class="link-btn" id="quickSwitchBtn">switch team</button>' : "") + "</p>" +
-        (T().roster.length === 0
-          ? '<p class="hint">Add your players first, from the Team &amp; settings menu.</p>' +
-            '<button class="btn btn-primary" id="goToTeamBtn">Go to Team &amp; settings</button>'
-          : '<div class="card">' +
-              '<label class="field-label" for="opponentInput">Opponent (optional)</label>' +
-              '<input class="text-input" id="opponentInput" placeholder="e.g. FC Riverside" value="' +
-                esc(pendingOpponentName || "") + '">' +
-              '<label class="field-label">Home or away?</label>' +
-              '<div class="btn-row" style="margin-bottom:14px;">' +
-                '<button class="btn toggle-seg' + (pendingIsHome ? " on" : "") + '" id="homeBtn" aria-pressed="' + !!pendingIsHome + '">Home</button>' +
-                '<button class="btn toggle-seg' + (pendingIsHome ? "" : " on") + '" id="awayBtn" aria-pressed="' + !pendingIsHome + '">Away</button>' +
-              '</div>' +
-              '<label class="field-label" for="periodMinsInput">Length of each half, quarter or period, in minutes (optional)</label>' +
-              '<input class="text-input" id="periodMinsInput" inputmode="decimal" maxlength="5" placeholder="e.g. 15 or 7,5" value="' +
-                esc(pendingPeriodMinutes || "") + '">' +
-              '<div class="field-note" id="periodMinsNote" role="status" aria-live="polite"></div>' +
-              (T().settings.planLineups
-                ? '<label class="field-label">Match format</label>' +
-                  '<div class="btn-row" style="margin-bottom:10px;">' +
-                    PLAN_FORMATS.map(function (nP) {
-                      return '<button class="btn toggle-seg' + (pendingPeriods === nP ? " on" : "") +
-                        '" data-kick-fmt="' + nP + '">' + PLAN_FORMAT_LABELS[nP] + "</button>";
-                    }).join("") +
-                  "</div>" +
-                  '<button class="btn btn-ghost" id="planBtn">Line-up plan</button>' +
-                  '<div class="plan-summary" id="planSummary">' + planSummaryText() + "</div>"
-                : '<p class="hint kick-hint">Playing quarters or 8 short periods? ' +
-                  '<button class="link-btn" id="enablePlanBtn">Turn on line-up planning</button></p>') +
-              '<button class="btn btn-primary" id="kickoffBtn">Kick off</button>' +
-            "</div>" +
-            '<button class="btn btn-ghost" id="prepBtn" style="margin-top:12px;">Prepare a match for later</button>');
-      var qs = document.getElementById("quickSwitchBtn");
-      if (qs) qs.onclick = showTeamPicker;
-      wireUpcoming(el);
-      var pb = document.getElementById("prepBtn");
-      if (pb) pb.onclick = function () { showMatchPrep(null); };
-      if (T().roster.length === 0) {
-        document.getElementById("goToTeamBtn").onclick = function () { view = "team"; render(); };
-      } else {
-        // Every field is mirrored into the pending state the moment it changes,
-        // not at the known redraw points. Some redraws arrive unannounced —
-        // visibilitychange fires when the coach unlocks the phone — and only
-        // what has already been stored survives those.
-        var readKickoffFields = function () {
-          var el2 = document.getElementById("periodMinsInput");
-          if (el2) pendingPeriodMinutes = cleanPeriodMinutes(el2.value);
-          var el3 = document.getElementById("opponentInput");
-          if (el3) pendingOpponentName = el3.value;
-        };
-        document.getElementById("opponentInput").oninput = function (e) {
-          pendingOpponentName = e.target.value;
-        };
-        var minsEl = document.getElementById("periodMinsInput");
-        if (minsEl) minsEl.oninput = function (e) {
-          pendingPeriodMinutes = cleanPeriodMinutes(e.target.value);
-        };
-        wirePeriodNote("periodMinsInput", "periodMinsNote");
-        document.getElementById("homeBtn").onclick = function () {
-          readKickoffFields();
-          pendingIsHome = true;
-          document.getElementById("homeBtn").classList.add("on");
-          document.getElementById("awayBtn").classList.remove("on");
-          document.getElementById("homeBtn").setAttribute("aria-pressed", "true");
-          document.getElementById("awayBtn").setAttribute("aria-pressed", "false");
-        };
-        document.getElementById("awayBtn").onclick = function () {
-          readKickoffFields();
-          pendingIsHome = false;
-          document.getElementById("awayBtn").classList.add("on");
-          document.getElementById("homeBtn").classList.remove("on");
-          document.getElementById("awayBtn").setAttribute("aria-pressed", "true");
-          document.getElementById("homeBtn").setAttribute("aria-pressed", "false");
-        };
-        var enablePlan = document.getElementById("enablePlanBtn");
-        if (enablePlan) enablePlan.onclick = function () {
-          readKickoffFields();
-          T().settings.planLineups = true;
-          persist();
-          render();
-          showToast("Line-up plan is on \u2014 pick 2 halves, 4 quarters or 8 periods.");
-        };
-        if (T().settings.planLineups) {
-          var setFormat = function (nPeriods) {
-            readKickoffFields();
-            pendingPeriods = nPeriods;
-            pendingFormatSet = true;
-            pendingPlan = null; // a different format needs a fresh plan
-            render();
-          };
-          el.querySelectorAll("[data-kick-fmt]").forEach(function (btn) {
-            btn.onclick = function () { setFormat(parseInt(btn.getAttribute("data-kick-fmt"), 10)); };
-          });
-          document.getElementById("planBtn").onclick = function () {
-            readKickoffFields();
-            showLineupPlanner(pendingPlan || T().lastPlan, pendingPeriods, function (plan) {
-              pendingPlan = plan;
-              render();
-            });
-          };
-        }
-        document.getElementById("kickoffBtn").onclick = function () {
-          readKickoffFields();
-          var pm = document.getElementById("periodMinsInput");
-          // The same rule the summary line above the button uses: a plan made
-          // for another format is no plan at all. Kicking off used to fall
-          // back to last week's four quarters after "8 periods" was chosen.
-          var chosenPlan = pendingPlan || T().lastPlan;
-          if (T().settings.planLineups) {
-            var np = normalisePlan(chosenPlan);
-            if (!np || np.periods !== pendingPeriods) chosenPlan = null;
-          }
-          var minsRaw = pm ? pm.value : null;
-          var fmtChoice = T().settings.planLineups ? pendingPeriods : null;
-          var oppChoice = pendingOpponentName, homeChoice = pendingIsHome;
-          function begin(awayIds) {
-            var known = {};
-            T().roster.forEach(function (p) { known[p.id] = true; });
-            startNewMatch(oppChoice, homeChoice, chosenPlan,
-              (awayIds || []).filter(function (id) { return known[id]; }), minsRaw, fmtChoice);
-            pendingPlan = null;
-            pendingFormatSet = false;
-            pendingPeriodMinutes = null;
-            pendingOpponentName = "";
-            pendingIsHome = true;
-          }
-          // One player cannot be "away" from a one-player team, so no question.
-          if (T().roster.length < 2) begin([]);
-          else showAttendanceSheet([], begin);
-        };
-      }
+      renderKickoffForm(el);
       return;
     }
 
@@ -6079,7 +5933,7 @@
     // Who is on the pitch, and who is on the bench, are two lists. The pitch
     // keeps the large tiles (a goal is a tap on one); the bench is a compact
     // row per child that brings them on. Cards live in the player's menu.
-    var preNow = !match.lineupCaptured && !match.clock.running && !match.clock.elapsedMs && !match.events.length;
+    var preNow = isPreKickoff(match);
     var pitchHtml = "", benchHtml = "", nPitch = 0, nBench = 0;
     sortedRoster().forEach(function (p) {
       var goals = stats.scorers[p.id] || 0;
@@ -6142,7 +5996,7 @@
     // theirs to set: a new match shows whoever the last one started with, or
     // everyone. Say who is on, and how to change it, until the clock starts.
     var preKickHtml = "";
-    if (!match.lineupCaptured && !match.clock.running && !match.clock.elapsedMs && !match.events.length) {
+    if (preNow) {
       var nOn = 0, nBench = 0, nAway = 0;
       T().roster.forEach(function (p) {
         if (isOnField(match, p.id)) nOn++;
@@ -6253,16 +6107,6 @@
         else toggleField(pid);
       };
     });
-    el.querySelectorAll("[data-del-event]").forEach(function (btn) {
-      btn.onclick = function () {
-        var id = btn.getAttribute("data-del-event");
-        editMatchId = null;
-        showConfirm("Delete this entry from the log?", "Delete", function () { deleteEvent(id); }, true);
-      };
-    });
-    el.querySelectorAll("[data-edit-event]").forEach(function (btn) {
-      btn.onclick = function () { editMatchId = null; showEditEvent(btn.getAttribute("data-edit-event")); };
-    });
   }
 
   // The live match log, shown in its own sheet. Built here so the match
@@ -6297,11 +6141,7 @@
   function showMatchLogSheet() {
     var match = T().activeMatch;
     if (!match) return;
-    var old = document.getElementById("logOverlay");
-    if (old) old.remove();
-    var overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "logOverlay";
+    var overlay = newOverlay("logOverlay");
     document.body.appendChild(overlay);
 
     function draw() {
@@ -6338,7 +6178,7 @@
       document.getElementById("logCloseBtn").onclick = function () { overlay.remove(); };
     }
 
-    overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+    closeOnBackdrop(overlay);
     draw();
   }
 
@@ -6371,7 +6211,7 @@
     var isHome = record.isHome !== false;
     var d = new Date(record.date);
     var dateStr = isNaN(d) ? "" : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-    var timeline = goalTimeline(record.events, record.opponentName, record);
+    var timeline = goalTimeline(record);
     var shareText = buildShareText(record);
 
     el.innerHTML =
@@ -6624,9 +6464,9 @@
         '<button class="link-btn brk-back" id="mmCloseBtn">Close</button>' +
       "</div>";
     document.body.appendChild(o);
-    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 350);
+    armShield(o, 350);
     function close() { o.remove(); }
-    o.onclick = function (e) { if (e.target === o) close(); };
+    closeOnBackdrop(o, close);
     document.getElementById("mmCloseBtn").onclick = close;
     document.getElementById("mmCopyBtn").onclick = function () { close(); shareOrCopy(buildShareText(m)); };
     document.getElementById("mmFixBtn").onclick = function () { close(); showEditMatch(id); };
@@ -7071,14 +6911,14 @@
   function checkPeriodEnd(match) {
     if (!match || !match.clock || !match.clock.running || !match.periodMinutes || !periodStartKnown(match)) return;
     var key = match.id + ":" + (match.period || 1);
-    var over = periodElapsedMs(match) >= match.periodMinutes * 60000;
+    var over = periodIsDue(match);
     // The first look at a period only records where it stands: a match
     // reopened after its period ended must not buzz as if it had just ended.
     if (periodAlert.key !== key) { periodAlert.key = key; periodAlert.over = over; return; }
     if (over && !periodAlert.over) {
       periodAlert.over = true;
       var p = match.period || 1;
-      var fmt = (match.plan && match.plan.periods) || match.periodFormat;
+      var fmt = matchFormat(match);
       var name = fmt === 2 && p === 1 ? "First half" : fmt === 2 && p === 2 ? "Second half"
         : fmt === 4 ? "Quarter " + p : "Period " + p;
       showToast(name + " is up \u2014 " + formatClock(match.periodMinutes * 60000) + " played.", "warning");
@@ -7286,6 +7126,15 @@
     flashes.slice().forEach(function (f) { dropFlash(f); });
   });
 
+  // Start-up. Last on purpose: every constant and helper above has its value by now, so
+  // load() may read any of them. (It used to sit mid-file, and a constant declared below
+  // it made load() throw, the catch hand back an empty state and persist() write that over
+  // the season.)
+  state = load();
+  // Write the normalised (possibly migrated) shape straight back, so an upgrade
+  // isn't left half-applied if the app is closed without touching anything.
+  persist();
+  view = T().roster.length === 0 ? "team" : "match";
   installNativeBridge();
   render();
   checkStaleClock();
