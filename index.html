@@ -1150,6 +1150,17 @@
   .field-note { font-size: 0.8125rem; line-height: 1.4; color: var(--ink-soft); margin: -6px 2px 12px; }
   .field-note:empty { display: none; }
   .field-note.warn { color: var(--red-text); font-weight: 600; }
+  
+  /* ==== v50 ================================================================ */
+  .pre-kick { display: flex; align-items: center; gap: 10px; }
+  .pre-kick-txt { flex: 1; min-width: 0; }
+  .pre-kick-btn {
+    flex-shrink: 0; min-height: 44px; padding: 0 14px; border-radius: 12px;
+    background: none; border: 1px solid var(--line); color: var(--brand-text);
+    font-weight: 700; font-size: 0.8125rem;
+  }
+  .here-hint { margin: 0 0 8px; }
+  .here-count { font-size: 0.875rem; color: var(--ink-soft); text-align: center; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -1267,7 +1278,7 @@
   // Shown at the bottom of the help sheet so you can confirm on the phone which
   // build is actually running. Keep APP_VERSION in step with CACHE_VERSION in
   // sw.js, and set APP_BUILT to the deploy date.
-  var APP_VERSION = "49";
+  var APP_VERSION = "50";
   var APP_BUILT = "2026-09-30";
 
   function uid() {
@@ -2199,6 +2210,84 @@
   }
   function absentIds(match) {
     return (match && match.unavailable || []).filter(function (pid) { return isAbsent(match, pid); });
+  }
+
+  // "Who is here today?" Asked when a match is started straight from the form,
+  // where nothing says who is away (a prepared match already knows). Until now a
+  // child who had missed the last match just sat on the bench, because the new
+  // match copies the last starting eleven, and a child who is away today could
+  // not be marked at all, so they kept the "played least" marker for the whole
+  // match. The same Away / There rows as "Prepare a match". onDone gets the ids
+  // that were marked away.
+  function showAttendanceSheet(initialAway, onDone) {
+    var roster = sortedRoster();
+    var away = (initialAway || []).filter(function (id) { return !!rosterById(id); });
+    var old = document.getElementById("hereOverlay");
+    if (old) old.remove();
+    var o = document.createElement("div");
+    o.className = "overlay";
+    o.id = "hereOverlay";
+    var rows = roster.map(function (p) {
+      return '<button class="prep-av" data-here="' + escAttr(p.id) + '" aria-pressed="false">' +
+        '<span class="plan-num">' + esc(p.number || "–") + "</span>" +
+        '<span class="prep-av-nm">' + esc(p.name) + "</span>" +
+        '<span class="prep-av-tag">There</span>' +
+      "</button>";
+    }).join("");
+    o.innerHTML =
+      '<div class="card-sheet shield">' +
+        '<div class="plan-title">Who’s here today?</div>' +
+        '<div class="card-scroll">' +
+          '<p class="hint here-hint">Tap anyone who isn’t here. They stay off the pitch and out of the plan.</p>' +
+          '<div class="prep-av-list">' + rows + "</div>" +
+        "</div>" +
+        '<div class="here-count" id="hereCount" role="status" aria-live="polite"></div>' +
+        '<button class="btn btn-primary" id="hereGo"></button>' +
+        '<button class="btn btn-ghost" id="hereCancel">Cancel</button>' +
+      "</div>";
+    document.body.appendChild(o);
+    setTimeout(function () { var sh = o.querySelector(".shield"); if (sh) sh.classList.remove("shield"); }, 350);
+
+    var goBtn = o.querySelector("#hereGo");
+    function refresh() {
+      o.querySelectorAll("[data-here]").forEach(function (b) {
+        var gone = away.indexOf(b.getAttribute("data-here")) !== -1;
+        b.classList.toggle("away", gone);
+        b.setAttribute("aria-pressed", gone ? "true" : "false");
+        b.querySelector(".prep-av-tag").textContent = gone ? "Away" : "There";
+      });
+      var n = away.length, here = roster.length - n;
+      o.querySelector("#hereCount").textContent = here + " here" + (n ? " · " + n + " away" : "");
+      goBtn.disabled = here < 1;
+      goBtn.textContent = here < 1 ? "Nobody is here" : n ? "Continue · " + n + " away" : "Everyone is here";
+    }
+    o.querySelectorAll("[data-here]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute("data-here");
+        var k = away.indexOf(id);
+        if (k === -1) away.push(id); else away.splice(k, 1);
+        refresh();
+      };
+    });
+    o.querySelector("#hereCancel").onclick = function () { o.remove(); };
+    goBtn.onclick = function () {
+      o.remove();
+      onDone(away.slice());
+    };
+    refresh();
+  }
+
+  // Before the clock has ever run, change who is away. Someone newly away leaves
+  // the pitch; someone who is back waits on the bench until they are picked, like
+  // anyone else. Once the clock has run the bench is live and this does nothing.
+  function applyAttendance(match, awayIds) {
+    if (!match || match.lineupCaptured || match.clock.running || match.clock.elapsedMs || match.events.length) return false;
+    var ids = (awayIds || []).filter(function (id) { return !!rosterById(id); });
+    ids.forEach(function (id) { setOnField(match, id, false); });
+    match.unavailable = ids.slice();
+    persist();
+    render();
+    return true;
   }
 
   function planChanges(match, period) {
@@ -3347,7 +3436,7 @@
       ["Set up your team", "Go to <strong>Team</strong>. A new team starts with a list to fill in: paste or type one player per line, with or without a shirt number (<strong>7 Arthur</strong>, <strong>Arthur 7</strong> and <strong>7. Arthur</strong> all work), check the players the app found, and tap <strong>Add</strong>. <strong>Add one at a time</strong> gives you the Name and No. fields instead, and from the first player on they are always there: Enter moves from Name to No. and then adds. <strong>Edit</strong> on a player\u2019s row fixes a name or a shirt number. This only needs doing once — it's saved on this device for every future match."],
       ["Several teams", "Tap <strong>Teams</strong> at the top of the Team screen (it reads <strong>Switch</strong> once you have more than one) to keep more than one team on the same device. Each team has its own roster, settings, match history and even its own match in progress, so switching never mixes them up."],
       ["Match options", "Still on the Team screen: turn on <strong>Assists</strong>, <strong>Playing time</strong> or <strong>Cards</strong> only if you want to track them, and <strong>Line-up plan</strong> if you want to set who plays each period (more on that further down). All four are off by default to keep things simple."],
-      ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>. During the match the strip under the clock shows both team names, with <strong>(H)</strong> for home or <strong>(A)</strong> for away behind them. Typed the opponent wrong? Tap its name in that strip (marked \u270e) to rename it."],
+      ["Start a match", "On the <strong>Match</strong> tab, enter the opponent (optional), pick Home or Away, then tap <strong>Kick off</strong>. It asks who is here today: tap anyone who isn’t, then continue. Changed your mind before the clock starts? Tap <strong>Who’s here?</strong> above the players. During the match the strip under the clock shows both team names, with <strong>(H)</strong> for home or <strong>(A)</strong> for away behind them. Typed the opponent wrong? Tap its name in that strip (marked \u270e) to rename it."],
       ["The clock", "Tap the timer at the top, or the green <strong>Kick off</strong> button at the bottom, to start it. You can't log goals or cards until it is running, which is what keeps every minute accurate. Tap a player or the opponent button while it is stopped and the app asks whether to start the clock and log it in one go. It is a <strong>match</strong> clock, so it keeps counting across the breaks the way a real one does \u2014 the second half starts at 45', not at 0 \u2014 and that is the minute your goals are stamped with. From the second period on, the big number shows the time in <strong>that</strong> period (<strong>Q2 \u00b7 01:20</strong>) with the match total underneath. The words under the number say where you are: <strong>Not started</strong>, <strong>Running</strong>, <strong>Break</strong> or <strong>Paused</strong>, and the panel turns gold whenever the clock is stopped. Give the match a period length at kick-off and it also counts down what is left, a thin bar fills along the bottom, and once the period is up it reads <strong>Time\u2019s up</strong> with how much is being added on; at that moment the phone buzzes once and says so. The screen stays on while the clock runs. Half minutes work too: with 8 periods in a 60-minute match, type <strong>7,5</strong>. The line under the field says what the app made of what you typed; anything from <strong>0,1</strong> (six seconds, handy for trying it out) up to 60 is accepted."],
       ["Score a goal", "Tap a player's tile on the pitch. If Assists is on, you'll be asked who assisted right after: large buttons, <strong>No assist</strong> first, and a thin line that runs out after 8 seconds. Use the dashed <strong>+ opponent scored</strong> button at the bottom of the screen for the opponent's goals; it stays in view while you scroll the tiles."],
       ["Own goals", "Tap <strong>Own goal</strong>, under the player tiles, then pick who put it in their own net. Each choice says which team gets the point (<strong>Own goal by the opponent \u2014 point to your team</strong>), and an own goal is never counted as a goal for any player."],
@@ -5953,14 +6042,23 @@
             var np = normalisePlan(chosenPlan);
             if (!np || np.periods !== pendingPeriods) chosenPlan = null;
           }
-          startNewMatch(pendingOpponentName, pendingIsHome,
-            chosenPlan, null, pm ? pm.value : null,
-            T().settings.planLineups ? pendingPeriods : null);
-          pendingPlan = null;
-          pendingFormatSet = false;
-          pendingPeriodMinutes = null;
-          pendingOpponentName = "";
-          pendingIsHome = true;
+          var minsRaw = pm ? pm.value : null;
+          var fmtChoice = T().settings.planLineups ? pendingPeriods : null;
+          var oppChoice = pendingOpponentName, homeChoice = pendingIsHome;
+          function begin(awayIds) {
+            var known = {};
+            T().roster.forEach(function (p) { known[p.id] = true; });
+            startNewMatch(oppChoice, homeChoice, chosenPlan,
+              (awayIds || []).filter(function (id) { return known[id]; }), minsRaw, fmtChoice);
+            pendingPlan = null;
+            pendingFormatSet = false;
+            pendingPeriodMinutes = null;
+            pendingOpponentName = "";
+            pendingIsHome = true;
+          }
+          // One player cannot be "away" from a one-player team, so no question.
+          if (T().roster.length < 2) begin([]);
+          else showAttendanceSheet([], begin);
         };
       }
       return;
@@ -6060,9 +6158,10 @@
         else if (isAbsent(match, p.id)) nAway++;
         else nBench++;
       });
-      preKickHtml = '<div class="pre-kick" id="preKick"><strong>' + nOn + " on the pitch</strong> \u00b7 " + nBench + " on the bench" +
-        (nAway ? " \u00b7 " + nAway + " away" : "") +
-        ". Tap On pitch, or a player on the bench, to set who starts, then tap the timer.</div>";
+      preKickHtml = '<div class="pre-kick" id="preKick"><div class="pre-kick-txt"><strong>' + nOn + " on the pitch</strong> · " + nBench + " on the bench" +
+        (nAway ? " · " + nAway + " away" : "") +
+        ". Tap On pitch, or a player on the bench, to set who starts, then tap the timer.</div>" +
+        (T().roster.length > 1 ? '<button class="pre-kick-btn" id="whoHereBtn">Who’s here?</button>' : "") + "</div>";
     }
 
     // The pinned right-hand button is the next step of the match: start the
@@ -6120,6 +6219,10 @@
     if (htb) htb.onclick = startNextPeriod;
     var scb = document.getElementById("startClockBtn");
     if (scb) scb.onclick = toggleClock;
+    var whb = document.getElementById("whoHereBtn");
+    if (whb) whb.onclick = function () {
+      showAttendanceSheet(absentIds(match), function (awayIds) { applyAttendance(match, awayIds); });
+    };
     var mpb = document.getElementById("matchPlanBtn");
     if (mpb) mpb.onclick = function () {
       showLineupPlanner(match.plan, match.plan.periods, function (plan) {
